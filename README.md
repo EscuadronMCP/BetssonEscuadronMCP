@@ -62,7 +62,7 @@ El programa termina con código **0 si todo es PASS** y **1 si algo es FAIL** (�
 En **Actions → «Validación de juegos» → Run workflow**, elige el escenario y, si quieres ver un fallo, `inject_fault`. Al terminar, el informe está en el artefacto **`informe-es`** y el resumen en la propia ejecución. Requiere un runner con IP española (variable `VALIDATION_RUNS_ON`) y las credenciales como *Secrets* con los nombres de `.env.example`.
 
 ### Antes de ejecutar, ten en cuenta
-- **Una sola ejecución a la vez con las mismas cuentas.** Dos sesiones simultáneas se pisan: la web cierra una («Sesión expirada», «¡Acceda a su cuenta!») o la otra gasta saldo durante la tirada, y el validador lo marca como discrepancia. En un mismo ordenador lo impide un cerrojo; entre ordenadores hay que coordinarse.
+- **Una sola ejecución a la vez con las mismas cuentas.** Dos sesiones simultáneas se pisan: la web cierra una («Sesión expirada», «¡Acceda a su cuenta!») o la otra gasta saldo durante la tirada, y el validador lo marca como discrepancia. En un mismo ordenador lo impide un cerrojo. Entre ordenadores hay que coordinarse: si al abrir el juego el crédito ya no coincide con el saldo de Betsson leído al entrar, el validador no gira y explica que otra sesión está usando la cuenta.
 - El escenario 1 **apuesta 0,20 € reales** (la apuesta mínima, comprobada en pantalla).
 - Sin `ANTHROPIC_API_KEY` funciona igual con los perfiles ya aprendidos; solo pierde la reparación automática de un perfil.
 
