@@ -90,3 +90,25 @@ def test_malformed_amounts_are_ignored_not_crashing() -> None:
     assert spin.wager_requested is None
     assert spin.balance_after is None
     assert spin.declared_win is None
+
+
+def test_game_service_traffic_is_attributed_to_the_game_frame() -> None:
+    """Auditoría R02 (NET-001/002): el texto "gameService" en la URL no basta."""
+    from types import SimpleNamespace  # noqa: PLC0415
+    from typing import Any, cast  # noqa: PLC0415
+
+    from betsson_validator.providers.pragmatic.recorder import _foreign_reason  # noqa: PLC0415
+
+    casino = SimpleNamespace(parent_frame=None, url="https://www.betsson.es/casino")
+    game = SimpleNamespace(parent_frame=casino, url="https://a.proveedor.net/gs2c/playGame.do")
+    other = SimpleNamespace(parent_frame=casino, url="https://anuncios.example/frame")
+
+    def response(frame: object, url: str) -> Any:
+        return cast(Any, SimpleNamespace(request=SimpleNamespace(frame=frame), url=url))
+
+    blank = SimpleNamespace(parent_frame=game, url="about:blank")
+    server = "https://b.proveedor.net/gs2c/ge/v4/gameService"
+    assert _foreign_reason(response(game, server)) is None
+    assert _foreign_reason(response(blank, server)) is None  # hereda el sitio del juego
+    assert _foreign_reason(response(casino, server)) is not None
+    assert _foreign_reason(response(other, server)) is not None

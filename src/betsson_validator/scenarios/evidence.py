@@ -48,6 +48,14 @@ class NetworkSummary:
     balance_before: Decimal | None = None
     balance_after: Decimal | None = None
     evidence: str = ""
+    # Salud de la captura: sin tráfico observado o con respuestas ilegibles durante la tirada,
+    # la ausencia de una petición no prueba nada.
+    observed_calls: int = 0
+    unreadable: int = 0
+
+    @property
+    def reliable(self) -> bool:
+        return self.observed_calls > 0 and self.unreadable == 0
 
 
 @dataclass(frozen=True)

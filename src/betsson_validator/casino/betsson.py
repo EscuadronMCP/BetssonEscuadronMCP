@@ -2,10 +2,12 @@
 
 import re
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -251,27 +253,52 @@ class BetssonCasino:
         raise CasinoError(f"No se pudo filtrar el lobby por el proveedor '{label}'.")
 
     def _find_in_lobby(self, slug: str, provider_label: str) -> Locator:
-        """El listado carga los juegos al bajar: se baja hasta que aparece, como un jugador."""
+        """El listado carga los juegos al bajar: se baja hasta que aparece, como un jugador.
+
+        Para cargar más se lleva a la vista el último juego cargado (no depende de dónde esté el
+        puntero ni de capas superpuestas) y, además, se usa la rueda sobre el listado.
+        """
         game_link = self._page.locator(f"a[href$='/{slug}']").first
+        tiles = self._page.locator("a[href*='/casino/']")
         self._wait_for_game_tiles()
-        # La rueda actúa donde está el puntero: hay que ponerlo sobre el listado.
         viewport = self._page.viewport_size or {"width": 1440, "height": 900}
         self._page.mouse.move(viewport["width"] / 2, viewport["height"] * 2 / 3)
         for _ in range(_LOBBY_MAX_SCROLLS):
             if game_link.count():
                 game_link.scroll_into_view_if_needed()
                 return game_link
+            # El listado se vuelve a pintar a menudo: un elemento que desaparece no es un error.
+            with suppress(PlaywrightError):
+                tiles.last.scroll_into_view_if_needed(timeout=_LOBBY_SCROLL_WAIT_MS * 3)
             self._page.mouse.wheel(0, _LOBBY_SCROLL_PX)
             self._page.wait_for_timeout(_LOBBY_SCROLL_WAIT_MS)
-        raise CasinoError(f"El juego '{slug}' no aparece en el lobby de {provider_label}.")
+        loaded = int(tiles.evaluate_all(_COUNT_GAME_TILES_JS))
+        raise CasinoError(
+            f"El juego '{slug}' no aparece en el lobby de {provider_label} "
+            f"({loaded} juegos cargados; ver la captura del fallo)."
+        )
+
+    def save_screenshot(self, path: Path) -> Path:
+        """Lo que se ve en la página (p. ej. al fallar un paso), para el informe."""
+        self._page.screenshot(path=str(path), type="jpeg", quality=JPEG_QUALITY)
+        return path
 
     def _wait_for_game_tiles(self, timeout_s: float = 30) -> None:
+        """Espera a que el listado tenga juegos y deje de cambiar (tras filtrar se vuelve a
+        pintar: buscar en la lista anterior daría un "no aparece" falso)."""
         links = self._page.locator("a[href*='/casino/']")
         deadline = time.monotonic() + timeout_s
-        while int(links.evaluate_all(_COUNT_GAME_TILES_JS)) == 0:
+        previous = -1
+        while True:
+            count = int(links.evaluate_all(_COUNT_GAME_TILES_JS))
+            if count > 0 and count == previous:
+                return
             if time.monotonic() > deadline:
+                if count > 0:
+                    return  # sigue cargando al bajar: ya hay juegos donde buscar
                 raise CasinoError("El lobby no mostró ningún juego a tiempo.")
-            self._page.wait_for_timeout(500)
+            previous = count
+            self._page.wait_for_timeout(1000)
 
     def _set_loss_limit(self) -> None:
         """Límite de pérdidas, si el diálogo lo pide.

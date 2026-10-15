@@ -55,6 +55,7 @@ SERVER = NetworkSummary(
     declared_win=Decimal("0.15"),
     balance_before=Decimal("64.70"),
     balance_after=Decimal("64.65"),
+    observed_calls=4,
 )
 WINNING_SPIN = replace(WINNING_SPIN, network=SERVER)
 
@@ -67,7 +68,7 @@ REJECTED_SPIN = RunEvidence(
     screen_before=screen("0.00", "0.20"),
     screen_after=screen("0.00", "0.20", message="Fondos insuficientes para realizar esta"),
     motion=MotionSummary(started=False, completed=False, samples=10, peak=0.02),
-    network=NetworkSummary(spin_requested=False),
+    network=NetworkSummary(spin_requested=False, observed_calls=2),
 )
 
 
@@ -132,9 +133,40 @@ def test_missing_message_fails_scenario_two() -> None:
     assert result[Check.SPIN_REJECTED.value] is Status.FAIL
 
 
-def test_spin_sent_to_server_contradicts_rejection() -> None:
-    sent = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=True))
+def test_spin_accepted_by_server_contradicts_rejection() -> None:
+    sent = replace(
+        REJECTED_SPIN,
+        network=NetworkSummary(
+            spin_requested=True, wager_accepted=Decimal("0.20"), observed_calls=3
+        ),
+    )
     assert statuses(evaluate_insufficient_balance(sent))[Check.SPIN_REJECTED.value] is Status.FAIL
+
+
+def server_testimony(results: tuple[CheckResult, ...], check: Check) -> str:
+    result = next(r for r in results if r.check == check.value)
+    return next(
+        f"{t.outcome}: {t.detail}" for t in result.testimonies if t.witness == "servidor del juego"
+    )
+
+
+def test_spin_rejected_by_server_without_charge_is_a_valid_rejection() -> None:
+    """Auditoría R02 (NET-010): un rechazo del servidor sin cobro también es un rechazo."""
+    rejected = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=True, observed_calls=3))
+    results = evaluate_insufficient_balance(rejected)
+    assert statuses(results)[Check.SPIN_REJECTED.value] is Status.PASS
+    assert "rechazó la tirada sin cobrarla" in server_testimony(results, Check.SPIN_REJECTED)
+
+
+def test_a_capture_that_saw_nothing_cannot_prove_there_was_no_spin() -> None:
+    """Auditoría R02 (NET-008): un grabador inoperativo no acredita ausencia de peticiones."""
+    blind = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=False))
+    unreadable = replace(
+        REJECTED_SPIN, network=NetworkSummary(spin_requested=False, observed_calls=3, unreadable=1)
+    )
+    for evidence in (blind, unreadable):
+        detail = server_testimony(evaluate_insufficient_balance(evidence), Check.SPIN_REJECTED)
+        assert detail.startswith("unavailable")
 
 
 # --- Regresiones de la auditoría del equipo (15/10) ---------------------------------------------

@@ -172,6 +172,7 @@ juego <b>{escape(run.game)}</b> · {escape(run.started_at.isoformat())} →
 
 
 _MEDIA = (
+    ("fallo_pantalla.jpg", "Captura de la pantalla al fallar"),
     ("video/*.webm", "Vídeo de la ejecución"),
     ("trace.zip", "Traza de Playwright"),
     ("eventos_del_juego.json", "Eventos del juego (postMessage)"),

@@ -7,6 +7,7 @@ providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 
 import re
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -164,6 +165,9 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                         witnesses=_Witnesses(network, interpreter),
                         files=files,
                     )
+                except Exception:
+                    _save_failure_screen(casino, files)
+                    raise
                 finally:
                     notes = list(model.notes)
                     if model.notes:
@@ -185,6 +189,12 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
         notes=tuple(notes),
         injected_fault=ctx.fault.description if ctx.fault else None,
     )
+
+
+def _save_failure_screen(casino: BetssonCasino, files: EvidenceRecorder) -> None:
+    """Captura de lo que había en pantalla al fallar: explica el error en el informe."""
+    with suppress(Exception):  # sin captura no se pierde el error original
+        casino.save_screenshot(files.directory / "fallo_pantalla.jpg")
 
 
 def failed_run(scenario: Scenario, ctx: RunContext, error: BaseException) -> ScenarioRun:

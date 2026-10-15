@@ -19,7 +19,7 @@ from betsson_validator.domain.verdict import (
     WitnessKind,
     evaluate,
 )
-from betsson_validator.scenarios.evidence import GameEventsSummary, RunEvidence
+from betsson_validator.scenarios.evidence import GameEventsSummary, NetworkSummary, RunEvidence
 
 SCREEN = "pantalla del juego"
 HEADER = "cabecera de Betsson"
@@ -148,8 +148,10 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
         ),
     ]
     network = evidence.network
-    if network is None:
-        testimonies.append(_t(SERVER, WitnessKind.CORROBORATING, None, "tráfico no disponible"))
+    if network is None or not network.reliable:
+        testimonies.append(
+            _t(SERVER, WitnessKind.CORROBORATING, None, "tráfico no disponible o incompleto")
+        )
     else:
         testimonies.append(
             _t(
@@ -370,17 +372,7 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
         if not evidence.motion.completed
         else "el juego animó un giro completo",
     )
-    network = evidence.network
-    server = _t(
-        SERVER,
-        WitnessKind.CORROBORATING,
-        None if network is None else not network.spin_requested,
-        "tráfico no disponible"
-        if network is None
-        else "no se envió ninguna tirada al servidor"
-        if not network.spin_requested
-        else "el cliente envió una tirada al servidor",
-    )
+    server = _server_rejection(evidence.network)
     events = _events(
         evidence,
         lambda e: (
@@ -440,17 +432,7 @@ def game_balance_unchanged(evidence: RunEvidence) -> CheckResult:
         f"crédito del juego {_fmt(before)} → {_fmt(after)}",
         (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
-    network = evidence.network
-    server = _t(
-        SERVER,
-        WitnessKind.CORROBORATING,
-        None if network is None else not network.spin_requested,
-        "sin tirada en el servidor, el saldo no pudo cambiar"
-        if network is not None and not network.spin_requested
-        else "tráfico no disponible"
-        if network is None
-        else "hubo una tirada en el servidor",
-    )
+    server = _server_rejection(evidence.network)
     events = _events(
         evidence,
         lambda e: (
@@ -461,6 +443,34 @@ def game_balance_unchanged(evidence: RunEvidence) -> CheckResult:
         ),
     )
     return evaluate(Check.GAME_BALANCE_UNCHANGED.value, (screen, server, events))
+
+
+def _server_rejection(network: NetworkSummary | None) -> Testimony:
+    """El servidor no cobró ninguna tirada: o no se le pidió, o la rechazó sin aceptarla.
+
+    Solo cuenta si la captura es fiable: sin tráfico observado o con respuestas ilegibles, la
+    ausencia de una tirada no prueba nada.
+    """
+    evidence = (network.evidence,) if network and network.evidence else ()
+    if network is None or not network.reliable:
+        return _t(SERVER, WitnessKind.CORROBORATING, None, "tráfico no disponible o incompleto")
+    if not network.spin_requested:
+        return _t(SERVER, WitnessKind.CORROBORATING, True, "no se envió ninguna tirada", evidence)
+    if network.wager_accepted is None:
+        return _t(
+            SERVER,
+            WitnessKind.CORROBORATING,
+            True,
+            "el servidor rechazó la tirada sin cobrarla",
+            evidence,
+        )
+    return _t(
+        SERVER,
+        WitnessKind.CORROBORATING,
+        False,
+        f"el servidor aceptó una tirada de {network.wager_accepted}",
+        evidence,
+    )
 
 
 def evaluate_insufficient_balance(evidence: RunEvidence) -> tuple[CheckResult, ...]:

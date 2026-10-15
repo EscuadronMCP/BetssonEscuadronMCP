@@ -179,3 +179,13 @@ def test_links_with_spaces_hash_and_accents_are_encoded(tmp_path: Path) -> None:
     _, html_path = write_report([run_with((result,))], tmp_path)
     html = html_path.read_text(encoding="utf-8")
     assert 'src="completed_spin/captura%20%231%20se%C3%B1al.jpg"' in html
+
+
+def test_failure_screenshot_is_linked_next_to_the_error(tmp_path: Path) -> None:
+    folder = tmp_path / "completed_spin"
+    folder.mkdir()
+    (folder / "fallo_pantalla.jpg").write_bytes(b"jpg")
+    _, html_path = write_report([run_with((), error="CasinoError: no aparece")], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert 'href="completed_spin/fallo_pantalla.jpg"' in html
+    assert "Captura de la pantalla al fallar" in html
