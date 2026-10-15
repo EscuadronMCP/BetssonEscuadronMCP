@@ -15,7 +15,7 @@ Memoria compartida del equipo. Se actualiza en cada commit que cierra un paso (v
 
 ## Siguiente paso
 1. Rellenar `.env` con las cuentas de prueba cuando Betsson las entregue.
-2. Confirmar con los mentores idioma y divisa esperados en betsson.es.
+2. Recibir las cuentas de prueba de Betsson.
 3. Decidir el enfoque técnico tras la presentación del reto (ADR en `docs/decisiones/`).
 
 ## Problemas conocidos
