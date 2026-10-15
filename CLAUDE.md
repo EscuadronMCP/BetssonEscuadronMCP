@@ -47,13 +47,13 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
   git push origin main
   ```
 - Si el rebase da conflictos, resuélvelos respetando el trabajo de los compañeros; si no está claro, pregunta. **Prohibido `git push --force`** y reescribir historia publicada.
-- **Mensajes:** [Conventional Commits](https://www.conventionalcommits.org/) en español: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `security`. Ej.: `feat(lobby): detectar juego nuevo por nombre`.
+- **Mensajes:** [Conventional Commits](https://www.conventionalcommits.org/) en español: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `security`. Ej.: `feat(report): añadir resultado por mercado`.
 - Al terminar una tarea grande, actualiza el `README.md` (cómo instalar, ejecutar y qué hace) para que el estado entregable sea comprensible sin nosotros.
 - **Traspaso de contexto:** `docs/ESTADO.md` es la memoria compartida del equipo. Actualízalo en el mismo commit que cierra cada paso: qué funciona, qué está en curso (y quién), siguiente paso concreto y problemas conocidos. Así cualquier compañero o una sesión nueva sin contexto puede retomar el trabajo si se acaban los tokens a mitad de tarea.
 
 ### Trabajo en equipo
 - Antes de empezar una tarea, haz `git pull --rebase` y apúntala en "En curso" de `docs/ESTADO.md` (commit + push inmediato) para que nadie la duplique.
-- Cada persona trabaja en módulos distintos siempre que sea posible; los contratos compartidos (interfaces, formato del veredicto, configuración) se cambian solo avisando al equipo.
+- Cada persona trabaja en módulos distintos siempre que sea posible; los contratos compartidos (interfaces, formato del informe, configuración) se cambian solo avisando al equipo.
 
 ## 3. Seguridad (no negociable)
 
