@@ -24,6 +24,7 @@ from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game.events import GameEventRecorder, capture_anomalies, payloads
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
+from betsson_validator.locks import account_lock
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
 from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
@@ -140,7 +141,10 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
         credentials = plan.account(ctx.market).resolve()
         secrets = (credentials.email.get_secret_value(), credentials.password.get_secret_value())
         interpreter = events_interpreter(ctx.provider.events_witness)
-        with browser_context(ctx.settings, evidence_dir) as context:
+        with (
+            account_lock(credentials.email.get_secret_value()),
+            browser_context(ctx.settings, evidence_dir) as context,
+        ):
             if interpreter is not None:
                 GameEventRecorder(context, GAME_FRAME_SELECTOR)
             page = context.new_page()
