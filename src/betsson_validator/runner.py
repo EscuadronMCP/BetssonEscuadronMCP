@@ -38,6 +38,7 @@ from betsson_validator.scenarios.evidence import (
     RunEvidence,
     ScreenSnapshot,
 )
+from betsson_validator.security import audit_and_quarantine, scrub_trace
 
 Evaluator = Callable[[RunEvidence], tuple[CheckResult, ...]]
 
@@ -150,6 +151,8 @@ def run_scenario(
                 )
     except Exception as exception:  # el informe debe recoger cualquier fallo, sin secretos
         error = _sanitize(f"{type(exception).__name__}: {exception}", secrets)
+    scrub_trace(evidence_dir / "trace.zip", secrets)
+    quarantined = audit_and_quarantine(evidence_dir, secrets)
     return ScenarioRun(
         scenario=scenario,
         market=market.id,
@@ -159,6 +162,7 @@ def run_scenario(
         finished_at=datetime.now(UTC),
         results=results,
         error=error,
+        quarantined=tuple(quarantined),
     )
 
 

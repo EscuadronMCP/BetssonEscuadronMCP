@@ -62,6 +62,11 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
         for c in run.missing_checks()
     )
     error = f'<p class="error">Error: {escape(run.error)}</p>' if run.error else ""
+    if run.quarantined:
+        error += (
+            '<p class="error">Evidencias retiradas por seguridad (contenían secretos): '
+            f"{escape(', '.join(run.quarantined))}</p>"
+        )
     return f"""<section>
 <h2>{escape(SCENARIO_TITLES[run.scenario])} {_badge(run.status)}</h2>
 <p class="meta">Mercado <b>{escape(run.market)}</b> · proveedor <b>{escape(run.provider)}</b> ·

@@ -19,6 +19,8 @@ class ScenarioRun(BaseModel):
     finished_at: datetime
     results: tuple[CheckResult, ...]
     error: str | None = None
+    # Evidencias retiradas por contener secretos que no se pudieron limpiar.
+    quarantined: tuple[str, ...] = ()
 
     @property
     def status(self) -> Status:
