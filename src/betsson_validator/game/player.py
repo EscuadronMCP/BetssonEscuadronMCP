@@ -152,6 +152,26 @@ class ScreenModel:
         center_x, center_y = match.center
         return center_x / width, center_y / height
 
+    def locate_near(self, control: str, image: Image, around: Point | None) -> Point | None:
+        """Como `locate`, pero solo en la zona alrededor de `around` (los botones de apuesta están
+        junto al de girar): otros elementos parecidos de la pantalla no cuentan (15/10, Big Bass:
+        los «-» verdes del panel de apuesta encajaban mejor que el del marcador)."""
+        if around is None:
+            return None
+        height, width = image.shape[:2]
+        x0, x1 = (
+            max(int((around[0] - _BET_NEAR_SPIN) * width), 0),
+            min(int((around[0] + _BET_NEAR_SPIN) * width), width),
+        )
+        y0, y1 = (
+            max(int((around[1] - _BET_NEAR_SPIN) * height), 0),
+            min(int((around[1] + _BET_NEAR_SPIN) * height), height),
+        )
+        point = self.locate(control, image[y0:y1, x0:x1])
+        if point is None:
+            return None
+        return (x0 + point[0] * (x1 - x0)) / width, (y0 + point[1] * (y1 - y0)) / height
+
     def locate_or_learn(self, control: str, image: Image) -> Point:
         point = self.locate(control, image)
         if point is None and self.learn(image, f"no se encontró el control '{control}'"):
@@ -406,15 +426,10 @@ class ScreenGame:
         unchanged = 0
         spin = self.model.locate("spin", image)
         for _ in range(self.timings.max_bet_presses):
-            point = self.model.locate("bet_down", image)
+            # Solo junto al botón de girar: un "-" en otro sitio es otra cosa (15/10, Big Bass:
+            # un falso "-" abrió el panel de tirada automática).
+            point = self.model.locate_near("bet_down", image, spin)
             if point is None:
-                break
-            if not near_spin(point, spin):
-                # Un "-" lejos del botón de girar es otra cosa (15/10: en Big Bass abrió el panel
-                # de tirada automática): no se pulsa.
-                self.model.notes.append(
-                    "El botón de bajar apuesta apareció lejos del de girar y no se pulsó."
-                )
                 break
             self.click(point)
             self.page.wait_for_timeout(350)
@@ -509,13 +524,6 @@ def _control_box_problem(box: Box, width: int, height: int) -> str | None:
     if w * h > _MAX_CONTROL_SHARE * width * height:
         return "caja demasiado grande para ser un botón"
     return None
-
-
-def near_spin(point: Point, spin: Point | None) -> bool:
-    """Los controles de apuesta están junto al botón de girar; lejos de él, no son fiables."""
-    if spin is None:
-        return False
-    return abs(point[0] - spin[0]) <= _BET_NEAR_SPIN and abs(point[1] - spin[1]) <= _BET_NEAR_SPIN
 
 
 def same_reading(a: HudReading, b: HudReading) -> bool:

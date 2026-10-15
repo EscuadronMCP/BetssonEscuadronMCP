@@ -124,12 +124,18 @@ def test_saving_writes_everything_or_keeps_the_previous_profile(tmp_path: Path) 
     assert kept is not None and kept.credit_label == profile.credit_label
 
 
-def test_bet_controls_far_from_spin_are_never_pressed() -> None:
-    """15/10 (real): un falso «-» de Big Bass en (0,68; 0,32) abrió la tirada automática."""
-    from betsson_validator.game.player import near_spin  # noqa: PLC0415
-
-    spin = (0.776, 0.901)
-    assert near_spin((0.698, 0.907), spin)  # «-» real de Sweet Bonanza
-    assert near_spin((0.700, 0.930), spin)  # «-» real de Big Bass
-    assert not near_spin((0.682, 0.321), spin)  # el falso «-» dentro del panel
-    assert not near_spin((0.698, 0.907), None)  # sin girar localizado, no se pulsa
+def test_bet_down_is_searched_only_next_to_the_spin_button(model: ScreenModel) -> None:
+    """15/10 (real): un «-» parecido lejos del botón de girar (panel de Big Bass) no cuenta."""
+    image = load("sweet_bonanza_ready.png")
+    spin = model.locate("spin", image)
+    found = model.locate_near("bet_down", image, spin)
+    height, width = image.shape[:2]
+    assert found is not None
+    assert near((round(found[0] * width), round(found[1] * height)), BET_DOWN)
+    decoy = image.copy()
+    x, y = BET_DOWN
+    decoy[60 : 60 + 30, 60 : 60 + 30] = image[y - 15 : y + 15, x - 15 : x + 15]  # «-» falso arriba
+    found_with_decoy = model.locate_near("bet_down", decoy, spin)
+    assert found_with_decoy is not None
+    assert near((round(found_with_decoy[0] * width), round(found_with_decoy[1] * height)), BET_DOWN)
+    assert model.locate_near("bet_down", image, None) is None
