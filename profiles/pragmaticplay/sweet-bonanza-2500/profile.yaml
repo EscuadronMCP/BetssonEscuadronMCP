@@ -3,7 +3,7 @@ game: sweet-bonanza-2500
 labels:
   credit: CRÉDITO
   bet: APUESTA
-  win: ''
+  win: GANANCIA
 controls:
   spin: spin.png
   bet_down: bet_down.png
@@ -11,8 +11,18 @@ controls:
   continue: continue.png
 reels_area:
 - 0.25111607142857145
-- 0.10317460317460317
-- 0.9017857142857143
+- 0.0992063492063492
+- 0.9040178571428571
 - 0.8650793650793651
+hud_positions:
+  credit:
+  - 0.23772321428571427
+  - 0.9146825396825397
+  bet:
+  - 0.22600446428571427
+  - 0.9494047619047619
+  win:
+  - 0.5011160714285714
+  - 0.9047619047619048
 learned_with: claude-sonnet-5-5
-learned_at: '2026-10-15T12:13:29+00:00'
+learned_at: '2026-10-15T13:57:22+00:00'
