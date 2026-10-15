@@ -51,6 +51,7 @@ from betsson_validator.scenarios.faults import InjectedFault
 from betsson_validator.scenarios.preconditions import (
     check_bet,
     require_funds,
+    require_known_minimum,
     require_no_funds,
 )
 from betsson_validator.security import audit_and_quarantine, scrub_text, scrub_trace
@@ -292,6 +293,7 @@ def _prepare(
     clock.mark("juego listo con apuesta mínima")
     seen = _snapshot(ready)
     bet = check_bet(seen.bet, ctx.provider.max_bet, ctx.market.currency, seen.currencies_seen)
+    require_known_minimum(bet, model.profile.min_bet)
     plan.precondition(betsson_before, seen.credit, bet)
     return _Ready(betsson_before, header_before, game, ready)
 

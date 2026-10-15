@@ -92,3 +92,12 @@ def test_two_identical_controls_are_ambiguous_and_never_clicked(model: ScreenMod
     )
     assert clone.locate("spin", image) is None
     assert clone.locate("bet_up", image) is None
+
+
+def test_real_profiles_know_their_minimum_bet() -> None:
+    from decimal import Decimal  # noqa: PLC0415
+
+    sweet = load_profile("pragmaticplay", "sweet-bonanza-2500")
+    bass = load_profile("pragmaticplay", "big-bass-halloween-splash-1000")
+    assert sweet is not None and sweet.min_bet == Decimal("0.20")
+    assert bass is not None and bass.min_bet == Decimal("0.10")

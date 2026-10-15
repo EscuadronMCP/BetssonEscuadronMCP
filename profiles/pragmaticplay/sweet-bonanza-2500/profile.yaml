@@ -26,3 +26,5 @@ hud_positions:
   - 0.9047619047619048
 learned_with: claude-sonnet-5-5
 learned_at: '2026-10-15T13:57:22+00:00'
+# Medida en ejecuciones reales en betsson.es (15/10/2026).
+min_bet: '0.20'

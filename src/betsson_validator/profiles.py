@@ -6,6 +6,7 @@ Vive en profiles/<proveedor>/<juego>/ (profile.yaml + una imagen por control). S
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import cv2
@@ -34,6 +35,9 @@ class GameProfile:
     hud_positions: dict[str, tuple[float, float]] = field(default_factory=dict)
     learned_with: str = ""
     learned_at: str = ""
+    # Apuesta mínima del juego observada en ejecuciones reales: sin ella, que el botón de bajar
+    # no aparezca no basta para dar la apuesta por mínima.
+    min_bet: Decimal | None = None
 
     def template(self, control: str) -> Image | None:
         return self.templates.get(control)
@@ -56,6 +60,8 @@ class GameProfile:
             "learned_with": self.learned_with,
             "learned_at": self.learned_at or datetime.now(UTC).isoformat(timespec="seconds"),
         }
+        if self.min_bet is not None:
+            data["min_bet"] = str(self.min_bet)
         path = directory / "profile.yaml"
         path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), "utf-8")
         return path
@@ -88,4 +94,13 @@ def load_profile(
         templates=templates,
         learned_with=data.get("learned_with", ""),
         learned_at=data.get("learned_at", ""),
+        min_bet=_decimal_or_none(data.get("min_bet")),
     )
+
+
+def _decimal_or_none(value: object) -> Decimal | None:
+    try:
+        number = Decimal(str(value)) if value is not None else None
+    except InvalidOperation:
+        return None
+    return number if number is not None and number.is_finite() and number > 0 else None

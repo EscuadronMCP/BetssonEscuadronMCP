@@ -37,6 +37,14 @@ def check_bet(
     return bet
 
 
+def require_known_minimum(bet: Money, min_bet: Decimal | None) -> None:
+    """Si el perfil conoce la apuesta mínima del juego, la apuesta visible debe ser esa."""
+    if min_bet is not None and bet.amount != min_bet:
+        raise PreconditionError(
+            f"La apuesta mostrada {bet} no es la mínima conocida del juego ({min_bet}). No se gira."
+        )
+
+
 def require_funds(betsson: Money, credit: Money | None, bet: Money) -> None:
     """Escenario 1: la cuenta debe poder pagar la apuesta en Betsson y en el juego."""
     if credit is None:

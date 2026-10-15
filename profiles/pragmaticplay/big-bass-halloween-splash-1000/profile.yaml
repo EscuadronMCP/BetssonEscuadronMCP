@@ -23,3 +23,5 @@ hud_positions:
   - 0.9523809523809523
 learned_with: claude-haiku-5-5
 learned_at: '2026-10-15T13:54:07+00:00'
+# Medida en ejecuciones reales en betsson.es (15/10/2026).
+min_bet: '0.10'
