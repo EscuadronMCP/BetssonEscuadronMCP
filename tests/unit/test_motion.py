@@ -103,7 +103,7 @@ def test_real_spin_is_detected_start_to_end() -> None:
     lifecycle = detect_spin_lifecycle(REAL_SPIN_SCORES)
     assert lifecycle.started
     assert lifecycle.completed
-    assert lifecycle.end_index == 22
+    assert lifecycle.end_index == 21  # reposo al bajar del 10 % del máximo del giro
 
 
 def test_static_game_keeps_default_thresholds() -> None:
@@ -124,3 +124,61 @@ def test_background_animation_alone_is_not_a_spin() -> None:
 
     idle = [0.03, 0.04, 0.035]
     assert not detect_spin_lifecycle([0.04] * 20, adaptive_thresholds(idle)).started
+
+
+# Tirada real de Big Bass Halloween Splash 1000 (15/10): tras el giro, los peces premiados
+# siguen brillando (~0,012 de actividad residual, por encima del umbral fijo de reposo).
+BIG_BASS_SPIN_SCORES = [
+    0.0006,
+    0.7368,
+    0.4905,
+    0.4717,
+    0.5814,
+    0.6499,
+    0.6149,
+    0.5973,
+    0.4388,
+    0.446,
+    0.2838,
+    0.2801,
+    0.2585,
+    0.275,
+    0.2772,
+    0.2912,
+    0.2657,
+    0.2687,
+    0.2816,
+    0.2738,
+    0.2785,
+    0.2715,
+    0.2322,
+    0.2112,
+    0.1489,
+    0.15,
+    0.1273,
+    0.1459,
+    0.144,
+    0.1435,
+    0.1537,
+    0.1563,
+    0.143,
+    0.091,
+    0.1102,
+    0.1233,
+    0.1991,
+    0.1712,
+    0.1149,
+    0.0483,
+    0.0138,
+    0.0128,
+    0.0127,
+    0.0134,
+    *([0.0125] * 40),
+]
+
+
+def test_real_spin_with_residual_glow_completes() -> None:
+    lifecycle = detect_spin_lifecycle(BIG_BASS_SPIN_SCORES)
+    assert lifecycle.started
+    assert lifecycle.completed
+    assert 39 <= (lifecycle.end_index or 0) <= 44

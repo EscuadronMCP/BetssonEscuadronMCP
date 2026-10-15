@@ -44,6 +44,9 @@ class MotionThresholds:
     still: float = 0.01  # actividad máxima para considerar la pantalla en reposo
     still_samples: int = 4  # muestras seguidas en reposo para dar el giro por terminado
     min_active_samples: int = 3  # muestras con actividad para descartar un parpadeo
+    # Reposo relativo al propio giro: los rodillos se han parado aunque algo siga brillando
+    # (p. ej. los símbolos premiados de Big Bass mantienen ~0,012 de actividad residual).
+    relative_still: float = 0.1
 
 
 DEFAULT_THRESHOLDS = MotionThresholds()
@@ -72,6 +75,7 @@ def adaptive_thresholds(
         still=still,
         still_samples=base.still_samples,
         min_active_samples=base.min_active_samples,
+        relative_still=base.relative_still,
     )
 
 
@@ -101,7 +105,7 @@ def detect_spin_lifecycle(
             continue
         if score >= thresholds.start:
             active += 1
-        if score <= thresholds.still:
+        if score <= max(thresholds.still, peak * thresholds.relative_still):
             still_run += 1
             if still_run >= thresholds.still_samples and active >= thresholds.min_active_samples:
                 return SpinLifecycle(True, True, start_index, index, peak)
