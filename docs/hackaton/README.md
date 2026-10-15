@@ -11,6 +11,6 @@ Documentación oficial del Malackaton (Universidad de Málaga) y del reto de Bet
 | `uma-hackaton-v1.0.0.pdf` | Enlaces de Oracle: REST Data Services, servidor web y SSH |
 
 ## Datos aportados por la organización
-- Webs: `betsson.com` (inglés, EUR) y `betsson.pe` (español, PEN).
+- Webs: `betsson.com` (inglés, EUR) y `betsson.es` (español, EUR). Betsson ha cambiado `betsson.pe` por `betsson.es` respecto al PDF.
 - Dos cuentas de prueba: una con saldo y otra sin saldo (pendientes de entrega; van en `.env`).
 - Para acceder a betsson.com desde España hace falta una IP de Malta (VPN).
