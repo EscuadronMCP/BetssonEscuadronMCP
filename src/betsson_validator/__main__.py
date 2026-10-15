@@ -140,9 +140,7 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
             print(f"  prueba que falla a propósito: {found}; no cuenta en el resultado")
         for note in run.notes:
             print(f"  nota: {note}")
-    info = RunInfo(
-        code_version=_code_version(), requested=tuple(scenarios), run_id=os.getenv("GITHUB_RUN_ID")
-    )
+    info = RunInfo(code_version=_code_version(), requested=tuple(scenarios), run_id=_run_id())
     try:
         json_path, html_path = write_report(runs, ctx.out_dir, info)
     except OSError as error:  # sin informe escrito no se anuncia ninguno
@@ -158,6 +156,14 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
     print(f"Duración: {time.monotonic() - started:.0f} s\nInforme: {html_path}\nDatos: {json_path}")
     # El mismo veredicto global que el informe: un escenario pedido que falta también es FAIL.
     return 0 if overall_status(runs, info) is Status.PASS else 1
+
+
+def _run_id() -> str:
+    """Identificador de la ejecución: el de GitHub Actions o uno local (fecha y proceso)."""
+    github = os.getenv("GITHUB_RUN_ID")
+    if github:
+        return f"github-{github}"
+    return f"local-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}-{os.getpid()}"
 
 
 def _code_version() -> str:

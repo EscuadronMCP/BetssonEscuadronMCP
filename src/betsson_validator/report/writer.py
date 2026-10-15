@@ -68,7 +68,8 @@ def write_report(
 def _scope(info: RunInfo) -> str:
     titles = ", ".join(SCENARIO_TITLES[scenario] for scenario in info.requested)
     note = " (alcance parcial: no se pidieron todos los escenarios)" if info.partial else ""
-    return f"Código {info.code_version[:12]} · escenarios solicitados: {titles}{note}"
+    run = f" · ejecución {info.run_id}" if info.run_id else ""
+    return f"Código {info.code_version[:12]}{run} · escenarios solicitados: {titles}{note}"
 
 
 def render_html(runs: Sequence[ScenarioRun], out_dir: Path, info: RunInfo | None = None) -> str:

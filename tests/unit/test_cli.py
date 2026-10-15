@@ -56,3 +56,10 @@ def test_cli_missing_requested_scenario_has_nonzero_exit(
     monkeypatch.setattr(cli, "RapidOcrReader", lambda: None)
     assert main(["run", "--out", str(tmp_path)]) == 1
     assert only_one.status.value == "PASS"
+
+
+def test_every_run_has_an_identifier(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    assert cli._run_id().startswith("local-")
+    monkeypatch.setenv("GITHUB_RUN_ID", "123")
+    assert cli._run_id() == "github-123"
