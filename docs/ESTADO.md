@@ -13,12 +13,12 @@ Memoria compartida del equipo: **por dónde vamos y hacia dónde**. Se actualiza
 Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En curso" quién está con cuál.
 
 - [x] **E0. Esqueleto:** proyecto Python, Playwright, pytest, linter, tipado, configuración de mercado y un workflow básico de CI. No necesita credenciales.
-- [ ] **E1. Web de Betsson:** login, Casino, filtro PragmaticPlay, lanzar un juego en Real Play, leer el saldo de Betsson. Necesita las cuentas de prueba.
-- [ ] **E2. Escenario 1 de principio a fin** con el testigo de pantalla leído por IA de visión. **Primer entregable completo.**
-- [ ] **E3. Resto de testigos (D):** saldo de Betsson, historial de transacciones y red del juego; regla del veredicto con discrepancias.
-- [ ] **E4. Escenario 2:** saldo insuficiente.
-- [ ] **E5. Workflow de GitHub Actions** que ejecuta ambos escenarios y publica el informe.
-- [ ] **E6. Perfiles aprendidos (C):** modo aprendizaje, ejecución determinista con OCR y plantillas, autorreparación.
+- [x] **E1. Web de Betsson:** login, Casino, filtro PragmaticPlay, lanzar un juego en Real Play, leer el saldo de Betsson. Necesita las cuentas de prueba.
+- [x] **E2. Escenario 1 de principio a fin**: PASS real en betsson.es (pantalla por OCR + movimiento + cabecera + red). **Primer entregable completo.**
+- [~] **E3. Resto de testigos (D):** hechos pantalla, movimiento, cabecera de Betsson y red de Pragmatic. Falta el historial de transacciones.
+- [x] **E4. Escenario 2:** saldo insuficiente.
+- [x] **E5. Workflow de GitHub Actions** que ejecuta ambos escenarios y publica el informe: PASS en el runner propio (15/10).
+- [~] **E6. Perfiles aprendidos (C):** código y tests en la rama `feature/perfiles-aprendidos`; falta aprender el perfil real de Sweet Bonanza y fusionar en `main`.
 - [ ] **E7. Demo de extensibilidad:** incorporar un segundo proveedor (bonus).
 
 ## Funciona
@@ -33,7 +33,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| E1. Web de Betsson (exploración sin credenciales) | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
+| E6. Perfiles aprendidos y demo multi-juego | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
 
 ## Siguiente paso
 1. E1: explorar betsson.es sin login (Casino, filtro PragmaticPlay, lanzamiento) para preparar la automatización.
@@ -41,6 +41,10 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 3. Preguntar a los mentores: captcha o verificación en dos pasos en el login, bloqueo de IP de GitHub Actions, tráfico de red como testigo, número de tiradas permitidas, preparación de la cuenta sin saldo, y si el historial muestra cada tirada.
 
 ## Problemas conocidos
+- **betsson.es bloquea IP de fuera de España** ("no disponible en este país"): los runners de GitHub no sirven. Resuelto con un runner propio (este Mac, etiqueta `betsson-es`, variable `VALIDATION_RUNS_ON`). Producción: Oracle Cloud Madrid (x86: Chrome no tiene build ARM64 para Linux).
+- **Demasiados logins seguidos** → la web responde HTTP 400 temporalmente. No lanzar ejecuciones en bucle; esperar unos minutos.
+- **Trazas enormes (hasta 900 MB)** con instantáneas: ahora la traza es ligera (solo acciones). La evidencia visual son vídeo y capturas.
+- **Evidencias con secretos**: la traza completa guardaba el correo y tokens. Ahora se limpia y un escáner retira cualquier archivo con fugas.
 - **Resuelto — login rechazado (403) por el antibots de AWS WAF:** funciona lanzando Chrome sin la marca de automatización, esperando el token `aws-waf-token` y tecleando a ritmo humano (también en headless). Detalle en [`betsson-es-flujo.md`](betsson-es-flujo.md). No repetir logins en bucle: los fallos bloquean la cuenta temporalmente.
 - **Requisito:** el flujo completo (navegador → login → juego → informe) debe ser 100 % automático. Un captcha o verificación en dos pasos en el login lo bloquearía: confirmar con los mentores cuanto antes.
 - Sin comprobar si betsson.es deja jugar desde los runners de GitHub Actions (EE. UU.). Si no, hará falta IP española (p. ej. runner propio en la región de Oracle Cloud en Madrid).
