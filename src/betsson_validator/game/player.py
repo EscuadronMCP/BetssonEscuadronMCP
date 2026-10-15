@@ -290,7 +290,7 @@ class ScreenGame:
             if not self.loading_finished():
                 return False
             self._loaded_at = now
-        return now - self._loaded_at > self.timings.learn_grace_after_loading_s
+        return now - self._loaded_at >= self.timings.learn_grace_after_loading_s
 
     def set_minimum_bet(self) -> ScreenObservation:
         """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez.
