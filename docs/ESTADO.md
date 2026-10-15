@@ -16,7 +16,8 @@ Memoria compartida del equipo. Se actualiza en cada commit que cierra un paso (v
 ## Siguiente paso
 1. Rellenar `.env` con las cuentas de prueba cuando Betsson las entregue.
 2. Recibir las cuentas de prueba de Betsson.
-3. Decidir el enfoque técnico tras la presentación del reto (ADR en `docs/decisiones/`).
+3. Elegir enfoque entre las opciones A–E de [Opciones de solución](https://claude.ai/code/artifact/2ef1bc9e-a713-4523-b95a-7ccbcfe4690b) (recomendada: C + D) y registrarlo como ADR en `docs/decisiones/`.
+4. Preguntar a los mentores: captcha/2FA en login, bloqueo de IP de GitHub Actions, tráfico de red como testigo, nº de tiradas, cuenta sin saldo.
 
 ## Problemas conocidos
 - Desde España, betsson.com redirige a betsson.es. **Resuelto en local** con Proton VPN Plus → Malta: betsson.com sirve `/en` (comprobado el 15/10).
