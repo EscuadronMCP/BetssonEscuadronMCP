@@ -6,6 +6,23 @@ from betsson_validator.domain.checks import SCENARIO_CHECKS, Check, Scenario
 from betsson_validator.domain.verdict import CheckResult, Status
 
 
+class DemoFailure(BaseModel):
+    """Prueba que falla a propósito: lo observado de verdad, con un fallo de saldo inyectado.
+
+    Enseña cómo detecta y documenta el validador un fallo, sin apostar más. Sus resultados se
+    muestran aparte y NO cuentan para el veredicto del escenario.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    description: str
+    results: tuple[CheckResult, ...]
+
+    @property
+    def detected(self) -> bool:
+        return any(result.status is Status.FAIL for result in self.results)
+
+
 class ScenarioRun(BaseModel):
     """Resultado de ejecutar un escenario en un mercado con un juego concreto."""
 
@@ -25,6 +42,8 @@ class ScenarioRun(BaseModel):
     notes: tuple[str, ...] = ()
     # Fallo introducido a propósito para una demostración (nunca en una validación real).
     injected_fault: str | None = None
+    # Prueba que falla a propósito, evaluada aparte sobre lo observado (no cuenta).
+    demo: DemoFailure | None = None
 
     @property
     def status(self) -> Status:

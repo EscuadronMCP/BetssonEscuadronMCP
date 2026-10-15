@@ -43,3 +43,37 @@ def test_report_announces_the_intentional_fault(tmp_path: Path) -> None:
     _, html_path = write_report([run], tmp_path)
     assert "FALLO INTENCIONADO" in html_path.read_text(encoding="utf-8")
     assert "FALLO INTENCIONADO" in render_markdown([run])
+
+
+# --- Prueba que falla a propósito en cada ejecución (petición de los mentores) ----------------
+
+
+def test_every_run_can_carry_a_failure_on_purpose_that_does_not_count(tmp_path: Path) -> None:
+    from betsson_validator.domain.checks import SCENARIO_CHECKS  # noqa: PLC0415
+    from betsson_validator.runner import PLANS, _demo_failure  # noqa: PLC0415
+    from betsson_validator.scenarios.faults import DEMO_FAILURE  # noqa: PLC0415
+
+    demo = _demo_failure(PLANS[Scenario.COMPLETED_SPIN], WINNING_SPIN, DEMO_FAILURE)
+    assert demo is not None and demo.detected
+    assert {r.check for r in demo.results} == {Check.BETSSON_BALANCE_RECONCILES.value}
+
+    now = datetime(2026, 10, 15, 18, 0, tzinfo=UTC)
+    run = ScenarioRun(
+        scenario=Scenario.COMPLETED_SPIN,
+        market="es",
+        provider="Pragmatic Play",
+        game="sweet-bonanza-2500",
+        started_at=now,
+        finished_at=now,
+        results=evaluate_completed_spin(WINNING_SPIN),
+        demo=demo,
+    )
+    assert len(run.results) == len(SCENARIO_CHECKS[Scenario.COMPLETED_SPIN])
+    assert run.status is Status.PASS  # la prueba a propósito no cuenta en el veredicto
+    _, html_path = write_report([run], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert "Prueba que falla a propósito" in html
+    assert "El validador detectó el fallo" in html
+    markdown = render_markdown([run])
+    assert "Prueba que falla a propósito" in markdown
+    assert "FAIL detectado, como se esperaba" in markdown

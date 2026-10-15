@@ -132,3 +132,22 @@ def test_actions_summary_tells_what_happened(tmp_path: Path) -> None:
     markdown = render_markdown([run], out_dir=tmp_path)
     assert "Se apostaron 0,20 €" in markdown
     assert "comprobaciones superadas" in markdown
+
+
+def test_the_story_never_claims_what_was_not_read(tmp_path: Path) -> None:
+    """Auditoría: sin datos no se afirma «ningún saldo cambió» ni «no hubo premio»."""
+    from betsson_validator.report.sections import narrative  # noqa: PLC0415
+
+    write(tmp_path / "a", {"screen_after": {"message": "Fondos insuficientes"}})
+    blind = load_observed(tmp_path / "a")
+    assert blind is not None
+    story = narrative(blind, Scenario.INSUFFICIENT_BALANCE, "juego")
+    assert "No se pudieron leer todos los saldos" in story
+    assert "Ningún saldo cambió" not in story
+
+    write(tmp_path / "b", {**OBSERVED, "motion": {"completed": True}})
+    no_win = load_observed(tmp_path / "b")
+    assert no_win is not None
+    story = narrative(no_win, Scenario.COMPLETED_SPIN, "juego")
+    assert "no se vio premio en pantalla" in story
+    assert "no hubo premio" not in story

@@ -26,6 +26,12 @@ class InjectedFault:
         return replace(evidence, betsson_after=after + drift)
 
 
+DEMO_FAILURE = InjectedFault(
+    "Prueba que falla a propósito: se vuelve a evaluar este escenario con lo observado de verdad, "
+    f"pero sumando {_DRIFT} € al saldo final de Betsson, como si Betsson abonara mal la tirada. "
+    "El validador debe detectarlo y marcar FAIL. No apuesta más ni cuenta para el resultado."
+)
+
 BETSSON_BALANCE_DRIFT = InjectedFault(
     "FALLO INTENCIONADO (demostración): al saldo final de Betsson leído se le sumó "
     f"{_DRIFT} € antes de evaluar, como si Betsson abonara mal la tirada. Las capturas "

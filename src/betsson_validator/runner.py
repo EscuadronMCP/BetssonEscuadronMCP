@@ -24,8 +24,8 @@ from betsson_validator.config.provider import ProviderConfig
 from betsson_validator.domain.checks import Scenario
 from betsson_validator.domain.money import Money
 from betsson_validator.domain.parsing import detect_currency
-from betsson_validator.domain.run import ScenarioRun
-from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
+from betsson_validator.domain.run import DemoFailure, ScenarioRun
+from betsson_validator.domain.verdict import CheckResult, Status, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game import accessibility
 from betsson_validator.game.events import (
@@ -135,6 +135,8 @@ class RunContext:
     fault: InjectedFault | None = None
     # Diagnóstico opcional: árbol de accesibilidad del juego antes y después de girar.
     ax_probe: bool = False
+    # Prueba que falla a propósito, evaluada aparte sobre lo observado (no cuenta).
+    demo_fault: InjectedFault | None = None
 
 
 def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
@@ -146,6 +148,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
     results: tuple[CheckResult, ...] = ()
     notes: list[str] = []
     error: str | None = None
+    demo: DemoFailure | None = None
     try:
         profile = load_profile(ctx.provider.id, ctx.game, ctx.profiles_dir)
         if profile is None:
@@ -179,7 +182,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
             )
             with tracing(context, evidence_dir / "trace.zip"):
                 try:
-                    results = _play(
+                    results, demo = _play(
                         casino,
                         ctx,
                         plan=plan,
@@ -211,6 +214,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
         quarantined=tuple(quarantined),
         notes=tuple(notes),
         injected_fault=ctx.fault.description if ctx.fault else None,
+        demo=demo,
     )
 
 
@@ -323,7 +327,7 @@ def _play(
     witnesses: _Witnesses,
     files: EvidenceRecorder,
     clock: StageClock,
-) -> tuple[CheckResult, ...]:
+) -> tuple[tuple[CheckResult, ...], DemoFailure | None]:
     ready = _prepare(
         casino, ctx, plan=plan, model=model, witnesses=witnesses, files=files, clock=clock
     )
@@ -345,20 +349,8 @@ def _play(
     if ctx.ax_probe:  # con el mensaje del juego aún visible en el escenario 2
         probes.append(accessibility.probe(game_frame, "despues_de_girar"))
         files.save_json("accesibilidad", [asdict(item) for item in probes])
-    events_summary: GameEventsSummary | None = None
-    if witnesses.events is not None:  # se leen ANTES de salir de la página del juego
-        captured = GameEventRecorder.collect(casino.page)[events_mark:]
-        game_events, foreign = authorized_events(captured, ready.game_origins)
-        events_file = files.save_json("eventos_del_juego", captured)
-        events_summary = witnesses.events.summarize(payloads(game_events), str(events_file))
-        problems = capture_anomalies(game_events, GameEventRecorder.dropped(casino.page))
-        if foreign:
-            origins = ", ".join(sorted({str(e.get("origin")) for e in foreign}))
-            problems = (*problems, f"{len(foreign)} eventos de un origen no autorizado ({origins})")
-        if problems:
-            events_summary = replace(
-                events_summary, anomalies=(*events_summary.anomalies, *problems)
-            )
+    # Los eventos se leen ANTES de salir de la página del juego.
+    events_summary = _events_summary(casino, witnesses.events, ready, events_mark, files)
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 
@@ -405,7 +397,42 @@ def _play(
         summary_data["injected_fault"] = ctx.fault.description
         evidence = ctx.fault.apply(evidence)
     files.save_json("resumen_observado", summary_data)
-    return plan.evaluator(evidence)
+    return plan.evaluator(evidence), _demo_failure(plan, evidence, ctx.demo_fault)
+
+
+def _demo_failure(
+    plan: ScenarioPlan, evidence: RunEvidence, fault: InjectedFault | None
+) -> DemoFailure | None:
+    """Evalúa aparte lo observado con el fallo inyectado; solo se muestran los FAIL."""
+    if fault is None:
+        return None
+    failing = tuple(
+        result for result in plan.evaluator(fault.apply(evidence)) if result.status is Status.FAIL
+    )
+    return DemoFailure(description=fault.description, results=failing)
+
+
+def _events_summary(
+    casino: BetssonCasino,
+    interpreter: EventsInterpreter | None,
+    ready: _Ready,
+    events_mark: int,
+    files: EvidenceRecorder,
+) -> GameEventsSummary | None:
+    """Eventos del juego durante la tirada, solo de sus orígenes, con las anomalías de captura."""
+    if interpreter is None:
+        return None
+    captured = GameEventRecorder.collect(casino.page)[events_mark:]
+    game_events, foreign = authorized_events(captured, ready.game_origins)
+    events_file = files.save_json("eventos_del_juego", captured)
+    summary = interpreter.summarize(payloads(game_events), str(events_file))
+    problems = capture_anomalies(game_events, GameEventRecorder.dropped(casino.page))
+    if foreign:
+        origins = ", ".join(sorted({str(e.get("origin")) for e in foreign}))
+        problems = (*problems, f"{len(foreign)} eventos de un origen no autorizado ({origins})")
+    if problems:
+        summary = replace(summary, anomalies=(*summary.anomalies, *problems))
+    return summary
 
 
 def _game_frame(casino: BetssonCasino) -> Frame | None:

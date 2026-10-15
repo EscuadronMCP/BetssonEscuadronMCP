@@ -32,7 +32,7 @@ from betsson_validator.report.writer import (
     write_report,
 )
 from betsson_validator.runner import RunContext, failed_run, run_scenario
-from betsson_validator.scenarios.faults import BETSSON_BALANCE_DRIFT
+from betsson_validator.scenarios.faults import BETSSON_BALANCE_DRIFT, DEMO_FAILURE
 from betsson_validator.security import audit_and_quarantine, scrub_files, scrub_text
 
 
@@ -66,6 +66,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         choices=[s.value for s in Scenario],
         default=None,
         help="Demostración: provoca a propósito un fallo de saldo en ese escenario.",
+    )
+    run.add_argument(
+        "--no-demo-fault",
+        action="store_true",
+        help="No incluir la prueba que falla a propósito (por defecto se incluye y no cuenta).",
     )
     run.add_argument(
         "--ax-probe",
@@ -117,13 +122,22 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
         print(f"→ {scenario.value} · {ctx.market.id} · {ctx.provider.filter_label} · {ctx.game}")
     started = time.monotonic()
     faulty = Scenario(args.inject_fault) if args.inject_fault else None
-    runs = _run_all(scenarios, ctx, parallel=not args.sequential, faulty=faulty)
+    # La prueba que falla a propósito va en el escenario 1 si se pide (la regla del dinero).
+    demo_target = None
+    if not args.no_demo_fault and faulty is None:
+        demo_target = (
+            Scenario.COMPLETED_SPIN if Scenario.COMPLETED_SPIN in scenarios else scenarios[0]
+        )
+    runs = _run_all(scenarios, ctx, parallel=not args.sequential, faulty=faulty, demo=demo_target)
     for run in runs:
         print(
             f"{run.scenario.value}: {run.status.value}" + (f" ({run.error})" if run.error else "")
         )
         if run.injected_fault:
             print(f"  aviso: {run.injected_fault}")
+        if run.demo is not None:
+            found = "FAIL detectado (como se esperaba)" if run.demo.detected else "NO detectado"
+            print(f"  prueba que falla a propósito: {found}; no cuenta en el resultado")
         for note in run.notes:
             print(f"  nota: {note}")
     info = RunInfo(
@@ -164,14 +178,20 @@ def _code_version() -> str:
 
 
 def _run_all(
-    scenarios: list[Scenario], ctx: RunContext, *, parallel: bool, faulty: Scenario | None
+    scenarios: list[Scenario],
+    ctx: RunContext,
+    *,
+    parallel: bool,
+    faulty: Scenario | None,
+    demo: Scenario | None = None,
 ) -> list[ScenarioRun]:
     """Cada escenario usa su propia cuenta, así que pueden ir a la vez: el tiempo total es el del
     más lento. Cada hilo tiene su navegador y su lector de OCR (no se comparten entre hilos)."""
 
     def context_for(scenario: Scenario, reader: RapidOcrReader | None = None) -> RunContext:
         fault = BETSSON_BALANCE_DRIFT if scenario is faulty else None
-        return replace(ctx, reader=reader or ctx.reader, fault=fault)
+        demo_fault = DEMO_FAILURE if scenario is demo else None
+        return replace(ctx, reader=reader or ctx.reader, fault=fault, demo_fault=demo_fault)
 
     if not parallel or len(scenarios) == 1:
         return [run_scenario(scenario, context_for(scenario)) for scenario in scenarios]

@@ -14,6 +14,7 @@ from betsson_validator.domain.verdict import CheckResult, Outcome, Status
 from betsson_validator.report.observed import Observed, load_observed
 from betsson_validator.report.sections import (
     dashboard,
+    demo_section,
     events_timeline,
     gallery,
     motion_section,
@@ -121,6 +122,12 @@ def render_markdown(
         icon = "✅" if run.status is Status.PASS else "❌"
         story = f": {narrative(observed, run.scenario, run.game)}" if observed else ""
         lines.append(f"- {icon} **{SCENARIO_TITLES[run.scenario]}**{story}")
+        if run.demo is not None:
+            found = "FAIL detectado, como se esperaba" if run.demo.detected else "NO detectado"
+            first = f" — {run.demo.results[0].reason}" if run.demo.results else ""
+            lines.append(
+                f"- 🧪 **Prueba que falla a propósito** (no cuenta en el resultado): {found}{first}"
+            )
     lines += [
         "",
         "| Escenario | Mercado | Juego | Comprobación | Resultado | Motivo |",
@@ -207,6 +214,7 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
         if observed
         else ""
     )
+    body += demo_section(run)
     timeline = events_timeline(observed) if observed else ""
     if timeline:
         body += (
@@ -374,6 +382,9 @@ th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px sol
 .equation b { margin-left:auto; } .equation.ok b { color:var(--pass); }
 .equation.ko b { color:var(--fail); }
 .equation small { color:var(--muted); width:100%; order:9; font-size:12px; }
+.panel.demo { border:2px dashed var(--fail); }
+.panel.demo .cell { display:inline-block; padding:4px 10px; }
+.reasons li { margin:4px 0; }
 .gallery { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; }
 .gallery figure { margin:0; }
 .gallery img { width:100%; border-radius:8px; border:1px solid var(--line); display:block; }

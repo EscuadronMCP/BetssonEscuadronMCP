@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 from betsson_validator.domain.checks import DESCRIPTIONS, Check, Scenario
 from betsson_validator.domain.run import ScenarioRun
-from betsson_validator.domain.verdict import Outcome, Status, WitnessKind
+from betsson_validator.domain.verdict import CheckResult, Outcome, Status, WitnessKind
 from betsson_validator.perception.motion import MotionThresholds, detect_spin_lifecycle
 from betsson_validator.report.charts import motion_chart
 from betsson_validator.report.observed import Observed, amount, currency
@@ -72,6 +72,7 @@ def dashboard(runs: Sequence[ScenarioRun], overall: Status, code_version: str) -
             "perfil aprendido, ejecución local" if not ai_notes else "ver notas del escenario",
         ),
         ("Versión del código", escape(code_version[:7]), "SHA de la ejecución"),
+        _demo_tile(runs),
     )
     cells = "".join(
         f'<div class="kpi"><div class="kpi-label">{escape(label)}</div>'
@@ -79,6 +80,42 @@ def dashboard(runs: Sequence[ScenarioRun], overall: Status, code_version: str) -
         for label, value, note in tiles
     )
     return f'<div class="kpis">{cells}</div>'
+
+
+def _demo_tile(runs: Sequence[ScenarioRun]) -> tuple[str, str, str]:
+    demos = [run.demo for run in runs if run.demo is not None]
+    if not demos:
+        return ("Prueba que falla a propósito", "no incluida", "se activa por defecto")
+    detected = all(demo.detected for demo in demos)
+    return (
+        "Prueba que falla a propósito",
+        _badge(Status.FAIL) + (" detectado" if detected else " NO detectado"),
+        "como se esperaba; no cuenta en el resultado" if detected else "revisar el validador",
+    )
+
+
+def demo_section(run: ScenarioRun) -> str:
+    """La prueba que falla a propósito: qué se alteró y cómo lo detectó cada testigo."""
+    demo = run.demo
+    if demo is None:
+        return ""
+    verdict = (
+        f'<p class="cell ok">✓ El validador detectó el fallo: {len(demo.results)} '
+        "comprobación(es) en FAIL, como se esperaba.</p>"
+        if demo.detected
+        else '<p class="cell ko">✗ El validador NO detectó el fallo provocado.</p>'
+    )
+    reasons = "".join(
+        f"<li><b>{escape(_describe(result.check))}</b> {_badge(result.status)}: "
+        f"{escape(result.reason)}</li>"
+        for result in demo.results
+    )
+    return (
+        '<div class="panel demo"><h3>🧪 Prueba que falla a propósito '
+        "(demostración; no cuenta en el resultado)</h3>"
+        f"<p>{escape(demo.description)}</p>{verdict}{results_grid(demo.results)}"
+        f'<ul class="reasons">{reasons}</ul></div>'
+    )
 
 
 def _badge(status: Status) -> str:
@@ -91,14 +128,16 @@ def _badge(status: Status) -> str:
 
 def witness_grid(run: ScenarioRun) -> str:
     """Comprobaciones por testigos: qué dijo cada uno de cada hecho."""
-    if not run.results:
+    return results_grid(run.results)
+
+
+def results_grid(results: Sequence[CheckResult]) -> str:
+    if not results:
         return ""
-    names = [
-        w for w in WITNESSES if any(t.witness == w for r in run.results for t in r.testimonies)
-    ]
+    names = [w for w in WITNESSES if any(t.witness == w for r in results for t in r.testimonies)]
     head = "".join(f"<th>{escape(name[:1].upper() + name[1:])}</th>" for name in names)
     rows = []
-    for result in run.results:
+    for result in results:
         by_witness = {t.witness: t for t in result.testimonies}
         cells = []
         for name in names:
@@ -375,18 +414,24 @@ def narrative(observed: Observed, scenario: Scenario, game: str) -> str:
         amount(get("screen_after", "credit")),
     )
     betsson_before, betsson_after = amount(get("betsson_before")), amount(get("betsson_after"))
+    balances = (credit_before, credit_after, betsson_before, betsson_after)
     if scenario is Scenario.INSUFFICIENT_BALANCE:
         message = get("screen_after", "message")
         shown = f"mostró «{message}»" if message else "no mostró ningún mensaje"
-        unchanged = credit_before == credit_after and betsson_before == betsson_after
+        if any(value is None for value in balances):
+            change = "No se pudieron leer todos los saldos."
+        elif credit_before == credit_after and betsson_before == betsson_after:
+            change = "Ningún saldo cambió."
+        else:
+            change = "Algún saldo cambió."
         return (
             f"Con {money(credit_before, code)} de crédito y una apuesta de {money(bet, code)}, "
-            f"se pulsó girar en {game}: el juego {shown}. "
-            f"{'Ningún saldo cambió.' if unchanged else 'Algún saldo cambió.'}"
+            f"se pulsó girar en {game}: el juego {shown}. {change}"
         )
-    win = amount(get("screen_after", "win")) or Decimal("0")
+    seen_win = amount(get("screen_after", "win"))
+    win = seen_win or Decimal("0")
     spun = bool(get("motion", "completed"))
-    result = f"pagó {money(win, code)}" if win else "no hubo premio"
+    result = f"pagó {money(win, code)}" if seen_win else "no se vio premio en pantalla"
     rule = (
         betsson_before is not None
         and bet is not None
