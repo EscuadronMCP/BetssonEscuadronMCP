@@ -24,6 +24,9 @@ _HIDE_LOGIN_FIELDS_CSS = (
     "{ filter: blur(8px) !important; -webkit-text-security: disc !important; }"
 )
 _BALANCE_SETTLE_MS = 2000
+_LOBBY_MAX_SCROLLS = 80
+_LOBBY_SCROLL_PX = 1200
+_LOBBY_SCROLL_WAIT_MS = 600
 
 
 class CasinoError(RuntimeError):
@@ -129,14 +132,7 @@ class BetssonCasino:
         self._page.get_by_role("button", name=self._ui.filters_button).click()
         self._page.get_by_text(provider.filter_label, exact=True).first.click()
         self._page.get_by_role("button", name=self._ui.results_button).first.click()
-        game_link = self._page.locator(f"a[href$='/{provider.game_slug}']").first
-        try:
-            game_link.wait_for(timeout=30_000)
-        except Exception as error:
-            raise CasinoError(
-                f"El juego '{provider.game_slug}' no aparece entre los de {provider.filter_label}."
-            ) from error
-        game_link.click()
+        self._find_in_lobby(provider.game_slug, provider.filter_label).click()
         self._start_game_session()
         iframe = self._page.locator(_GAME_IFRAME)
         iframe.wait_for(timeout=provider.game_load_timeout_s * 1000)
@@ -145,6 +141,21 @@ class BetssonCasino:
             frame=self._page.frame_locator(_GAME_IFRAME),
             url=self._page.url,
         )
+
+    def _find_in_lobby(self, slug: str, provider_label: str) -> Locator:
+        """El listado carga los juegos al bajar: se baja hasta que aparece, como un jugador."""
+        game_link = self._page.locator(f"a[href$='/{slug}']").first
+        self._page.locator("a[href*='/casino/']").first.wait_for(timeout=30_000)
+        # La rueda actúa donde está el puntero: hay que ponerlo sobre el listado.
+        viewport = self._page.viewport_size or {"width": 1440, "height": 900}
+        self._page.mouse.move(viewport["width"] / 2, viewport["height"] * 2 / 3)
+        for _ in range(_LOBBY_MAX_SCROLLS):
+            if game_link.count():
+                game_link.scroll_into_view_if_needed()
+                return game_link
+            self._page.mouse.wheel(0, _LOBBY_SCROLL_PX)
+            self._page.wait_for_timeout(_LOBBY_SCROLL_WAIT_MS)
+        raise CasinoError(f"El juego '{slug}' no aparece en el lobby de {provider_label}.")
 
     def _start_game_session(self) -> None:
         """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites."""
