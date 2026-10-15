@@ -63,7 +63,7 @@ def test_audit_quarantines_leaking_files(tmp_path: Path) -> None:
     assert not (tmp_path / "leak.json").exists()
 
 
-# --- Regresiones de la auditoría ----------------------------------------------------------------
+# --- Regresiones: casos adversariales --------------------
 
 
 def test_json_and_html_escaped_secrets_are_found_and_scrubbed() -> None:
@@ -100,7 +100,7 @@ def test_unreadable_archives_are_not_published(tmp_path: Path) -> None:
 
 
 def test_an_ocr_failure_never_publishes_the_image_nor_breaks_the_run(tmp_path: Path) -> None:
-    """Auditoría R02 (ERR-010/011): la excepción del OCR durante la limpieza escapaba."""
+    """La excepción del OCR durante la limpieza escapaba."""
     cv2.imwrite(str(tmp_path / "01_juego.jpg"), np.zeros((20, 20, 3), dtype=np.uint8))
 
     class BrokenReader:

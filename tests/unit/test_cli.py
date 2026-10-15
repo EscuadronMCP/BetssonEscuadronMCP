@@ -1,4 +1,4 @@
-"""La línea de comandos falla de forma clara ante configuración inválida (auditoría R02)."""
+"""La línea de comandos falla de forma clara ante configuración inválida."""
 
 from pathlib import Path
 
@@ -32,7 +32,7 @@ def test_unknown_provider_is_a_clear_configuration_error(
 def test_cli_missing_requested_scenario_has_nonzero_exit(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Auditoría R03-11: si falta un escenario pedido, el código de salida no es 0."""
+    """Si falta un escenario pedido, el código de salida no es 0."""
     from datetime import UTC, datetime  # noqa: PLC0415
 
     from betsson_validator.domain.checks import SCENARIO_CHECKS, Scenario  # noqa: PLC0415

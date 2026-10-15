@@ -1,4 +1,4 @@
-"""La lectura final espera a que el servidor y los eventos cierren la ronda (auditoría MOV-005/015).
+"""La lectura final espera a que el servidor y los eventos cierren la ronda.
 
 15/10: una tirada con premio en cascada se leyó antes del cobro (servidor na=c, sin
 gameRoundEnded) y dio un FAIL falso. Ahora se espera al cierre antes de leer.

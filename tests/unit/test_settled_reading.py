@@ -1,4 +1,4 @@
-"""La lectura final del marcador solo vale si crédito y premio dejaron de cambiar (auditoría P2)."""
+"""La lectura final del marcador solo vale si crédito y premio dejaron de cambiar."""
 
 import re
 from dataclasses import replace
@@ -32,7 +32,7 @@ def test_same_credit_and_win_is_settled() -> None:
 
 
 def test_a_prize_that_disappears_is_not_stable() -> None:
-    """Auditoría R03-03: un premio que deja de leerse no es "sin premio"."""
+    """Un premio que deja de leerse no es "sin premio"."""
     assert not same_reading(hud("64.65", "0.15"), hud("64.65", None))
     assert same_reading(hud("64.65"), hud("64.65"))  # pérdida legítima: nunca hubo premio
 
@@ -122,7 +122,7 @@ def test_an_unsettled_final_reading_cannot_prove_the_balance() -> None:
 
 
 def test_blinking_prize_is_observed_again_before_finalizing() -> None:
-    """Auditoría R03-03: crédito fijo y premios 1 → None → 2 → 2 terminan en 2, no en None."""
+    """Crédito fijo y premios 1 → None → 2 → 2 terminan en 2, no en None."""
     readings = [
         hud("64.65", "1.00"),
         hud("64.65", None),

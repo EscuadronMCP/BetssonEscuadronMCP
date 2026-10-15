@@ -1,4 +1,4 @@
-"""Dos ejecuciones de este ordenador no usan la misma cuenta a la vez (auditoría R02, ACC-003)."""
+"""Dos ejecuciones de este ordenador no usan la misma cuenta a la vez."""
 
 import os
 import time
@@ -45,7 +45,7 @@ def test_a_lock_whose_owner_died_is_recovered(tmp_path: Path) -> None:
 
 
 def test_lock_does_not_expire_while_owner_is_alive(tmp_path: Path) -> None:
-    """Auditoría R03-07: la antigüedad no basta; el propietario sigue vivo."""
+    """La antigüedad no basta; el propietario sigue vivo."""
     with account_lock(ACCOUNT, tmp_path):
         (lock,) = tmp_path.iterdir()
         os.utime(lock, (time.time() - 3 * 3600, time.time() - 3 * 3600))
@@ -54,7 +54,7 @@ def test_lock_does_not_expire_while_owner_is_alive(tmp_path: Path) -> None:
 
 
 def test_an_unreadable_lock_is_never_taken_as_abandoned(tmp_path: Path) -> None:
-    """Auditoría R03-06: un cerrojo vacío o a medio escribir no se considera abandonado."""
+    """Un cerrojo vacío o a medio escribir no se considera abandonado."""
     with account_lock(ACCOUNT, tmp_path):
         (lock,) = tmp_path.iterdir()
     lock.write_text("", encoding="utf-8")

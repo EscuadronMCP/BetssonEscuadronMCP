@@ -32,3 +32,10 @@ playwright-report/
 
 # Informes y evidencias generados en cada ejecución
 reports/
+
+# Material interno del equipo (no forma parte del programa publicado)
+CLAUDE.md
+.claude/
+docs/ESTADO.md
+docs/hackaton/
+docs/informe-proyecto.html

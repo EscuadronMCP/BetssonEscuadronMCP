@@ -135,7 +135,7 @@ def test_actions_summary_tells_what_happened(tmp_path: Path) -> None:
 
 
 def test_the_story_never_claims_what_was_not_read(tmp_path: Path) -> None:
-    """Auditoría: sin datos no se afirma «ningún saldo cambió» ni «no hubo premio»."""
+    """Sin datos no se afirma «ningún saldo cambió» ni «no hubo premio»."""
     from betsson_validator.report.sections import narrative  # noqa: PLC0415
 
     write(tmp_path / "a", {"screen_after": {"message": "Fondos insuficientes"}})

@@ -4,7 +4,7 @@
 
 Proyecto del equipo EscuadronMCP para el reto de **Betsson** en el **Malackathon 2026** (Universidad de Málaga): *Intelligent Game Validation*.
 
-> **Para los mentores:** carpeta [`mentores/`](mentores/) (informe del proyecto en PDF e informes reales del programa) · **Estado:** [`docs/ESTADO.md`](docs/ESTADO.md) · **Cómo es la web por dentro:** [`docs/betsson-es-flujo.md`](docs/betsson-es-flujo.md)
+> **Para los mentores:** carpeta [`mentores/`](mentores/) (informe del proyecto en PDF e informes reales del programa) · **Cómo es la web por dentro:** [`docs/betsson-es-flujo.md`](docs/betsson-es-flujo.md)
 
 ---
 
@@ -176,6 +176,7 @@ Se ejecuta **desde el repositorio** con `uv` (instrucciones de la sección 1). N
 - [001 — Testigos independientes con perfiles aprendidos](docs/decisiones/001-enfoque-testigos-y-perfiles.md)
 - [002 — Pantalla readaptable y coste](docs/decisiones/002-perfiles-aprendidos-y-coste.md)
 - [003 — Testigo de eventos del juego (postMessage)](docs/decisiones/003-testigo-eventos-del-juego.md)
+- [004 — Endurecimiento: atribución, dinero real, lecturas y prueba de fallo](docs/decisiones/004-endurecimiento.md)
 
 ### Más allá de lo pedido
 
@@ -217,6 +218,6 @@ src/betsson_validator/
   scenarios/             Comprobaciones, condiciones previas y fallo de demostración
   domain/                Dinero, regla del veredicto, comprobaciones (lógica pura)
   report/                Informe HTML (gráfico) y JSON, resumen Markdown
-docs/                    Estado, decisiones (ADR), flujo real de betsson.es, documentación del reto
+docs/                    Decisiones de arquitectura (ADR) y flujo real de betsson.es
 mentores/                Informe del proyecto (PDF) e informes reales generados por el programa
 ```

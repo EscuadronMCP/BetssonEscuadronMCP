@@ -169,7 +169,7 @@ def test_big_bass_ready_screen_reads_the_hud_bet() -> None:
     assert hud.credit is not None and hud.credit.money.amount == Decimal("199.25")
 
 
-# --- Auditoría R02 (PER-002/003/004/009/010): la propuesta de la IA es un dato no confiable ----
+# --- la propuesta de la IA es un dato no confiable ----
 
 
 @pytest.mark.parametrize(

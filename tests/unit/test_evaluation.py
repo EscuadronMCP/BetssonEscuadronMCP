@@ -151,7 +151,7 @@ def server_testimony(results: tuple[CheckResult, ...], check: Check) -> str:
 
 
 def test_a_requested_but_unconfirmed_spin_is_unknown_not_a_rejection() -> None:
-    """Auditoría R03-04: sin aceptación ni rechazo explícitos, el servidor no prueba nada."""
+    """Sin aceptación ni rechazo explícitos, el servidor no prueba nada."""
     unconfirmed = replace(
         REJECTED_SPIN, network=NetworkSummary(spin_requested=True, observed_calls=3)
     )
@@ -160,7 +160,7 @@ def test_a_requested_but_unconfirmed_spin_is_unknown_not_a_rejection() -> None:
 
 
 def test_insufficient_scenario_cannot_pass_with_unsettled_credit() -> None:
-    """Auditoría R03-02: una lectura no estabilizada no confirma que el crédito no cambió."""
+    """Una lectura no estabilizada no confirma que el crédito no cambió."""
     unsettled = replace(
         REJECTED_SPIN, screen_after=replace(REJECTED_SPIN.screen_after, settled=False)
     )
@@ -170,7 +170,7 @@ def test_insufficient_scenario_cannot_pass_with_unsettled_credit() -> None:
 
 
 def test_a_capture_that_saw_nothing_cannot_prove_there_was_no_spin() -> None:
-    """Auditoría R02 (NET-008): un grabador inoperativo no acredita ausencia de peticiones."""
+    """Un grabador inoperativo no acredita ausencia de peticiones."""
     blind = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=False))
     unreadable = replace(
         REJECTED_SPIN, network=NetworkSummary(spin_requested=False, observed_calls=3, unreadable=1)
@@ -180,7 +180,7 @@ def test_a_capture_that_saw_nothing_cannot_prove_there_was_no_spin() -> None:
         assert detail.startswith("unavailable")
 
 
-# --- Regresiones de la auditoría del equipo (15/10) ---------------------------------------------
+# --- Regresiones (casos adversariales) ---------------------------------------------
 
 EVENTS = GameEventsSummary(
     received=True,

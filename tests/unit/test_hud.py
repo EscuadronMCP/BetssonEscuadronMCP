@@ -84,7 +84,7 @@ def test_playngo_hud_format() -> None:
     assert hud.bet is not None and hud.bet.money.amount == Decimal("1.50")
 
 
-# --- Regresiones de la auditoría: importes atribuidos a otra etiqueta, signo y confianza -------
+# --- Regresiones: casos adversariales --------------------
 
 
 def test_amount_of_another_label_is_never_taken() -> None:
@@ -122,7 +122,7 @@ def test_label_must_be_a_whole_word() -> None:
 
 
 def test_one_box_with_two_labels_gives_the_amount_to_the_second() -> None:
-    """Auditoría R02 (OCR-002/003): "CRÉDITO APUESTA 0,20 €" en una sola caja."""
+    """ "CRÉDITO APUESTA 0,20 €" en una sola caja."""
     hud = read_hud([box("CRÉDITO APUESTA 0,20 €", 0, 0)], LABELS, "EUR")
     assert hud.credit is None
 

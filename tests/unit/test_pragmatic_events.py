@@ -138,7 +138,7 @@ def test_loading_finished_only_after_the_game_says_so() -> None:
     assert loading_finished([{"name": "gameLoadingStarted"}, {"name": "gameLoadingEnded"}])
 
 
-# --- Regresiones de la auditoría: eventos desordenados, repetidos o malformados ----------------
+# --- Regresiones: casos adversariales --------------------
 
 
 def test_round_ended_before_it_started_is_an_anomaly() -> None:
@@ -179,7 +179,7 @@ def test_real_rounds_have_no_anomalies() -> None:
 
 
 def test_irrelevant_events_only_do_not_deny_the_round() -> None:
-    """Auditoría R02 (EVT-020, VER-003): solo eventos de saldo = nada sobre la ronda."""
+    """Solo eventos de saldo = nada sobre la ronda."""
     only_balance: list[dict[str, Any]] = [
         {"event": "updateBalance", "params": {"total": {"currency": "€", "amount": 0}}}
     ]
@@ -207,7 +207,7 @@ def test_capture_problems_are_reported_as_anomalies() -> None:
 
 
 def test_events_from_an_unauthorized_origin_do_not_count() -> None:
-    """Auditoría R03-09: si el marco navega a otro origen, sus mensajes no son del juego."""
+    """Si el marco navega a otro origen, sus mensajes no son del juego."""
     from betsson_validator.game.events import authorized_events  # noqa: PLC0415
 
     game = {"seq": 0, "origin": "https://a.proveedor.net", "data": {"name": "gameRoundEnded"}}

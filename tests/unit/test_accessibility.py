@@ -1,4 +1,4 @@
-"""Sonda de accesibilidad: mide sin cambiar veredictos y nunca rompe la prueba (auditoría AX)."""
+"""Sonda de accesibilidad: mide sin cambiar veredictos y nunca rompe la prueba."""
 
 from typing import Any, cast
 
@@ -65,7 +65,7 @@ def test_a_failing_probe_is_reported_not_raised() -> None:
 
 
 def test_the_probe_reaches_the_nested_game_next_to_other_controls() -> None:
-    """Auditoría R03-10: «Ayuda» + iframe del juego: hay que llegar al juego."""
+    """«Ayuda» + iframe del juego: hay que llegar al juego."""
     game = _Frame('- button "Girar"')
     advert = _Frame('- link "Anuncio"')
     launcher = _Frame('- button "Ayuda"\n- iframe', children=[(advert, 10.0), (game, 900.0)])

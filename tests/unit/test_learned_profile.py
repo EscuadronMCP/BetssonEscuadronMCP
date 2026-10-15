@@ -73,7 +73,7 @@ def test_profile_labels_read_the_real_hud(model: ScreenModel) -> None:
 
 
 def test_two_identical_controls_are_ambiguous_and_never_clicked(model: ScreenModel) -> None:
-    """Auditoría: con dos plantillas idénticas el empate se resolvía a favor del control pedido."""
+    """Con dos plantillas idénticas el empate se resolvía a favor del control pedido."""
     image = load("sweet_bonanza_ready.png")
     spin = model.profile.template("spin")
     assert spin is not None
@@ -104,7 +104,7 @@ def test_real_profiles_know_their_minimum_bet() -> None:
 
 
 def test_saving_writes_everything_or_keeps_the_previous_profile(tmp_path: Path) -> None:
-    """Auditoría R03-01: el perfil se publica entero o no se publica."""
+    """El perfil se publica entero o no se publica."""
     profile = load_profile("pragmaticplay", "sweet-bonanza-2500")
     assert profile is not None
     profile.save(tmp_path)

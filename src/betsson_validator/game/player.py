@@ -529,7 +529,7 @@ def _control_box_problem(box: Box, width: int, height: int) -> str | None:
 def same_reading(a: HudReading, b: HudReading) -> bool:
     """Dos lecturas seguidas del marcador coinciden: el mismo crédito y el mismo premio.
 
-    Un premio que aparece en una lectura y no en la otra NO es estable (auditoría R03-03): puede
+    Un premio que aparece en una lectura y no en la otra NO es estable: puede
     ser una etiqueta que parpadea o una lectura fallida, y un premio desconocido no es cero.
     """
     if a.credit is None or b.credit is None or a.credit.money != b.credit.money:

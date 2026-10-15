@@ -93,7 +93,7 @@ def test_malformed_amounts_are_ignored_not_crashing() -> None:
 
 
 def test_another_iframe_calling_its_own_server_is_not_game_traffic() -> None:
-    """Auditoría R03-05: solo cuenta el tráfico del marco del juego y sus descendientes."""
+    """Solo cuenta el tráfico del marco del juego y sus descendientes."""
     from types import SimpleNamespace  # noqa: PLC0415
     from typing import Any, cast  # noqa: PLC0415
 
@@ -136,7 +136,7 @@ def test_another_iframe_calling_its_own_server_is_not_game_traffic() -> None:
 
 
 def test_http_error_is_not_proof_of_a_rejected_wager() -> None:
-    """Auditoría R03-04: un 503 con HTML no es una llamada legible del juego."""
+    """Un 503 con HTML no es una llamada legible del juego."""
     from types import SimpleNamespace  # noqa: PLC0415
     from typing import Any, cast  # noqa: PLC0415
 

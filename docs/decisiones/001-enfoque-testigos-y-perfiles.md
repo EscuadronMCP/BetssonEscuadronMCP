@@ -2,11 +2,11 @@
 
 - **Fecha:** 2026-10-15
 - **Estado:** aceptada
-- **Origen:** documento de opciones A–E, [Opciones de solución](https://claude.ai/code/artifact/2ef1bc9e-a713-4523-b95a-7ccbcfe4690b). Elegida por el equipo.
+- **Origen:** comparación de cinco enfoques (A–E). Elegida por el equipo.
 
 ## Contexto
 
-El reto (`docs/hackaton/2026-10-15_malackathon-student-challenge.pdf`, con los cambios recogidos en `CLAUDE.md`) pide validar en **betsson.es** un juego de **PragmaticPlay** en Real Play con dos escenarios: tirada completada y saldo insuficiente. El juego es una **caja negra**: un iframe con canvas, sin DOM útil y con código del proveedor desconocido. Se valoran sobre todo la **fiabilidad**, que la solución **"vea como un jugador"** y que sea **extensible a otros proveedores**, todo sin intervención humana: la prueba reproduce el flujo completo, desde abrir el navegador hasta el informe (requisito recalcado por el profesorado).
+El reto de Betsson (Malackathon 2026, con el alcance actualizado a betsson.es) pide validar en **betsson.es** un juego de **PragmaticPlay** en Real Play con dos escenarios: tirada completada y saldo insuficiente. El juego es una **caja negra**: un iframe con canvas, sin DOM útil y con código del proveedor desconocido. Se valoran sobre todo la **fiabilidad**, que la solución **"vea como un jugador"** y que sea **extensible a otros proveedores**, todo sin intervención humana: la prueba reproduce el flujo completo, desde abrir el navegador hasta el informe (requisito recalcado por el profesorado).
 
 Solo el juego es caja negra. La web de Betsson (login, Casino, filtro de proveedor, lanzamiento, saldo, historial) tiene DOM accesible y es igual para cualquier proveedor.
 
@@ -68,5 +68,5 @@ Es la estructura objetivo; si cambia durante la implementación, se actualiza aq
 ## Consecuencias
 
 - **A favor:** máxima fiabilidad y auditabilidad; detecta fallos reales de integración; extensible a otros proveedores con poco trabajo; coste de IA bajo en el día a día.
-- **En contra:** más piezas que una opción única, así que se construye por etapas (ver `docs/ESTADO.md`) para tener siempre algo entregable.
+- **En contra:** más piezas que una opción única, así que se construyó por etapas para tener siempre algo entregable.
 - **Riesgos abiertos:** captcha o verificación en dos pasos en el login; que betsson.es no deje jugar desde los servidores de GitHub Actions (alternativa: ejecutar desde Oracle Cloud en Madrid); que el historial no muestre cada tirada; que el formato de red no coincida con el análisis no oficial.

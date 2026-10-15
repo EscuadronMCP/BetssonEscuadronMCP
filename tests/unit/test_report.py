@@ -140,7 +140,7 @@ def test_evidence_links_use_posix_urls_and_flag_missing_files(tmp_path: Path) ->
     assert "\\\\" not in html
 
 
-# --- Auditoría R02: procedencia, alcance y enlaces ---------------------------------------------
+# --- procedencia, alcance y enlaces ---------------------------------------------
 
 
 def test_report_identifies_code_version_and_partial_scope(tmp_path: Path) -> None:

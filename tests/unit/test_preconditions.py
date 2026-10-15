@@ -35,7 +35,7 @@ def test_unreadable_zero_negative_excessive_or_foreign_bet_stops(bet: Money | No
 
 @pytest.mark.parametrize("observed", [(), ("USD",), ("EUR", "USD")])
 def test_currency_must_be_seen_on_screen_not_taken_from_config(observed: tuple[str, ...]) -> None:
-    """Auditoría R02 (OCR-013): sin símbolo leído, la divisa de `bet` viene de la configuración."""
+    """Sin símbolo leído, la divisa de `bet` viene de la configuración."""
     with pytest.raises(PreconditionError, match="Divisa vista"):
         check_bet(eur("0.20"), MAX, "EUR", observed)
 
@@ -51,7 +51,7 @@ def test_funded_scenario_needs_funds_in_betsson_and_in_the_game() -> None:
 
 
 def test_no_balance_account_with_money_never_spins() -> None:
-    """Auditoría: con 10 € en la cuenta "sin saldo" el escenario 2 llegaba a girar."""
+    """Con 10 € en la cuenta "sin saldo" el escenario 2 llegaba a girar."""
     with pytest.raises(PreconditionError, match="tiene fondos"):
         require_no_funds(eur("10.00"), eur("10.00"), eur("0.20"))
     with pytest.raises(PreconditionError):
@@ -60,13 +60,13 @@ def test_no_balance_account_with_money_never_spins() -> None:
 
 
 def test_unknown_game_credit_cannot_confirm_insufficient_funds() -> None:
-    """Auditoría R02 (ACT-013, E2-001): crédito desconocido no autoriza el intento."""
+    """Crédito desconocido no autoriza el intento."""
     with pytest.raises(PreconditionError, match="crédito del juego"):
         require_no_funds(eur("0.10"), None, eur("0.20"))
 
 
 def test_a_bet_above_the_known_minimum_never_spins() -> None:
-    """Auditoría R02 (ACT-010/011): que falte el botón de bajar no prueba que sea la mínima."""
+    """Que falte el botón de bajar no prueba que sea la mínima."""
     from betsson_validator.scenarios.preconditions import require_known_minimum  # noqa: PLC0415
 
     require_known_minimum(eur("0.20"), Decimal("0.20"))
