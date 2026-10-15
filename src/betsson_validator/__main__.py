@@ -135,7 +135,7 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
         print(f"  evidencia retirada por contener secretos: {leaked}")
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as summary:
-            summary.write(scrub_text(render_markdown(runs, info), secrets))
+            summary.write(scrub_text(render_markdown(runs, info, ctx.out_dir), secrets))
     print(f"Duración: {time.monotonic() - started:.0f} s\nInforme: {html_path}\nDatos: {json_path}")
     return 0 if all(run.status is Status.PASS for run in runs) else 1
 

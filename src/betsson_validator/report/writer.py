@@ -98,13 +98,30 @@ generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))} · {escape(_
 """
 
 
-def render_markdown(runs: Sequence[ScenarioRun], info: RunInfo | None = None) -> str:
-    """Resumen para la página de la ejecución en GitHub Actions."""
+def render_markdown(
+    runs: Sequence[ScenarioRun], info: RunInfo | None = None, out_dir: Path | None = None
+) -> str:
+    """Resumen para la página de la ejecución en GitHub Actions.
+
+    Con `out_dir`, cada escenario lleva además su frase en lenguaje llano (lo observado).
+    """
     info = info or RunInfo(requested=tuple(run.scenario for run in runs))
+    overall = _overall(runs, info)
+    checks = [result for run in runs for result in run.results]
+    passed = sum(result.status is Status.PASS for result in checks)
+    expected = sum(len(run.results) + len(run.missing_checks()) for run in runs)
     lines = [
-        f"## Validación de juegos: {_overall(runs, info).value}",
+        f"## {'✅' if overall is Status.PASS else '❌'} Validación de juegos: {overall.value}",
         "",
-        _scope(info),
+        f"**{passed} de {expected} comprobaciones superadas** · {_scope(info)}",
+        "",
+    ]
+    for run in runs:
+        observed = load_observed(out_dir / run.scenario.value) if out_dir else None
+        icon = "✅" if run.status is Status.PASS else "❌"
+        story = f": {narrative(observed, run.scenario, run.game)}" if observed else ""
+        lines.append(f"- {icon} **{SCENARIO_TITLES[run.scenario]}**{story}")
+    lines += [
         "",
         "| Escenario | Mercado | Juego | Comprobación | Resultado | Motivo |",
         "|---|---|---|---|---|---|",

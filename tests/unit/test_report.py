@@ -79,7 +79,7 @@ def test_report_lists_unevaluated_checks(tmp_path: Path) -> None:
 def test_markdown_summary_lists_every_check() -> None:
 
     markdown = render_markdown([run_with(all_checks_pass()[:-1])])
-    assert markdown.startswith("## Validación de juegos: FAIL")
+    assert markdown.splitlines()[0] == "## ❌ Validación de juegos: FAIL"
     assert markdown.count("| PASS |") == 4
     assert "No evaluada" in markdown
 

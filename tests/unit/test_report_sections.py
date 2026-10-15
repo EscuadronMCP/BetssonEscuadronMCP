@@ -110,3 +110,25 @@ def test_stage_timeline_and_plain_story_are_written(tmp_path: Path) -> None:
     story = narrative(observed, Scenario.COMPLETED_SPIN, "sweet-bonanza-2500")
     assert "Se apostaron 0,20 €" in story
     assert "cuadra con la regla del reto" in story
+
+
+def test_actions_summary_tells_what_happened(tmp_path: Path) -> None:
+    from datetime import UTC, datetime  # noqa: PLC0415
+
+    from betsson_validator.domain.run import ScenarioRun  # noqa: PLC0415
+    from betsson_validator.report.writer import render_markdown  # noqa: PLC0415
+
+    write(tmp_path / "completed_spin", {**OBSERVED, "motion": {"completed": True}})
+    now = datetime(2026, 10, 15, 18, 0, tzinfo=UTC)
+    run = ScenarioRun(
+        scenario=Scenario.COMPLETED_SPIN,
+        market="es",
+        provider="Pragmatic Play",
+        game="sweet-bonanza-2500",
+        started_at=now,
+        finished_at=now,
+        results=(),
+    )
+    markdown = render_markdown([run], out_dir=tmp_path)
+    assert "Se apostaron 0,20 €" in markdown
+    assert "comprobaciones superadas" in markdown
