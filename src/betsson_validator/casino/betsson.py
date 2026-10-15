@@ -19,8 +19,7 @@ _WAF_COOKIE = "aws-waf-token"
 _AUTH_ENDPOINT = "/api/v2/authentication-transaction"
 _LOGIN_OK = 201
 _BALANCE_BUTTON = re.compile(r"^\s*\d[\d.\s]*,\d{2}\s*€\s*$")
-_GAME_LAUNCHER = "Gamelauncher"
-_GAME_IFRAME = f"iframe[src*='{_GAME_LAUNCHER}']"
+_GAME_IFRAME = "iframe[src*='Gamelauncher']"
 # Difumina los campos de login para que las credenciales no salgan en el vídeo.
 _HIDE_LOGIN_FIELDS_CSS = (
     "input[name=email], input[name=password] "
@@ -237,14 +236,21 @@ class BetssonCasino:
             field.first.fill(self._ui.session_loss_limit_fallback, timeout=_CLICK_TIMEOUT_MS)
 
     def _provider_game_loaded(self) -> bool:
-        """El iframe de Betsson ya contiene el juego del proveedor (otro dominio)."""
+        """El iframe del lanzador de Betsson ya muestra el juego del proveedor.
+
+        El lanzador redirige al dominio del proveedor: el juego es el propio iframe (no un hijo).
+        Mientras falta la sesión de juego, el iframe sigue en el dominio de Betsson.
+        """
+        iframe = self._page.locator(_GAME_IFRAME)
+        if not iframe.count():
+            return False
+        handle = iframe.first.element_handle(timeout=_CLICK_TIMEOUT_MS)
+        frame = handle.content_frame() if handle else None
+        if frame is None:
+            return False
+        host = urlparse(frame.url).hostname or ""
         casino_host = urlparse(str(self._market.base_url)).hostname or ""
-        for frame in self._page.frames:
-            parent = frame.parent_frame
-            host = urlparse(frame.url).hostname or ""
-            if parent is not None and _GAME_LAUNCHER in parent.url and host != casino_host:
-                return True
-        return False
+        return bool(host) and host != casino_host
 
     def _start_game_session(self) -> None:
         """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites.
