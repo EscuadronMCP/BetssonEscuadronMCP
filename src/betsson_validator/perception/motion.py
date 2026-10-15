@@ -48,6 +48,32 @@ class MotionThresholds:
 
 DEFAULT_THRESHOLDS = MotionThresholds()
 
+# Margen sobre la actividad de fondo medida antes de girar.
+_IDLE_STILL_FACTOR = 1.5
+_IDLE_STILL_MARGIN = 0.005
+_IDLE_START_FACTOR = 3.0
+_IDLE_START_MARGIN = 0.03
+
+
+def adaptive_thresholds(
+    idle_scores: Iterable[float], base: MotionThresholds = DEFAULT_THRESHOLDS
+) -> MotionThresholds:
+    """Umbrales relativos a la actividad de fondo del juego medida antes de girar.
+
+    Hay juegos con animaciones continuas (personajes, burbujas) en los que la pantalla nunca
+    queda del todo quieta: un umbral fijo de reposo no se cumpliría jamás. Se toma la actividad
+    máxima en reposo y se exige superarla claramente para "giro" y no superarla para "reposo".
+    """
+    idle = max(idle_scores, default=0.0)
+    still = max(base.still, idle * _IDLE_STILL_FACTOR + _IDLE_STILL_MARGIN)
+    start = max(base.start, idle * _IDLE_START_FACTOR + _IDLE_START_MARGIN, still * 2)
+    return MotionThresholds(
+        start=start,
+        still=still,
+        still_samples=base.still_samples,
+        min_active_samples=base.min_active_samples,
+    )
+
 
 @dataclass(frozen=True)
 class SpinLifecycle:

@@ -28,7 +28,9 @@ from betsson_validator.perception.hud import (
 )
 from betsson_validator.perception.learner import Box, ScreenAnalysis, ScreenLearner
 from betsson_validator.perception.motion import (
+    MotionThresholds,
     SpinLifecycle,
+    adaptive_thresholds,
     detect_spin_lifecycle,
     motion_score,
 )
@@ -57,6 +59,7 @@ class GameTimings:
     learn_grace_after_loading_s: float = 10
     spin_timeout_s: float = 45
     spin_start_timeout_s: float = 8
+    idle_samples: int = 6  # capturas para medir la actividad de fondo antes de girar
     locate_patience_s: float = 4  # reintentos locales antes de pagar a la IA por un control
     capture_interval_ms: int = 150
     settle_after_spin_ms: int = 1500
@@ -352,21 +355,21 @@ class ScreenGame:
         """Pulsa girar UNA vez y vigila los rodillos hasta que el giro termina (o no empieza)."""
         point, before = self._locate_patiently("spin")
         evidence: list[str] = []
-        previous = self.model.reels(before)
+        previous, thresholds = self._idle_baseline(before)
         self.click(point)
         scores: list[float] = []
         mid_saved = False
         clicked = time.monotonic()
         deadline = clicked + self.timings.spin_timeout_s
         while time.monotonic() < deadline:
-            no_reaction = not detect_spin_lifecycle(scores).started
+            no_reaction = not detect_spin_lifecycle(scores, thresholds).started
             if no_reaction and time.monotonic() - clicked > self.timings.spin_start_timeout_s:
                 break  # un giro real arranca en <1 s: si no, el juego no giró (p. ej. sin saldo)
             image = self.capture()
             current = self.model.reels(image)
             scores.append(motion_score(previous, current))
             previous = current
-            lifecycle = detect_spin_lifecycle(scores)
+            lifecycle = detect_spin_lifecycle(scores, thresholds)
             if lifecycle.started and not mid_saved:
                 evidence.append(str(self.evidence.save_image("girando", image)))
                 mid_saved = True
@@ -374,7 +377,20 @@ class ScreenGame:
                 break
             self.page.wait_for_timeout(self.timings.capture_interval_ms)
         self.page.wait_for_timeout(self.timings.settle_after_spin_ms)
-        return SpinObservation(detect_spin_lifecycle(scores), tuple(scores), tuple(evidence))
+        return SpinObservation(
+            detect_spin_lifecycle(scores, thresholds), tuple(scores), tuple(evidence)
+        )
+
+    def _idle_baseline(self, first: Image) -> tuple[Image, MotionThresholds]:
+        """Mide la actividad de fondo antes de girar (animaciones del juego en reposo)."""
+        previous = self.model.reels(first)
+        idle: list[float] = []
+        for _ in range(self.timings.idle_samples):
+            self.page.wait_for_timeout(self.timings.capture_interval_ms)
+            current = self.model.reels(self.capture())
+            idle.append(motion_score(previous, current))
+            previous = current
+        return previous, adaptive_thresholds(idle)
 
     def dismiss_message(self) -> bool:
         """Cierra un diálogo del juego pulsando su botón, localizado por OCR."""

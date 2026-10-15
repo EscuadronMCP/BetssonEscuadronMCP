@@ -3,6 +3,7 @@ import pytest
 
 from betsson_validator.perception.motion import (
     MotionThresholds,
+    adaptive_thresholds,
     detect_spin_lifecycle,
     motion_score,
 )
@@ -103,3 +104,23 @@ def test_real_spin_is_detected_start_to_end() -> None:
     assert lifecycle.started
     assert lifecycle.completed
     assert lifecycle.end_index == 22
+
+
+def test_static_game_keeps_default_thresholds() -> None:
+
+    assert adaptive_thresholds([0.0, 0.0, 0.002]) == MotionThresholds()
+
+
+def test_animated_background_is_not_mistaken_for_a_spin_that_never_ends() -> None:
+
+    idle = [0.03, 0.04, 0.035]  # burbujas y personajes animados en reposo
+    spin = [0.35, 0.30, 0.25, 0.20, *([0.035] * 6)]
+    assert not detect_spin_lifecycle(spin).completed  # con umbrales fijos, nunca "reposa"
+    lifecycle = detect_spin_lifecycle(spin, adaptive_thresholds(idle))
+    assert lifecycle.started and lifecycle.completed
+
+
+def test_background_animation_alone_is_not_a_spin() -> None:
+
+    idle = [0.03, 0.04, 0.035]
+    assert not detect_spin_lifecycle([0.04] * 20, adaptive_thresholds(idle)).started
