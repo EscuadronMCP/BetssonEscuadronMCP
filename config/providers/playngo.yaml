@@ -1,3 +1,6 @@
+# ESTADO: configurado, pero NO demostrado. En sus juegos la apuesta se cambia desde un panel
+# (icono de fichas), no con «+»/«-» junto al botón de girar: falta ese adaptador de apuesta.
+# Hasta tenerlo, `learn` no supera la validación y `run --provider playngo` no tiene perfil.
 # Play'n GO en betsson.es: segundo proveedor, para demostrar que el validador no depende de
 # Pragmatic Play. Lo específico de cada juego se aprende (profiles/playngo/<juego>/).
 id: playngo

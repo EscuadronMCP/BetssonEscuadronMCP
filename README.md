@@ -37,6 +37,8 @@ uv sync
 cp .env.example .env      # y escribe en .env el correo y la contraseña de las dos cuentas
 ```
 
+En Windows (PowerShell), en lugar de `cp`: `Copy-Item .env.example .env`.
+
 El archivo `.env` nunca se sube al repositorio. La clave de IA (`ANTHROPIC_API_KEY`) es opcional: solo hace falta para aprender un juego nuevo.
 
 ### Generar un informe
