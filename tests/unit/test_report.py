@@ -138,3 +138,44 @@ def test_evidence_links_use_posix_urls_and_flag_missing_files(tmp_path: Path) ->
     assert 'src="completed_spin/01_juego.jpg"' in html
     assert "02_retirada.jpg: no disponible" in html
     assert "\\\\" not in html
+
+
+# --- Auditoría R02: procedencia, alcance y enlaces ---------------------------------------------
+
+
+def test_report_identifies_code_version_and_partial_scope(tmp_path: Path) -> None:
+    from betsson_validator.report.writer import RunInfo  # noqa: PLC0415
+
+    info = RunInfo(code_version="3572172abcdef0123", requested=(Scenario.COMPLETED_SPIN,))
+    json_path, html_path = write_report([run_with(all_checks_pass())], tmp_path, info)
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    assert data["code_version"] == "3572172abcdef0123"
+    assert data["partial_scope"] is True
+    assert "alcance parcial" in html_path.read_text(encoding="utf-8")
+    assert "alcance parcial" in render_markdown([run_with(all_checks_pass())], info)
+
+
+def test_a_requested_scenario_that_did_not_run_is_not_a_global_pass(tmp_path: Path) -> None:
+    from betsson_validator.report.writer import RunInfo  # noqa: PLC0415
+
+    info = RunInfo(requested=tuple(Scenario))
+    json_path, _ = write_report([run_with(all_checks_pass())], tmp_path, info)
+    assert json.loads(json_path.read_text(encoding="utf-8"))["status"] == "FAIL"
+
+
+def test_links_with_spaces_hash_and_accents_are_encoded(tmp_path: Path) -> None:
+    folder = tmp_path / "completed_spin"
+    folder.mkdir()
+    picture = folder / "captura #1 señal.jpg"
+    picture.write_bytes(b"jpg")
+    screen = Testimony(
+        witness="pantalla",
+        kind=WitnessKind.VISUAL,
+        outcome=Outcome.CONFIRMS,
+        detail="ok",
+        evidence=(str(picture),),
+    )
+    result = evaluate(Check.SPIN_COMPLETED.value, (screen,))
+    _, html_path = write_report([run_with((result,))], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert 'src="completed_spin/captura%20%231%20se%C3%B1al.jpg"' in html

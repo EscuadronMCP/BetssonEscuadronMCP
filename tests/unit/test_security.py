@@ -97,3 +97,14 @@ def test_screenshots_showing_the_account_are_quarantined(tmp_path: Path) -> None
 def test_unreadable_archives_are_not_published(tmp_path: Path) -> None:
     (tmp_path / "trace.zip").write_bytes(b"no es un zip")
     assert audit_and_quarantine(tmp_path, SECRETS) == ["trace.zip"]
+
+
+def test_an_ocr_failure_never_publishes_the_image_nor_breaks_the_run(tmp_path: Path) -> None:
+    """Auditoría R02 (ERR-010/011): la excepción del OCR durante la limpieza escapaba."""
+    cv2.imwrite(str(tmp_path / "01_juego.jpg"), np.zeros((20, 20, 3), dtype=np.uint8))
+
+    class BrokenReader:
+        def read(self, pixels: npt.NDArray[np.uint8]) -> list[TextBox]:
+            raise RuntimeError("OCR roto")
+
+    assert audit_and_quarantine(tmp_path, SECRETS, BrokenReader()) == ["01_juego.jpg"]

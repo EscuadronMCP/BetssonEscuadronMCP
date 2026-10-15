@@ -6,6 +6,7 @@ uv run python -m betsson_validator learn --game big-bass-splash # incorpora un j
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -23,10 +24,10 @@ from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import Status
 from betsson_validator.perception.learner import ClaudeScreenLearner, ScreenLearner
 from betsson_validator.perception.ocr import RapidOcrReader
-from betsson_validator.report.writer import render_markdown, write_report
-from betsson_validator.runner import RunContext, run_scenario
+from betsson_validator.report.writer import RunInfo, render_markdown, write_report
+from betsson_validator.runner import RunContext, failed_run, run_scenario
 from betsson_validator.scenarios.faults import BETSSON_BALANCE_DRIFT
-from betsson_validator.security import audit_and_quarantine, scrub_files
+from betsson_validator.security import audit_and_quarantine, scrub_files, scrub_text
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -113,16 +114,36 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
             print(f"  aviso: {run.injected_fault}")
         for note in run.notes:
             print(f"  nota: {note}")
-    json_path, html_path = write_report(runs, ctx.out_dir)
+    info = RunInfo(
+        code_version=_code_version(), requested=tuple(scenarios), run_id=os.getenv("GITHUB_RUN_ID")
+    )
+    json_path, html_path = write_report(runs, ctx.out_dir, info)
     secrets = ctx.market.accounts.secrets()
     scrub_files((json_path, html_path), secrets)  # el informe se publica siempre: se limpia
     for leaked in audit_and_quarantine(ctx.out_dir, secrets):
         print(f"  evidencia retirada por contener secretos: {leaked}")
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as summary:
-            summary.write(render_markdown(runs))
+            summary.write(scrub_text(render_markdown(runs, info), secrets))
     print(f"Duración: {time.monotonic() - started:.0f} s\nInforme: {html_path}\nDatos: {json_path}")
     return 0 if all(run.status is Status.PASS for run in runs) else 1
+
+
+def _code_version() -> str:
+    """SHA del código ejecutado: el de GitHub Actions o el del checkout local."""
+    if sha := os.getenv("GITHUB_SHA"):
+        return sha
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],  # noqa: S607 - git del sistema
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "desconocida"
+    return result.stdout.strip() or "desconocida"
 
 
 def _run_all(
@@ -138,11 +159,17 @@ def _run_all(
     if not parallel or len(scenarios) == 1:
         return [run_scenario(scenario, context_for(scenario)) for scenario in scenarios]
     with ThreadPoolExecutor(max_workers=len(scenarios)) as pool:
-        futures = [
-            pool.submit(run_scenario, scenario, context_for(scenario, RapidOcrReader()))
+        futures = {
+            scenario: pool.submit(run_scenario, scenario, context_for(scenario, RapidOcrReader()))
             for scenario in scenarios
-        ]
-        return [future.result() for future in futures]
+        }
+        runs = []
+        for scenario, future in futures.items():
+            try:
+                runs.append(future.result())
+            except Exception as error:  # un fallo inesperado de un hilo es un FAIL, no un cierre
+                runs.append(failed_run(scenario, ctx, error))
+        return runs
 
 
 def _learn(ctx: RunContext) -> int:

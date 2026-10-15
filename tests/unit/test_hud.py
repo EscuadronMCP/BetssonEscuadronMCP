@@ -119,3 +119,9 @@ def test_label_must_be_a_whole_word() -> None:
     labels = HudLabels(credit="CRÉDITO", bet="APUESTA", win="GANA")
     hud = read_hud([box("GANANCIA 5,00 €", 0, 0)], labels, "EUR")
     assert hud.win is None
+
+
+def test_one_box_with_two_labels_gives_the_amount_to_the_second() -> None:
+    """Auditoría R02 (OCR-002/003): "CRÉDITO APUESTA 0,20 €" en una sola caja."""
+    hud = read_hud([box("CRÉDITO APUESTA 0,20 €", 0, 0)], LABELS, "EUR")
+    assert hud.credit is None

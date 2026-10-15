@@ -77,6 +77,18 @@ def _amount_in(text: str, default_currency: str) -> Money | None:
     return Money(amount=amount, currency=detect_currency(text) or default_currency)
 
 
+def _own_amount(rest: str, stop_labels: Sequence[str], default_currency: str) -> Money | None:
+    """Importe que sigue a la etiqueta dentro de la misma caja, salvo que antes aparezca otra
+    etiqueta del HUD ("CRÉDITO APUESTA 0,20 €": ese importe es de la apuesta)."""
+    match = _AMOUNT.search(rest.translate(_MINUS_SIGNS))
+    if match is None:
+        return None
+    before = _normalize(rest[: match.start()])
+    if any(_normalize(other) in before for other in stop_labels if other.strip()):
+        return None
+    return _amount_in(rest, default_currency)
+
+
 def _same_line(a: TextBox, b: TextBox) -> bool:
     return abs(a.center_y - b.center_y) <= max(a.height, b.height) * 0.6
 
@@ -118,7 +130,7 @@ def find_amounts(
     for box in boxes:
         if box.score < MIN_OCR_SCORE or not _starts_with_label(box.text, label):
             continue
-        money = _amount_in(box.text[len(label) :], default_currency)
+        money = _own_amount(box.text[len(label) :], stop_labels, default_currency)
         if money is not None:
             readings.append(AmountReading(money, box.text, box.score, box.center_x, box.center_y))
             continue

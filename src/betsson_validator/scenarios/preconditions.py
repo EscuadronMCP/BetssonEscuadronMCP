@@ -13,12 +13,21 @@ class PreconditionError(RuntimeError):
     """No es seguro o no tiene sentido girar en este estado."""
 
 
-def check_bet(bet: Money | None, max_bet: Decimal, currency: str) -> Money:
-    """La apuesta visible: leída, positiva, en la divisa del mercado y sin superar el tope."""
+def check_bet(
+    bet: Money | None, max_bet: Decimal, currency: str, observed_currencies: tuple[str, ...]
+) -> Money:
+    """La apuesta visible: leída, positiva, en la divisa del mercado y sin superar el tope.
+
+    La divisa debe VERSE en el marcador (`observed_currencies`): la que trae `bet` puede venir
+    de la configuración del mercado cuando el OCR no lee el símbolo.
+    """
     if bet is None:
         raise PreconditionError("No se pudo leer la apuesta en pantalla. No se gira.")
-    if bet.currency != currency:
-        raise PreconditionError(f"La apuesta se muestra en {bet.currency}, no en {currency}.")
+    if set(observed_currencies) != {currency}:
+        seen = ", ".join(observed_currencies) or "ninguna"
+        raise PreconditionError(
+            f"Divisa vista en el marcador del juego: {seen}; esperada {currency}. No se gira."
+        )
     if bet.amount <= 0:
         raise PreconditionError(f"Apuesta mostrada {bet}: no es positiva. No se gira.")
     if bet.amount > max_bet:
@@ -42,6 +51,11 @@ def require_funds(betsson: Money, credit: Money | None, bet: Money) -> None:
 
 def require_no_funds(betsson: Money, credit: Money | None, bet: Money) -> None:
     """Escenario 2: la cuenta NO debe poder pagar la apuesta (si no, giraría con dinero real)."""
+    if credit is None:
+        raise PreconditionError(
+            "No se pudo leer el crédito del juego: no se puede confirmar que la cuenta no tenga "
+            "saldo. No se gira."
+        )
     for name, balance in (("Betsson", betsson), ("el juego", credit)):
         if balance is not None and balance.amount >= bet.amount:
             raise PreconditionError(

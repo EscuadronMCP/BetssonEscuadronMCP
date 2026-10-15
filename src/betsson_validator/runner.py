@@ -7,7 +7,7 @@ providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -21,7 +21,7 @@ from betsson_validator.domain.parsing import detect_currency
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
-from betsson_validator.game.events import GameEventRecorder, payloads
+from betsson_validator.game.events import GameEventRecorder, capture_anomalies, payloads
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
@@ -187,6 +187,21 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
     )
 
 
+def failed_run(scenario: Scenario, ctx: RunContext, error: BaseException) -> ScenarioRun:
+    """Resultado FAIL para un escenario que no llegó a devolver el suyo (sin secretos)."""
+    now = datetime.now(UTC)
+    return ScenarioRun(
+        scenario=scenario,
+        market=ctx.market.id,
+        provider=ctx.provider.filter_label,
+        game=ctx.game,
+        started_at=now,
+        finished_at=now,
+        results=(),
+        error=_sanitize(f"{type(error).__name__}: {error}", ctx.market.accounts.secrets()),
+    )
+
+
 def _protect_evidence(
     evidence_dir: Path, secrets: tuple[str, ...], reader: TextReader
 ) -> list[str]:
@@ -248,10 +263,9 @@ def _prepare(
         ),
     )
     ready = game.set_minimum_bet(game.wait_until_ready())
-    bet = check_bet(
-        ready.hud.bet.money if ready.hud.bet else None, ctx.provider.max_bet, ctx.market.currency
-    )
-    plan.precondition(betsson_before, ready.hud.credit.money if ready.hud.credit else None, bet)
+    seen = _snapshot(ready)
+    bet = check_bet(seen.bet, ctx.provider.max_bet, ctx.market.currency, seen.currencies_seen)
+    plan.precondition(betsson_before, seen.credit, bet)
     return _Ready(betsson_before, header_before, game, ready)
 
 
@@ -275,6 +289,11 @@ def _play(
         game_events = GameEventRecorder.collect(casino.page)[events_mark:]
         events_file = files.save_json("eventos_del_juego", game_events)
         events_summary = witnesses.events.summarize(payloads(game_events), str(events_file))
+        problems = capture_anomalies(game_events, GameEventRecorder.dropped(casino.page))
+        if problems:
+            events_summary = replace(
+                events_summary, anomalies=(*events_summary.anomalies, *problems)
+            )
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 

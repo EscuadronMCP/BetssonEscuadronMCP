@@ -137,16 +137,19 @@ def audit_and_quarantine(
     removed: list[str] = []
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
         suffix = path.suffix.lower()
-        if suffix == ".zip":
-            leaked = _zip_leaks(path, secrets)
-        elif suffix in _TEXT_SUFFIXES:
-            leaked = bool(find_leaks(path.read_bytes(), secrets))
-        elif suffix in _IMAGE_SUFFIXES and reader is not None and forms:
-            leaked = _image_leaks(path, forms, reader)
-        else:
-            continue
+        try:
+            if suffix == ".zip":
+                leaked = _zip_leaks(path, secrets)
+            elif suffix in _TEXT_SUFFIXES:
+                leaked = bool(find_leaks(path.read_bytes(), secrets))
+            elif suffix in _IMAGE_SUFFIXES and reader is not None and forms:
+                leaked = _image_leaks(path, forms, reader)
+            else:
+                continue
+        except Exception:  # p. ej. el OCR falla: sin revisar no se publica
+            leaked = True
         if leaked:
-            path.unlink()
+            path.unlink(missing_ok=True)
             removed.append(path.relative_to(root).as_posix())
     return removed
 

@@ -166,9 +166,13 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
         _events(
             evidence,
             lambda e: (
-                e.round_started and e.round_ended,
+                None
+                if not (e.round_started or e.round_ended)
+                else e.round_started and e.round_ended,
                 "el juego anunció el inicio y el fin de la ronda"
                 if e.round_started and e.round_ended
+                else "el juego no comunicó ninguna ronda"
+                if not (e.round_started or e.round_ended)
                 else "el juego no anunció una ronda completa",
             ),
         )
@@ -380,12 +384,14 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
     events = _events(
         evidence,
         lambda e: (
-            e.low_balance and not e.round_started,
+            None
+            if not (e.low_balance or e.round_started)
+            else e.low_balance and not e.round_started,
             "el juego avisó de saldo insuficiente y no inició ninguna ronda"
             if e.low_balance and not e.round_started
             else "el juego inició una ronda"
             if e.round_started
-            else "el juego no avisó de saldo insuficiente",
+            else "el juego no comunicó nada sobre la tirada",
         ),
     )
     return evaluate(Check.SPIN_REJECTED.value, (screen, motion, server, events))

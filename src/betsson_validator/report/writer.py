@@ -2,11 +2,13 @@
 
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
-from betsson_validator.domain.checks import DESCRIPTIONS, SCENARIO_TITLES, Check
+from betsson_validator.domain.checks import DESCRIPTIONS, SCENARIO_TITLES, Check, Scenario
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, Outcome, Status
 
@@ -17,22 +19,49 @@ _OUTCOME_LABELS = {
 }
 
 
-def write_report(runs: Sequence[ScenarioRun], out_dir: Path) -> tuple[Path, Path]:
+@dataclass(frozen=True)
+class RunInfo:
+    """Procedencia de la ejecución: qué código y qué escenarios se pidieron."""
+
+    code_version: str = "desconocida"
+    requested: tuple[Scenario, ...] = tuple(Scenario)
+    run_id: str | None = None
+
+    @property
+    def partial(self) -> bool:
+        return set(self.requested) != set(Scenario)
+
+
+def write_report(
+    runs: Sequence[ScenarioRun], out_dir: Path, info: RunInfo | None = None
+) -> tuple[Path, Path]:
+    info = info or RunInfo(requested=tuple(run.scenario for run in runs))
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "report.json"
     html_path = out_dir / "index.html"
     payload = {
         "generated_at": datetime.now(UTC).isoformat(),
-        "status": _overall(runs).value,
+        "code_version": info.code_version,
+        "run_id": info.run_id,
+        "requested_scenarios": [scenario.value for scenario in info.requested],
+        "partial_scope": info.partial,
+        "status": _overall(runs, info).value,
         "runs": [{**run.model_dump(mode="json"), "status": run.status.value} for run in runs],
     }
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    html_path.write_text(render_html(runs, out_dir), encoding="utf-8")
+    html_path.write_text(render_html(runs, out_dir, info), encoding="utf-8")
     return json_path, html_path
 
 
-def render_html(runs: Sequence[ScenarioRun], out_dir: Path) -> str:
-    overall = _overall(runs)
+def _scope(info: RunInfo) -> str:
+    titles = ", ".join(SCENARIO_TITLES[scenario] for scenario in info.requested)
+    note = " (alcance parcial: no se pidieron todos los escenarios)" if info.partial else ""
+    return f"Código {info.code_version[:12]} · escenarios solicitados: {titles}{note}"
+
+
+def render_html(runs: Sequence[ScenarioRun], out_dir: Path, info: RunInfo | None = None) -> str:
+    info = info or RunInfo(requested=tuple(run.scenario for run in runs))
+    overall = _overall(runs, info)
     sections = "\n".join(_render_run(run, out_dir) for run in runs)
     return f"""<!doctype html>
 <html lang="es">
@@ -47,6 +76,7 @@ def render_html(runs: Sequence[ScenarioRun], out_dir: Path) -> str:
 <h1>Informe de validación de juegos</h1>
 <p class="summary">Resultado global: {_badge(overall)} · {len(runs)} escenario(s) ·
 generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))}</p>
+<p class="meta">{escape(_scope(info))}</p>
 {_plain_summary(runs)}
 {sections}
 </main>
@@ -55,10 +85,13 @@ generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))}</p>
 """
 
 
-def render_markdown(runs: Sequence[ScenarioRun]) -> str:
+def render_markdown(runs: Sequence[ScenarioRun], info: RunInfo | None = None) -> str:
     """Resumen para la página de la ejecución en GitHub Actions."""
+    info = info or RunInfo(requested=tuple(run.scenario for run in runs))
     lines = [
-        f"## Validación de juegos: {_overall(runs).value}",
+        f"## Validación de juegos: {_overall(runs, info).value}",
+        "",
+        _scope(info),
         "",
         "| Escenario | Mercado | Juego | Comprobación | Resultado | Motivo |",
         "|---|---|---|---|---|---|",
@@ -153,7 +186,7 @@ def _render_media(run: ScenarioRun, out_dir: Path) -> str:
     links = []
     for pattern, label in _MEDIA:
         for path in sorted(folder.glob(pattern)):
-            href = escape(path.relative_to(out_dir).as_posix())
+            href = _href(path.relative_to(out_dir))
             links.append(f'<a href="{href}">{escape(label)}</a>')
     return f'<p class="meta">Evidencias: {" · ".join(links)}</p>' if links else ""
 
@@ -178,15 +211,17 @@ def _render_evidence(paths: tuple[str, ...], out_dir: Path) -> str:
         if not path.is_file():  # p. ej. retirada por contener un secreto: nunca un enlace roto
             links.append(f'<span class="missing">{escape(path.name)}: no disponible</span>')
             continue
-        # Rutas con "/" también en Windows: son URL relativas, no rutas del sistema.
-        href = escape(
-            (path.relative_to(out_dir) if path.is_relative_to(out_dir) else path).as_posix()
-        )
+        href = _href(path.relative_to(out_dir) if path.is_relative_to(out_dir) else path)
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
             links.append(f'<a href="{href}"><img src="{href}" alt="evidencia"></a>')
         else:
             links.append(f'<a href="{href}">{escape(path.name)}</a>')
     return f'<div class="evidence">{"".join(links)}</div>' if links else ""
+
+
+def _href(path: Path) -> str:
+    """URL relativa: "/" también en Windows y espacios, "#" o acentos codificados."""
+    return escape(quote(path.as_posix(), safe="/"))
 
 
 def _describe_check(check_id: str) -> str:
@@ -196,10 +231,12 @@ def _describe_check(check_id: str) -> str:
         return check_id
 
 
-def _overall(runs: Sequence[ScenarioRun]) -> Status:
-    if runs and all(run.status is Status.PASS for run in runs):
-        return Status.PASS
-    return Status.FAIL
+def _overall(runs: Sequence[ScenarioRun], info: RunInfo) -> Status:
+    """PASS solo si se ejecutaron todos los escenarios pedidos y todos pasaron."""
+    executed = {run.scenario for run in runs}
+    if not runs or not set(info.requested) <= executed:
+        return Status.FAIL
+    return Status.PASS if all(run.status is Status.PASS for run in runs) else Status.FAIL
 
 
 def _badge(status: Status) -> str:

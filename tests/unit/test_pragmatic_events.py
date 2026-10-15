@@ -176,3 +176,31 @@ def test_malformed_events_do_not_crash() -> None:
 
 def test_real_rounds_have_no_anomalies() -> None:
     assert summarize_events(WINNING_ROUND).anomalies == ()
+
+
+def test_irrelevant_events_only_do_not_deny_the_round() -> None:
+    """Auditoría R02 (EVT-020, VER-003): solo eventos de saldo = nada sobre la ronda."""
+    only_balance: list[dict[str, Any]] = [
+        {"event": "updateBalance", "params": {"total": {"currency": "€", "amount": 0}}}
+    ]
+    spin = replace(WINNING_SPIN, events=summarize_events(only_balance, "e.json"))
+    result = {r.check: r for r in evaluate_completed_spin(spin)}
+    events = next(t for t in result[Check.SPIN_COMPLETED.value].testimonies if t.witness == EVENTS)
+    assert events.outcome is Outcome.UNAVAILABLE
+    rejected = replace(REJECTED_SPIN, events=summarize_events(only_balance, "e.json"))
+    result2 = {r.check: r for r in evaluate_insufficient_balance(rejected)}
+    events2 = next(t for t in result2[Check.SPIN_REJECTED.value].testimonies if t.witness == EVENTS)
+    assert events2.outcome is Outcome.UNAVAILABLE
+
+
+def test_capture_problems_are_reported_as_anomalies() -> None:
+    from betsson_validator.game.events import capture_anomalies  # noqa: PLC0415
+
+    events: list[dict[str, Any]] = [
+        {"seq": 0, "origin": "https://a.example", "data": {"name": "x"}},
+        {"seq": 1, "origin": "https://b.example", "data": {"name": "y"}},
+    ]
+    found = capture_anomalies(events, dropped=3)
+    assert any("orígenes distintos" in a for a in found)
+    assert any("3 eventos descartados" in a for a in found)
+    assert capture_anomalies(events[:1], dropped=0) == ()
