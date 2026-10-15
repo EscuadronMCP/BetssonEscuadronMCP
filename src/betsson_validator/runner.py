@@ -6,6 +6,7 @@ providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 """
 
 import re
+import time
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict, dataclass, replace
@@ -315,6 +316,12 @@ def _play(
     events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
     clock.mark("giro observado")
+    if _wait_round_closed(casino, witnesses, mark, events_mark) is False:
+        model.notes.append(
+            f"La ronda no se cerró en {_ROUND_CLOSE_TIMEOUT_S} s según el servidor y los "
+            "eventos del juego: se leyó el estado final igualmente."
+        )
+    clock.mark("ronda cerrada")
     after = game.observe_settled("despues_de_girar")
     clock.mark("marcador estable")
     if ctx.ax_probe:  # con el mensaje del juego aún visible en el escenario 2
@@ -377,6 +384,34 @@ def _play(
         evidence = ctx.fault.apply(evidence)
     files.save_json("resumen_observado", summary_data)
     return plan.evaluator(evidence)
+
+
+_ROUND_CLOSE_TIMEOUT_S = 30
+
+
+def _wait_round_closed(
+    casino: BetssonCasino, witnesses: _Witnesses, mark: int, events_mark: int
+) -> bool | None:
+    """Espera a que el servidor y los eventos den la ronda por cerrada (cascadas, cobro del
+    premio) antes de la lectura final. Solo orienta CUÁNDO leer: la prueba sigue siendo lo que
+    ve el jugador. None si no hay testigos que lo indiquen; False si se agotó la espera."""
+    if witnesses.network is None and witnesses.events is None:
+        return None
+    deadline = time.monotonic() + _ROUND_CLOSE_TIMEOUT_S
+    while True:
+        open_round = False
+        if witnesses.events is not None:
+            recorded = payloads(GameEventRecorder.collect(casino.page)[events_mark:])
+            summary = witnesses.events.summarize(recorded, "")
+            open_round |= summary.round_started and not summary.round_ended
+        if witnesses.network is not None:
+            network = witnesses.network.summarize(mark, "")
+            open_round |= network.wager_accepted is not None and not network.settled
+        if not open_round:
+            return True
+        if time.monotonic() > deadline:
+            return False
+        casino.page.wait_for_timeout(500)
 
 
 def _describe(evidence: RunEvidence) -> dict[str, object]:

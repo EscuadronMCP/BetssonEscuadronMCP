@@ -341,8 +341,17 @@ class ScreenGame:
                 if found is not None:  # nunca un clic a ciegas: podría caer en otro control
                     self.click(found)
             self.page.wait_for_timeout(1000)
-        path = self.evidence.save_image("juego_no_listo", self.capture())
-        raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")
+        image = self.capture()
+        path = self.evidence.save_image("juego_no_listo", image)
+        notice = (
+            find_message(self.model.reader.read(image), self.notice_pattern)
+            if self.notice_pattern
+            else None
+        )
+        shown = f"; el juego muestra «{notice}»" if notice else ""
+        raise GameError(
+            f"El juego no mostró el crédito y la apuesta a tiempo{shown} (ver {path.name})."
+        )
 
     def _locate_patiently(self, control: str) -> tuple[Point, Image]:
         """Localiza un control dando tiempo a que acaben las animaciones de la interfaz.
