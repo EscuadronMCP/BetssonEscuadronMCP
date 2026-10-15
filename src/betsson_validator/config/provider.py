@@ -1,62 +1,17 @@
-"""Configuración por proveedor. Añadir un proveedor es añadir un YAML en config/providers/."""
+"""Configuración por proveedor. Añadir un proveedor es añadir un YAML en config/providers/.
 
-import re
+Solo contiene lo que es del proveedor en el casino. Lo que depende de cada juego (etiquetas del
+HUD, aspecto de los controles) se aprende y vive en profiles/ (ver profiles.py).
+"""
+
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_PROVIDERS_DIR = Path(__file__).resolve().parents[3] / "config" / "providers"
-
-Point = tuple[float, float]
-
-
-class ScreenLabels(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    credit: str
-    bet: str
-    win: str
-
-
-class ScreenControls(BaseModel):
-    """Posición de los controles relativa al iframe del juego (0-1)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    continue_: Point = Field(alias="continue")
-    spin: Point
-    bet_down: Point
-
-    @field_validator("continue_", "spin", "bet_down")
-    @classmethod
-    def _inside_frame(cls, point: Point) -> Point:
-        if not all(0.0 <= value <= 1.0 for value in point):
-            raise ValueError(f"Coordenada relativa fuera de [0, 1]: {point}")
-        return point
-
-
-class ScreenProfile(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    labels: ScreenLabels
-    insufficient_funds_pattern: str
-    message_dismiss_label: str
-    reels_region: tuple[float, float, float, float]
-    controls: ScreenControls
-    bet_down_presses: int = Field(ge=0, le=50)
-    ready_timeout_s: int = 150
-    spin_timeout_s: int = 45
-    network_spin_action: str = "doSpin"
-    max_bet: Decimal = Field(
-        default=Decimal("0.50"),
-        description="Salvaguarda: no se gira si la apuesta mostrada es mayor",
-    )
-
-    @property
-    def insufficient_funds_regex(self) -> re.Pattern[str]:
-        return re.compile(self.insufficient_funds_pattern)
 
 
 class ProviderConfig(BaseModel):
@@ -65,10 +20,15 @@ class ProviderConfig(BaseModel):
     id: str
     filter_label: str = Field(description="Texto del chip del proveedor en el panel Filtros")
     game_slug: str = Field(
-        description="Juego preferido: final de la URL /casino/<categoría>/<slug>"
+        description="Juego por defecto: final de la URL /casino/<categoría>/<slug>"
     )
     game_load_timeout_s: int = 120
-    screen: ScreenProfile
+    max_bet: Decimal = Field(
+        default=Decimal("0.50"), description="Salvaguarda: no se gira si la apuesta es mayor"
+    )
+    network_witness: Literal["pragmatic"] | None = Field(
+        default=None, description="Testigo de red disponible para este proveedor, si lo hay"
+    )
 
 
 def load_provider(provider_id: str, providers_dir: Path = DEFAULT_PROVIDERS_DIR) -> ProviderConfig:

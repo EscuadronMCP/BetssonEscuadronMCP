@@ -55,8 +55,13 @@ def browser_context(settings: BrowserSettings, evidence_dir: Path) -> Iterator[B
 
 @contextmanager
 def tracing(context: BrowserContext, path: Path) -> Iterator[None]:
-    """Traza de Playwright. Se abre DESPUÉS del login: la traza guarda el texto tecleado."""
-    context.tracing.start(screenshots=True, snapshots=True)
+    """Traza ligera de Playwright: solo acciones, sin instantáneas ni recursos de red.
+
+    Con instantáneas, la traza pesaba cientos de MB (cada captura y todos los recursos del juego)
+    y guardaba respuestas con datos de la cuenta. La evidencia visual son el vídeo y las capturas.
+    Se abre DESPUÉS del login: la traza guarda el texto tecleado.
+    """
+    context.tracing.start(screenshots=False, snapshots=False, sources=False)
     try:
         yield
     finally:

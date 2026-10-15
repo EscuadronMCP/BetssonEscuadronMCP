@@ -47,7 +47,7 @@ jobs:
         run: uv run playwright install ffmpeg
       - name: Ejecutar escenarios
         run: >
-          uv run python -m betsson_validator
+          uv run python -m betsson_validator run
           --market "${{ matrix.market }}"
           --scenario "${{ inputs.scenario || 'all' }}"
           --out "reports/${{ matrix.market }}"

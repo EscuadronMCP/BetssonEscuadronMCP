@@ -66,6 +66,8 @@ def _same_line(a: TextBox, b: TextBox) -> bool:
 def find_amount(
     boxes: Sequence[TextBox], label: str, default_currency: str
 ) -> AmountReading | None:
+    if not label.strip():
+        return None  # una etiqueta vacía coincidiría con cualquier texto
     for box in boxes:
         if not _starts_with_label(box.text, label):
             continue

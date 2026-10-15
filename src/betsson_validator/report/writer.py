@@ -89,6 +89,8 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
         for c in run.missing_checks()
     )
     error = f'<p class="error">Error: {escape(run.error)}</p>' if run.error else ""
+    if run.notes:
+        error += "".join(f'<p class="meta">Nota: {escape(note)}</p>' for note in run.notes)
     if run.quarantined:
         error += (
             '<p class="error">Evidencias retiradas por seguridad (contenían secretos): '

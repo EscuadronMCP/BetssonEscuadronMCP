@@ -24,3 +24,7 @@ ui:
   # Si el botón del porcentaje está desactivado (saldo 0 €), se escribe este límite en el campo.
   session_loss_input_placeholder: Introduce el límite de pérdidas
   session_loss_limit_fallback: "1"
+  # Mensaje de saldo insuficiente en el idioma del mercado (cualquier proveedor).
+  insufficient_funds_pattern: "(?i)fondos\\s+insuficientes|saldo\\s+insuficiente|no\\s+(tienes|dispones\\s+de)\\s+(suficiente\\s+)?saldo"
+  # Botones con los que el jugador cierra un mensaje del juego.
+  dismiss_labels: [ACEPTAR, OK, CERRAR]

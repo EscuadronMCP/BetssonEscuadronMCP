@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from playwright.sync_api import FrameLocator, Locator, Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from betsson_validator.config.market import Credentials, MarketConfig
 from betsson_validator.config.provider import ProviderConfig
@@ -25,6 +26,8 @@ _HIDE_LOGIN_FIELDS_CSS = (
     "{ filter: blur(8px) !important; -webkit-text-security: disc !important; }"
 )
 _BALANCE_SETTLE_MS = 2000
+_COOKIE_TIMEOUT_MS = 15_000
+_NAVIGATION_TIMEOUT_MS = 60_000
 _LOBBY_MAX_SCROLLS = 80
 _SESSION_TIMEOUT_S = 45
 _SESSION_QUIET_S = 6
@@ -68,12 +71,17 @@ class BetssonCasino:
         return urljoin(str(self._market.base_url), path)
 
     def open(self) -> None:
-        self._page.goto(self._url("/"), wait_until="domcontentloaded")
+        self._page.goto(
+            self._url("/"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
+        )
         self._accept_cookies()
 
     def _accept_cookies(self) -> None:
         button = self._page.locator(_COOKIE_ACCEPT)
-        button.wait_for(timeout=30_000)
+        try:
+            button.wait_for(timeout=_COOKIE_TIMEOUT_MS)
+        except PlaywrightTimeoutError:
+            return  # el aviso no siempre aparece (p. ej. consentimiento ya guardado)
         # El botón está siempre animado y Playwright nunca lo considera estable.
         button.dispatch_event("click")
 
@@ -143,7 +151,9 @@ class BetssonCasino:
         No se espera ningún valor concreto: se espera a que el saldo cambie respecto al anterior
         (o a que pase el tiempo límite) y a que dos lecturas seguidas coincidan.
         """
-        self._page.goto(self._url("/casino"), wait_until="domcontentloaded")
+        self._page.goto(
+            self._url("/casino"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
+        )
         deadline = time.monotonic() + timeout_s
         current = self.read_balance()
         while current == previous and time.monotonic() < deadline:
@@ -154,13 +164,15 @@ class BetssonCasino:
         confirmed = self.read_balance()
         return confirmed
 
-    def launch_game(self, provider: ProviderConfig) -> GameHandle:
+    def launch_game(self, provider: ProviderConfig, game: str) -> GameHandle:
         """Casino → Filtros → proveedor → Resultados → juego, como lo haría el jugador."""
-        self._page.goto(self._url("/casino"), wait_until="domcontentloaded")
+        self._page.goto(
+            self._url("/casino"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
+        )
         self._page.get_by_role("button", name=self._ui.filters_button).click()
         self._page.get_by_text(provider.filter_label, exact=True).first.click()
         self._page.get_by_role("button", name=self._ui.results_button).first.click()
-        self._find_in_lobby(provider.game_slug, provider.filter_label).click()
+        self._find_in_lobby(game, provider.filter_label).click()
         self._start_game_session()
         iframe = self._page.locator(_GAME_IFRAME)
         iframe.wait_for(timeout=provider.game_load_timeout_s * 1000)

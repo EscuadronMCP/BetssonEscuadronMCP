@@ -72,3 +72,8 @@ def test_crop_is_bounded_to_the_image(ready: np.ndarray) -> None:
     piece = crop(ready, (880, 490, 100, 100))
     assert piece.shape[0] == ready.shape[0] - 490
     assert piece.shape[1] == ready.shape[1] - 880
+
+
+def test_flat_template_never_matches(ready: np.ndarray) -> None:
+    flat = np.full((60, 60, 3), (0, 0, 255), dtype=np.uint8)
+    assert find_template(ready, flat) is None

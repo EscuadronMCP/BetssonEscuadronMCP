@@ -3,6 +3,7 @@
 Coordina las piezas sin contener lógica de negocio: la evaluación vive en scenarios/evaluation.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -19,8 +20,10 @@ from betsson_validator.domain.parsing import detect_currency
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult
 from betsson_validator.evidence import EvidenceRecorder
+from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
+from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
-from betsson_validator.providers.pragmatic.game import PragmaticGame, ScreenObservation
+from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
 from betsson_validator.providers.pragmatic.network import (
     GameServiceCall,
     NoSpinObservedError,
@@ -66,6 +69,10 @@ PLANS: dict[Scenario, ScenarioPlan] = {
 
 class SafetyStopError(RuntimeError):
     """Parada preventiva antes de arriesgar dinero real."""
+
+
+class ProfileMissingError(RuntimeError):
+    """El juego aún no tiene perfil aprendido."""
 
 
 def _snapshot(observation: ScreenObservation) -> ScreenSnapshot:
@@ -114,105 +121,128 @@ def _sanitize(message: str, secrets: tuple[str, ...]) -> str:
     return message.splitlines()[0][:500] if message else "Error desconocido"
 
 
-def run_scenario(
-    scenario: Scenario,
-    market: MarketConfig,
-    provider: ProviderConfig,
-    *,
-    settings: BrowserSettings,
-    reader: TextReader,
-    out_dir: Path,
-) -> ScenarioRun:
+@dataclass(frozen=True)
+class RunContext:
+    """Todo lo que necesita una ejecución, inyectado desde fuera (CLI o tests)."""
+
+    market: MarketConfig
+    provider: ProviderConfig
+    game: str
+    settings: BrowserSettings
+    reader: TextReader
+    out_dir: Path
+    learner: ScreenLearner | None = None
+    profiles_dir: Path = DEFAULT_PROFILES_DIR
+
+
+def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
     plan = PLANS[scenario]
-    evidence_dir = out_dir / scenario.value
-    recorder_files = EvidenceRecorder(evidence_dir)
+    evidence_dir = ctx.out_dir / scenario.value
+    files = EvidenceRecorder(evidence_dir)
     started = datetime.now(UTC)
     secrets: tuple[str, ...] = ()
     results: tuple[CheckResult, ...] = ()
+    notes: list[str] = []
     error: str | None = None
     try:
-        credentials = plan.account(market).resolve()
+        profile = load_profile(ctx.provider.id, ctx.game, ctx.profiles_dir)
+        if profile is None:
+            raise ProfileMissingError(
+                f"El juego '{ctx.game}' no tiene perfil aprendido. Ejecuta: "
+                f"python -m betsson_validator learn --provider {ctx.provider.id} --game {ctx.game}"
+            )
+        credentials = plan.account(ctx.market).resolve()
         secrets = (credentials.email.get_secret_value(), credentials.password.get_secret_value())
-        with browser_context(settings, evidence_dir) as context:
+        with browser_context(ctx.settings, evidence_dir) as context:
             page = context.new_page()
-            network = GameServiceRecorder(context)
-            casino = BetssonCasino(page, market, typing_delay_ms=settings.slow_typing_ms)
+            network = (
+                GameServiceRecorder(context)
+                if ctx.provider.network_witness == "pragmatic"
+                else None
+            )
+            casino = BetssonCasino(page, ctx.market, typing_delay_ms=ctx.settings.slow_typing_ms)
             casino.open()
             casino.login(credentials)
+            model = ScreenModel(
+                profile=profile,
+                reader=ctx.reader,
+                currency=ctx.market.currency,
+                learner=ctx.learner,
+            )
             with tracing(context, evidence_dir / "trace.zip"):
-                results = _play(
-                    casino,
-                    provider,
-                    market=market,
-                    plan=plan,
-                    network=network,
-                    files=recorder_files,
-                    reader=reader,
-                )
+                try:
+                    results = _play(
+                        casino, ctx, plan=plan, model=model, network=network, files=files
+                    )
+                finally:
+                    notes = list(model.notes)
+                    if model.notes:
+                        model.profile.save(evidence_dir / "perfil_propuesto")
     except Exception as exception:  # el informe debe recoger cualquier fallo, sin secretos
         error = _sanitize(f"{type(exception).__name__}: {exception}", secrets)
     scrub_trace(evidence_dir / "trace.zip", secrets)
     quarantined = audit_and_quarantine(evidence_dir, secrets)
     return ScenarioRun(
         scenario=scenario,
-        market=market.id,
-        provider=provider.filter_label,
-        game=provider.game_slug,
+        market=ctx.market.id,
+        provider=ctx.provider.filter_label,
+        game=ctx.game,
         started_at=started,
         finished_at=datetime.now(UTC),
         results=results,
         error=error,
         quarantined=tuple(quarantined),
+        notes=tuple(notes),
     )
 
 
 def _play(
     casino: BetssonCasino,
-    provider: ProviderConfig,
+    ctx: RunContext,
     *,
-    market: MarketConfig,
     plan: ScenarioPlan,
-    network: GameServiceRecorder,
+    model: ScreenModel,
+    network: GameServiceRecorder | None,
     files: EvidenceRecorder,
-    reader: TextReader,
 ) -> tuple[CheckResult, ...]:
-    page = casino.page
     betsson_before = casino.read_balance()
     header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.png")
 
-    handle = casino.launch_game(provider)
-    game = PragmaticGame(
-        page,
-        handle,
-        profile=provider.screen,
-        reader=reader,
+    handle = casino.launch_game(ctx.provider, ctx.game)
+    game = ScreenGame(
+        page=casino.page,
+        handle=handle,
+        model=model,
         evidence=files,
-        currency=market.currency,
+        message_pattern=re.compile(ctx.market.ui.insufficient_funds_pattern),
+        dismiss_labels=ctx.market.ui.dismiss_labels,
     )
     game.wait_until_ready()
     ready = game.set_minimum_bet()
     bet = ready.hud.bet.money if ready.hud.bet else None
-    if bet is None or bet.amount > provider.screen.max_bet:
+    if bet is None or bet.amount > ctx.provider.max_bet:
         raise SafetyStopError(
             f"Apuesta mostrada {bet or 'no leída'}: supera el máximo de seguridad "
-            f"{provider.screen.max_bet} o no se pudo leer. No se gira."
+            f"{ctx.provider.max_bet} o no se pudo leer. No se gira."
         )
 
-    mark = network.mark()
+    mark = network.mark() if network else 0
     spin = game.spin_and_watch()
     after = game.observe("despues_de_girar")
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 
-    traffic = files.save_json("trafico_juego_sin_tokens", network.redacted_log())
-    calls = network.calls
-    summary = _network_summary(calls[:mark], calls[mark:], str(traffic))
+    summary: NetworkSummary | None = None
+    if network is not None:
+        traffic = files.save_json("trafico_juego_sin_tokens", network.redacted_log())
+        calls = network.calls
+        summary = _network_summary(calls[:mark], calls[mark:], str(traffic))
 
     betsson_after = casino.read_balance_after(betsson_before)
     header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.png")
 
     evidence = RunEvidence(
-        market_currency=market.currency,
+        market_currency=ctx.market.currency,
         betsson_before=betsson_before,
         betsson_after=betsson_after,
         betsson_evidence=(str(header_before), str(header_after)),

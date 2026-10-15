@@ -14,6 +14,7 @@ Image = npt.NDArray[np.uint8]
 
 DEFAULT_SCALES = tuple(float(s) for s in np.linspace(0.6, 1.6, 21))
 DEFAULT_THRESHOLD = 0.8
+_MIN_TEMPLATE_STD = 5.0
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,8 @@ def find_template(
     """Mejor coincidencia multiescala (correlación normalizada) o None si no supera el umbral."""
     haystack = _gray(image)
     needle = _gray(template)
+    if float(np.std(needle)) < _MIN_TEMPLATE_STD:
+        return None  # sin textura la correlación no está definida: "coincidiría" con cualquier cosa
     best: TemplateMatch | None = None
     for scale in scales:
         width = round(needle.shape[1] * scale)
@@ -54,6 +57,7 @@ def find_template(
             continue
         resized = cv2.resize(needle, (width, height), interpolation=cv2.INTER_AREA)
         result = cv2.matchTemplate(haystack, resized, cv2.TM_CCOEFF_NORMED)
+        result = np.nan_to_num(result, nan=-1.0, posinf=-1.0, neginf=-1.0)
         _, score, _, (x, y) = cv2.minMaxLoc(result)
         if best is None or score > best.score:
             best = TemplateMatch(x, y, width, height, float(score), scale)

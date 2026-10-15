@@ -21,6 +21,8 @@ class ScenarioRun(BaseModel):
     error: str | None = None
     # Evidencias retiradas por contener secretos que no se pudieron limpiar.
     quarantined: tuple[str, ...] = ()
+    # Hechos relevantes de la ejecución (p. ej. el perfil se reaprendió con IA).
+    notes: tuple[str, ...] = ()
 
     @property
     def status(self) -> Status:

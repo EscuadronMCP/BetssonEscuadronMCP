@@ -27,6 +27,8 @@ class GameProfile:
     bet_label: str
     win_label: str
     templates: dict[str, Image] = field(default_factory=dict)
+    # Zona de los rodillos relativa a la captura (x1, y1, x2, y2 en 0-1); None = pantalla entera.
+    reels_area: tuple[float, float, float, float] | None = None
     learned_with: str = ""
     learned_at: str = ""
 
@@ -46,6 +48,7 @@ class GameProfile:
             "game": self.game,
             "labels": {"credit": self.credit_label, "bet": self.bet_label, "win": self.win_label},
             "controls": files,
+            "reels_area": list(self.reels_area) if self.reels_area else None,
             "learned_with": self.learned_with,
             "learned_at": self.learned_at or datetime.now(UTC).isoformat(timespec="seconds"),
         }
@@ -74,6 +77,7 @@ def load_profile(
         credit_label=labels["credit"],
         bet_label=labels["bet"],
         win_label=labels.get("win") or "",
+        reels_area=tuple(data["reels_area"]) if data.get("reels_area") else None,
         templates=templates,
         learned_with=data.get("learned_with", ""),
         learned_at=data.get("learned_at", ""),

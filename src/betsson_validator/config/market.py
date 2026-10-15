@@ -56,6 +56,8 @@ class MarketUi(BaseModel):
     session_loss_limit: str
     session_loss_input_placeholder: str
     session_loss_limit_fallback: str
+    insufficient_funds_pattern: str
+    dismiss_labels: tuple[str, ...]
 
 
 class MarketConfig(BaseModel):

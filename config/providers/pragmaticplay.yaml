@@ -1,27 +1,12 @@
 # Pragmatic Play en betsson.es (comprobado el 15/10, ver docs/betsson-es-flujo.md).
+# Lo que depende de cada juego (etiquetas, aspecto de los botones, zona de rodillos) NO está aquí:
+# lo aprende la IA y se guarda en profiles/pragmaticplay/<juego>/.
 id: pragmaticplay
 filter_label: Pragmatic Play
-# Sweet Bonanza 2500: apuesta mínima 0,20 € (moneda 0,01 € x 20).
+# Juego por defecto. Cualquier otro: --game <slug>.
 game_slug: sweet-bonanza-2500
 game_load_timeout_s: 120
-
-# Perfil de pantalla del juego. Coordenadas relativas al iframe (0-1): sirven a cualquier
-# resolución. Hoy está definido a partir de la exploración; la etapa E6 lo generará con IA.
-screen:
-  labels:
-    credit: CRÉDITO
-    bet: APUESTA
-    win: GANANCIA
-  insufficient_funds_pattern: "(?i)fondos\\s+insuficientes|saldo\\s+insuficiente"
-  message_dismiss_label: ACEPTAR
-  reels_region: [0.25, 0.10, 0.90, 0.87]
-  controls:
-    continue: [0.795, 0.643]
-    spin: [0.778, 0.905]
-    bet_down: [0.696, 0.905]
-  bet_down_presses: 15
-  ready_timeout_s: 150
-  spin_timeout_s: 45
-  network_spin_action: doSpin
-  # Salvaguarda de dinero real: si tras bajar la apuesta se lee más que esto, no se gira.
-  max_bet: 0.50
+# Salvaguarda de dinero real: si tras bajar la apuesta se lee más que esto, no se gira.
+max_bet: 0.50
+# Testigo de red disponible para este proveedor (observación pasiva del tráfico del juego).
+network_witness: pragmatic
