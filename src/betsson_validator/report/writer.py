@@ -245,7 +245,7 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
 _MEDIA = (
     ("fallo_pantalla.jpg", "Captura de la pantalla al fallar"),
     ("video/*.webm", "Vídeo de la ejecución"),
-    ("trace.zip", "Traza de Playwright"),
+    ("trace.zip", "Traza de Playwright (se abre arrastrándola a trace.playwright.dev)"),
     ("eventos_del_juego.json", "Eventos del juego (postMessage)"),
     ("trafico_juego_sin_tokens.json", "Tráfico del juego (sin tokens)"),
     ("resumen_observado.json", "Resumen de lo observado"),
