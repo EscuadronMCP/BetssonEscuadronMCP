@@ -124,7 +124,7 @@ un botón o cambia un texto, se reencuentra solo; si cambia por completo, se rea
 <ul>
   <li><b>SOLID:</b> añadir un mercado, un proveedor o un juego se hace con configuración o con una implementación nueva registrada; el ejecutor no conoce a ningún proveedor.</li>
   <li><b>Inversión de dependencias:</b> OCR, IA y testigos se inyectan detrás de interfaces (<code>Protocol</code>).</li>
-  <li><b>Tipado estricto</b> (mypy), <b>ruff</b> y <b>172 tests unitarios</b> con capturas y tráfico reales; CI en cada push.</li>
+  <li><b>Tipado estricto</b> (mypy), <b>ruff</b> y <b>174 tests unitarios</b> con capturas y tráfico reales; CI en cada push.</li>
   <li><b>Errores explícitos:</b> un fallo esperado produce un FAIL con su motivo, nunca un cierre silencioso.</li>
   <li><b>Decisiones documentadas</b> en <code>docs/decisiones/</code> (ADR 001–003).</li>
 </ul>
@@ -155,10 +155,11 @@ Lo mismo puede lanzarse desde GitHub Actions con la opción <i>inject_fault</i>.
   <tr><th>Verificación</th><th>Resultado</th></tr>
   <tr><td>Sweet Bonanza 2500, ambos escenarios (local)</td><td><span class="pass">PASS</span> · ≈ 90 s · 0 llamadas a la IA</td></tr>
   <tr><td>Big Bass Halloween Splash 1000, ambos escenarios (local)</td><td><span class="pass">PASS</span> · perfil aprendido por ≈ 0,001 $</td></tr>
-  <tr><td>GitHub Actions (runner propio en España)</td><td><span class="pass">PASS</span> en ambos escenarios en 89 s, informe publicado como artefacto</td></tr>
+  <tr><td>GitHub Actions (runner propio en España)</td><td><span class="pass">PASS</span> en ambos escenarios en 74 s con el código final, informe publicado como artefacto</td></tr>
+  <tr><td>GitHub Actions con el fallo intencionado (<i>inject_fault</i>)</td><td><span class="fail">FAIL</span> anunciado como intencionado; el informe se publica igualmente como artefacto</td></tr>
   <tr><td>Fallo real detectado (15/10)</td><td><span class="fail">FAIL por discrepancia</span> cuando otra sesión gastó 2,10 € de la cuenta durante la tirada: el validador lo detectó y lo explicó.</td></tr>
-  <tr><td>Sesión del juego expirada (15/10, 17:22)</td><td><span class="fail">FAIL</span> «el juego no reaccionó al botón de girar»: el proveedor mostró «Sesión expirada» al pulsar girar. No se gastó dinero y no hubo PASS falso.</td></tr>
-  <tr><td>Calidad</td><td>Formato, lint, tipos y 172 tests en verde en CI.</td></tr>
+  <tr><td>Sesión del juego expirada (15/10, 17:22)</td><td><span class="fail">FAIL</span> «el juego no reaccionó al botón de girar»: el proveedor mostró «Sesión expirada» al pulsar girar. No se gastó dinero y no hubo PASS falso; desde entonces el motivo del informe cita ese aviso.</td></tr>
+  <tr><td>Calidad</td><td>Formato, lint, tipos y 174 tests en verde en CI.</td></tr>
 </table>
 
 <h2>8. Costes y rendimiento</h2>

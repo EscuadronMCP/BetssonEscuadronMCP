@@ -39,17 +39,19 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| Carpeta `mentores/` (PDF del proyecto e informe del programa con un fallo intencionado) | Claude (sesión de dani) | 15/10 17:20 |
+| — | — | — |
 
 ## Siguiente paso
-1. **Entrega en Campus Virtual antes de las 20:00** (enlace al repositorio y, si se pide, informe de ejemplo).
+1. **Entrega en Campus Virtual antes de las 20:00** (enlace al repositorio; la carpeta `mentores/` tiene el informe del proyecto en PDF y un informe real del programa).
 2. Decidir la **visibilidad del repositorio** para el jurado (hoy es privado en la organización `EscuadronMCP`): invitar al jurado o hacerlo público (contiene los PDF del reto).
 3. Runner en línea y nadie usando la cuenta con saldo durante la demostración.
 
-## Última verificación (15/10, 16:46)
-- GitHub Actions (runner propio): **ambos escenarios PASS en 89 s**, informe publicado como artefacto, sin llamadas a la IA.
-- Local: Sweet Bonanza 2500 y Big Bass Halloween Splash 1000, **ambos escenarios PASS**; 0 fugas de secretos; informes < 1 MB.
-- CI: formato, lint, tipos y 120 tests en verde.
+## Última verificación (15/10, 17:30)
+- **GitHub Actions** (runner propio, run 38760353066, código final): **ambos escenarios PASS en 74 s**, informe publicado como artefacto, sin llamadas a la IA.
+- **Local** (17:23): escenario 1 PASS con los cinco testigos confirmando; escenario 2 con el **fallo intencionado** → FAIL «Lo que ve el jugador lo contradice: cabecera de Betsson: saldo de Betsson 0.00 EUR → 0.01 EUR». Es el informe de `mentores/`. 0 fugas de secretos (texto, zip y OCR de capturas).
+- **GitHub Actions con `inject_fault`** (run 38760962455, solo escenario 2, sin gastar dinero): FAIL por el fallo intencionado, con el aviso en el resumen y el informe publicado igualmente como artefacto.
+- Antes, Sweet Bonanza 2500 y Big Bass Halloween Splash 1000 en PASS en ambos escenarios.
+- CI: formato, lint, tipos y 174 tests en verde.
 
 ## Problemas conocidos
 - **betsson.es bloquea las IP de fuera de España** ("no disponible en este país"), así que los runners de GitHub no sirven. Se resuelve con un runner propio: este Mac, etiqueta `betsson-es`, variable `VALIDATION_RUNS_ON`. En producción sería Oracle Cloud Madrid, en x86 porque Chrome no tiene build ARM64 para Linux. Si el Mac pierde la red, el runner se cae: relanzarlo con `cd ~/actions-runner-betsson && nohup ./run.sh &`.
