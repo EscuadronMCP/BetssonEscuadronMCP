@@ -22,6 +22,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - [ ] **E7. Demo de extensibilidad:** incorporar un segundo proveedor (bonus).
 
 ## Funciona
+- **Exploración de betsson.es (15/10):** cookies con OneTrust (`#onetrust-accept-btn-handler`, el botón se anima y requiere clic directo); Casino en `/casino`; botón **Filtros** → panel "Proveedor (44)" con chips por proveedor (**Pragmatic Play**) → botón **"Resultados N"** (309 juegos); login en diálogo con `input[name=email]` e `input[name=password]` y botón "Iniciar sesión".
 - Repositorio, normas del equipo (`CLAUDE.md`) y estructura de documentación.
 - `.claude/settings.json`: Claude Code hace commit/pull/push a `main` sin pedir permiso; `push --force` y leer `.env` bloqueados.
 - Documentación oficial en `docs/hackaton/` y requisitos del reto resumidos en `CLAUDE.md`.
@@ -39,6 +40,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 3. Preguntar a los mentores: captcha o verificación en dos pasos en el login, bloqueo de IP de GitHub Actions, tráfico de red como testigo, número de tiradas permitidas, preparación de la cuenta sin saldo, y si el historial muestra cada tirada.
 
 ## Problemas conocidos
+- **BLOQUEANTE — login automatizado rechazado (403):** betsson.es usa AWS WAF con control de bots (`*.awswaf.com`, endpoint `api/v2/authentication-transaction`) y Group-IB. Con Playwright (Chromium headless, Chrome real con ventana, ritmo humano y token `aws-waf-token` presente) el login devuelve 403 y la web muestra "Actualiza la página y vuelve a intentarlo en breve…". A mano, en un navegador normal, la misma cuenta entra bien → detecta la automatización. Pendiente: pedir a los mentores una vía oficial (lista blanca de IP, cabecera o entorno de pruebas) antes de tocar la huella del navegador.
 - **Requisito:** el flujo completo (navegador → login → juego → informe) debe ser 100 % automático. Un captcha o verificación en dos pasos en el login lo bloquearía: confirmar con los mentores cuanto antes.
 - Sin comprobar si betsson.es deja jugar desde los runners de GitHub Actions (EE. UU.). Si no, hará falta IP española (p. ej. runner propio en la región de Oracle Cloud en Madrid).
 
