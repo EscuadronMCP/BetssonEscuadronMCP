@@ -30,7 +30,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| — | — | — |
+| E0. Esqueleto del proyecto | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
 
 ## Siguiente paso
 1. E0: esqueleto del proyecto (se puede hacer ya, sin credenciales).
