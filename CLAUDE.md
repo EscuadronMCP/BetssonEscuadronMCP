@@ -20,7 +20,12 @@ Normas obligatorias para cualquier sesión de Claude Code en este repositorio. T
 - **Evaluación (100 + 10 bonus):** escenarios funcionan 30 · "ve como un jugador" 20 · código y arquitectura 15 · informe y evidencias 15 · workflow de GitHub 10 · demo 10.
 
 ### Enfoque aceptado
-**Testigos independientes con perfiles aprendidos, en Python** ([`docs/decisiones/001-enfoque-testigos-y-perfiles.md`](docs/decisiones/001-enfoque-testigos-y-perfiles.md)). Cada hecho se confirma con varias fuentes (pantalla del juego, saldo e historial de Betsson, red del juego); la pantalla es obligatoria para un PASS y cualquier discrepancia es FAIL. El juego se lee con perfiles por proveedor que una IA genera una vez y que luego se ejecutan de forma determinista. Todo lo que implementes debe encajar con esta decisión; la hoja de ruta por etapas está en `docs/ESTADO.md`.
+**Testigos independientes con perfiles aprendidos, en Python** (decisiones [001](docs/decisiones/001-enfoque-testigos-y-perfiles.md), [002](docs/decisiones/002-perfiles-aprendidos-y-coste.md) y [003](docs/decisiones/003-testigo-eventos-del-juego.md)):
+- **Cinco testigos** por comprobación: pantalla del juego (OCR), movimiento de los rodillos, cabecera de Betsson, red del juego y eventos `postMessage` del juego al casino. La pantalla es obligatoria para un PASS y cualquier discrepancia es FAIL.
+- **Nada de coordenadas ni textos fijos**: cada juego tiene un perfil en `profiles/` (etiquetas del HUD + imagen de sus controles), aprendido una vez con IA (`learn`) y validado por su efecto. Las ejecuciones son locales y **no llaman a la IA** salvo para reparar un perfil que dejó de encajar (una vez por ejecución).
+- **Dinero real**: apuesta mínima comprobada en pantalla, tope `max_bet` y un giro nunca se repite.
+
+Todo lo que implementes debe encajar con estas decisiones; la hoja de ruta por etapas está en `docs/ESTADO.md`.
 
 ### Rumbo y cambios de rumbo (obligatorio)
 Cualquier compañero que haga pull debe poder saber, con su IA, por dónde se va y hacia dónde. Por eso:
@@ -115,9 +120,12 @@ README.md              Descripción, instalación y uso
 docs/ESTADO.md         Estado del proyecto y traspaso entre sesiones
 docs/hackaton/         Documentación oficial del Malackaton y del reto Betsson (PDFs)
 docs/decisiones/       Registro de decisiones de arquitectura (ADR)
+docs/betsson-es-flujo.md  Cómo es betsson.es por dentro (comprobado en vivo)
+config/                Mercados y proveedores (YAML)
+profiles/              Perfiles aprendidos por juego
+src/betsson_validator/ Código (ver README.md, sección Estructura)
+tests/                 Tests y capturas reales usadas como datos de prueba
 ```
-
-Actualiza esta sección y la de **Comandos** en cuanto se elija el stack.
 
 ## Comandos
 
@@ -126,6 +134,10 @@ uv sync                                   # instalar dependencias (Python 3.13, 
 uv run ruff format . && uv run ruff check .   # formato y lint
 uv run mypy src tests                     # tipado estricto
 uv run pytest -m "not e2e"                # tests unitarios (sin credenciales)
+uv run python -m betsson_validator run    # ambos escenarios contra betsson.es (necesita .env)
+uv run python -m betsson_validator learn --game <slug>   # aprender un juego nuevo (no gira)
 ```
+
+**Comprueba el código de salida de pytest antes de cada commit**: no lo filtres con `| tail`, porque oculta los fallos.
 
 Antes de cada commit deben pasar los cuatro. CI (`.github/workflows/ci.yml`) los ejecuta en cada push a `main`.
