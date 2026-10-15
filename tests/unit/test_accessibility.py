@@ -39,3 +39,24 @@ def test_a_failing_probe_is_reported_not_raised() -> None:
     result = probe(cast(Any, BrokenFrame()), "antes_de_girar")
     assert result.status == "error"
     assert result.detail == "Error"
+
+
+def test_the_probe_descends_into_the_nested_game_frame() -> None:
+    class Frame:
+        def __init__(self, snapshot: str, child: "Frame | None" = None) -> None:
+            self.snapshot, self.child = snapshot, child
+
+        def locator(self, _selector: str) -> "Frame":
+            return self
+
+        def frame_locator(self, _selector: str) -> Any:
+            return type("Nested", (), {"first": self.child})()
+
+        def aria_snapshot(self, **_kwargs: object) -> str:
+            return self.snapshot
+
+    game = Frame('- button "Girar"')
+    launcher = Frame("- iframe", child=game)
+    result = probe(cast(Any, launcher), "antes_de_girar")
+    assert result.roles == {"button": 1}
+    assert result.detail == "marco de nivel 2"

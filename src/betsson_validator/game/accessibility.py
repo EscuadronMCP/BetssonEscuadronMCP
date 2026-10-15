@@ -8,7 +8,7 @@ del juego, nunca los formularios de la web, y guarda roles y nombres acotados.
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import FrameLocator
@@ -17,6 +17,7 @@ _NODE = re.compile(r'^\s*-\s+(?P<role>[a-z]+)(?:\s+"(?P<name>(?:[^"\\]|\\.)*)")?
 MAX_NAMES = 40
 MAX_NAME_CHARS = 80
 TIMEOUT_MS = 5000
+MAX_FRAME_DEPTH = 3  # el lanzador de Betsson envuelve el juego en otro marco
 
 
 @dataclass(frozen=True)
@@ -45,9 +46,16 @@ def summarize_aria(phase: str, snapshot: str) -> AccessibilityProbe:
 
 
 def probe(frame: FrameLocator, phase: str) -> AccessibilityProbe:
-    """Árbol ARIA del marco del juego; un fallo queda como estado "error", nunca rompe la prueba."""
-    try:
-        snapshot = frame.locator("body").aria_snapshot(timeout=TIMEOUT_MS)
-    except PlaywrightError as error:
-        return AccessibilityProbe(phase, "error", detail=type(error).__name__)
-    return summarize_aria(phase, snapshot)
+    """Árbol ARIA del juego; si un marco solo contiene otro marco, se baja a él (el árbol ARIA
+    no atraviesa marcos). Un fallo queda como estado "error", nunca rompe la prueba."""
+    current = frame
+    for depth in range(1, MAX_FRAME_DEPTH + 1):
+        try:
+            snapshot = current.locator("body").aria_snapshot(timeout=TIMEOUT_MS)
+        except PlaywrightError as error:
+            return AccessibilityProbe(phase, "error", detail=type(error).__name__)
+        result = summarize_aria(phase, snapshot)
+        if result.roles != {"iframe": 1} or depth == MAX_FRAME_DEPTH:
+            return replace(result, detail=f"marco de nivel {depth}")
+        current = current.frame_locator("iframe").first
+    return AccessibilityProbe(phase, "error", detail="sin marco")
