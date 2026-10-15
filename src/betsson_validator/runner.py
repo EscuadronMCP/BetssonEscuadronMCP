@@ -20,10 +20,12 @@ from betsson_validator.domain.parsing import detect_currency
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult
 from betsson_validator.evidence import EvidenceRecorder
+from betsson_validator.game.events import GameEventRecorder
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
 from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
+from betsson_validator.providers.pragmatic.events import summarize_events
 from betsson_validator.providers.pragmatic.network import (
     GameServiceCall,
     NoSpinObservedError,
@@ -36,6 +38,7 @@ from betsson_validator.scenarios.evaluation import (
     evaluate_insufficient_balance,
 )
 from betsson_validator.scenarios.evidence import (
+    GameEventsSummary,
     MotionSummary,
     NetworkSummary,
     RunEvidence,
@@ -154,6 +157,9 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
         credentials = plan.account(ctx.market).resolve()
         secrets = (credentials.email.get_secret_value(), credentials.password.get_secret_value())
         with browser_context(ctx.settings, evidence_dir) as context:
+            events = (
+                GameEventRecorder(context) if ctx.provider.events_witness == "pragmatic" else None
+            )
             page = context.new_page()
             network = (
                 GameServiceRecorder(context)
@@ -172,7 +178,13 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
             with tracing(context, evidence_dir / "trace.zip"):
                 try:
                     results = _play(
-                        casino, ctx, plan=plan, model=model, network=network, files=files
+                        casino,
+                        ctx,
+                        plan=plan,
+                        model=model,
+                        network=network,
+                        events=events,
+                        files=files,
                     )
                 finally:
                     notes = list(model.notes)
@@ -203,6 +215,7 @@ def _play(
     plan: ScenarioPlan,
     model: ScreenModel,
     network: GameServiceRecorder | None,
+    events: GameEventRecorder | None,
     files: EvidenceRecorder,
 ) -> tuple[CheckResult, ...]:
     betsson_before = casino.read_balance()
@@ -227,8 +240,14 @@ def _play(
         )
 
     mark = network.mark() if network else 0
+    events_mark = len(GameEventRecorder.collect(casino.page)) if events else 0
     spin = game.spin_and_watch()
-    after = game.observe("despues_de_girar")
+    after = game.observe_settled("despues_de_girar")
+    events_summary: GameEventsSummary | None = None
+    if events is not None:  # se leen ANTES de salir de la página del juego
+        game_events = GameEventRecorder.collect(casino.page)[events_mark:]
+        events_file = files.save_json("eventos_del_juego", game_events)
+        events_summary = summarize_events(game_events, str(events_file))
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 
@@ -255,6 +274,8 @@ def _play(
             peak=spin.lifecycle.peak_score,
         ),
         network=summary,
+        events=events_summary,
+        market_language=ctx.market.language,
     )
     files.save_json("resumen_observado", _describe(evidence, betsson_before, betsson_after))
     return plan.evaluator(evidence)
@@ -268,4 +289,5 @@ def _describe(evidence: RunEvidence, before: Money, after: Money) -> dict[str, o
         "screen_after": evidence.screen_after.__dict__,
         "motion": evidence.motion.__dict__,
         "network": evidence.network.__dict__ if evidence.network else None,
+        "events": evidence.events.__dict__ if evidence.events else None,
     }

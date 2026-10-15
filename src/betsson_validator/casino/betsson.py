@@ -113,12 +113,15 @@ class BetssonCasino:
             self._page.wait_for_timeout(250)
 
     def _dismiss_passkey_prompt(self) -> None:
-        dismiss = self._page.get_by_role("button", name=self._ui.passkey_dismiss, exact=True)
+        dismiss = self._page.get_by_role("button", name=self._ui.passkey_dismiss, exact=True).first
         try:
             dismiss.wait_for(timeout=10_000)
-        except Exception:  # el diálogo es opcional: si no aparece, no hay nada que cerrar
-            return
-        dismiss.click()
+        except PlaywrightTimeoutError:
+            return  # el diálogo es opcional: si no aparece, no hay nada que cerrar
+        try:
+            dismiss.click(timeout=_CLICK_TIMEOUT_MS)
+        except PlaywrightTimeoutError:
+            dismiss.dispatch_event("click")  # el diálogo sigue animándose: clic directo
 
     def balance_locator(self) -> Locator:
         return self._page.get_by_role("button", name=_BALANCE_BUTTON).first

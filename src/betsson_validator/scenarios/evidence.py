@@ -40,6 +40,23 @@ class NetworkSummary:
 
 
 @dataclass(frozen=True)
+class GameEventsSummary:
+    """Lo que el juego comunicó al casino por postMessage durante la tirada."""
+
+    received: bool
+    round_started: bool = False
+    round_ended: bool = False
+    low_balance: bool = False
+    bet: Decimal | None = None
+    win: Decimal | None = None
+    balance_before: Decimal | None = None
+    balance_after: Decimal | None = None
+    languages: tuple[str, ...] = ()
+    currencies: tuple[str, ...] = ()
+    evidence: str = ""
+
+
+@dataclass(frozen=True)
 class RunEvidence:
     market_currency: str
     betsson_before: Money | None
@@ -49,3 +66,5 @@ class RunEvidence:
     screen_after: ScreenSnapshot
     motion: MotionSummary
     network: NetworkSummary | None
+    events: GameEventsSummary | None = None
+    market_language: str = "es"

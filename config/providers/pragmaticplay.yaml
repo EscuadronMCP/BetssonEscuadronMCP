@@ -10,3 +10,5 @@ game_load_timeout_s: 120
 max_bet: 0.50
 # Testigo de red disponible para este proveedor (observación pasiva del tráfico del juego).
 network_witness: pragmatic
+# Eventos que el juego envía al casino por postMessage (ronda, apuesta, premio, saldo, idioma).
+events_witness: pragmatic

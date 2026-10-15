@@ -207,6 +207,25 @@ class ScreenGame:
         hud, boxes = self.model.read(image)
         return self._observation(name, image, hud, boxes)
 
+    def observe_settled(self, name: str, timeout_s: float = 12) -> ScreenObservation:
+        """Lee el HUD cuando el crédito deja de cambiar (el juego anima el contador del premio)."""
+        deadline = time.monotonic() + timeout_s
+        image = self.capture()
+        hud, boxes = self.model.read(image)
+        while time.monotonic() < deadline:
+            self.page.wait_for_timeout(1000)
+            next_image = self.capture()
+            next_hud, next_boxes = self.model.read(next_image)
+            same = (
+                hud.credit is not None
+                and next_hud.credit is not None
+                and hud.credit.money == next_hud.credit.money
+            )
+            image, hud, boxes = next_image, next_hud, next_boxes
+            if same:
+                break
+        return self._observation(name, image, hud, boxes)
+
     def _observation(
         self, name: str, image: Image, hud: HudReading, boxes: list[TextBox]
     ) -> ScreenObservation:
@@ -245,16 +264,25 @@ class ScreenGame:
                 if analysis is not None and analysis.continue_button is not None:
                     self.click(self.model.locate("continue", image) or (0.5, 0.5))
             self.page.wait_for_timeout(1000)
-        raise GameError("El juego no mostró el crédito y la apuesta a tiempo.")
+        path = self.evidence.save_image("juego_no_listo", self.capture())
+        raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")
 
     def set_minimum_bet(self) -> ScreenObservation:
-        """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez."""
+        """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez.
+
+        Si el botón de bajar no está disponible (en el mínimo el juego lo desactiva) se deja de
+        pulsar SIN llamar a la IA: no es un cambio de interfaz. El tope `max_bet` del llamador
+        sigue impidiendo girar con una apuesta alta.
+        """
         image = self.capture()
         hud, _ = self.model.read_or_learn(image)
         current = hud.bet.money.amount if hud.bet else None
         unchanged = 0
         for _ in range(self.timings.max_bet_presses):
-            self.click(self.model.locate_or_learn("bet_down", image))
+            point = self.model.locate("bet_down", image)
+            if point is None:
+                break
+            self.click(point)
             self.page.wait_for_timeout(350)
             image = self.capture()
             hud, _ = self.model.read(image)

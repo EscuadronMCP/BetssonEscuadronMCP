@@ -4,8 +4,10 @@ Testigos:
 - "pantalla del juego" y "cabecera de Betsson": lo que ve el jugador (VISUAL).
 - "movimiento de los rodillos": actividad visual del juego (VISUAL).
 - "servidor del juego": tráfico gameService observado (CORROBORATING).
+- "eventos del juego": lo que el juego comunica al casino por postMessage (CORROBORATING).
 """
 
+from collections.abc import Callable
 from decimal import Decimal
 
 from betsson_validator.domain.checks import Check
@@ -17,12 +19,13 @@ from betsson_validator.domain.verdict import (
     WitnessKind,
     evaluate,
 )
-from betsson_validator.scenarios.evidence import RunEvidence
+from betsson_validator.scenarios.evidence import GameEventsSummary, RunEvidence
 
 SCREEN = "pantalla del juego"
 HEADER = "cabecera de Betsson"
 MOTION = "movimiento de los rodillos"
 SERVER = "servidor del juego"
+EVENTS = "eventos del juego"
 
 _ZERO = Decimal("0")
 
@@ -42,6 +45,23 @@ def _win(evidence: RunEvidence) -> Decimal:
     """Premio visible en pantalla; si el juego no muestra ganancia, la tirada no pagó."""
     after = evidence.screen_after
     return after.win.amount if after.win is not None else _ZERO
+
+
+def _events(
+    evidence: RunEvidence,
+    judge: Callable[[GameEventsSummary], tuple[bool | None, str]],
+) -> Testimony:
+    """Testimonio del canal postMessage juego → casino, si se recibió algo."""
+    events = evidence.events
+    if events is None or not events.received:
+        return _t(EVENTS, WitnessKind.CORROBORATING, None, "no se recibieron eventos del juego")
+    ok, detail = judge(events)
+    evidence_files = (events.evidence,) if events.evidence else ()
+    return _t(EVENTS, WitnessKind.CORROBORATING, ok, detail, evidence_files)
+
+
+def _same(a: Decimal | None, b: Decimal | None) -> bool | None:
+    return None if a is None or b is None else a == b
 
 
 # --- Comprobaciones compartidas ---------------------------------------------------------------
@@ -65,7 +85,14 @@ def currency_matches(evidence: RunEvidence) -> CheckResult:
         f"divisa del saldo de Betsson: {header_currency or 'no leída'}",
         evidence.betsson_evidence,
     )
-    return evaluate(Check.CURRENCY_MATCHES.value, (screen, header))
+    events = _events(
+        evidence,
+        lambda e: (
+            (expected in e.currencies) if e.currencies else None,
+            f"divisa comunicada por el juego: {', '.join(e.currencies) or 'ninguna'}",
+        ),
+    )
+    return evaluate(Check.CURRENCY_MATCHES.value, (screen, header, events))
 
 
 # --- Escenario 1: tirada completada ------------------------------------------------------------
@@ -97,6 +124,17 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
                 (network.evidence,) if network.evidence else (),
             )
         )
+    testimonies.append(
+        _events(
+            evidence,
+            lambda e: (
+                e.round_started and e.round_ended,
+                "el juego anunció el inicio y el fin de la ronda"
+                if e.round_started and e.round_ended
+                else "el juego no anunció una ronda completa",
+            ),
+        )
+    )
     return evaluate(Check.SPIN_COMPLETED.value, tuple(testimonies))
 
 
@@ -123,7 +161,14 @@ def wager_matches(evidence: RunEvidence) -> CheckResult:
         "apuesta cobrada por el servidor (moneda x líneas): "
         f"{_fmt(network.wager if network else None)}",
     )
-    return evaluate(Check.WAGER_MATCHES.value, (screen, server))
+    events = _events(
+        evidence,
+        lambda e: (
+            _same(e.bet, shown.amount if shown else None),
+            f"apuesta comunicada por el juego: {_fmt(e.bet)}",
+        ),
+    )
+    return evaluate(Check.WAGER_MATCHES.value, (screen, server, events))
 
 
 def game_balance_consistent(evidence: RunEvidence) -> CheckResult:
@@ -161,7 +206,14 @@ def game_balance_consistent(evidence: RunEvidence) -> CheckResult:
         "saldo final según el servidor del juego: "
         f"{_fmt(network.balance_after if network else None)}",
     )
-    return evaluate(Check.GAME_BALANCE_CONSISTENT.value, (screen, server))
+    events = _events(
+        evidence,
+        lambda e: (
+            _same(e.balance_after, after.amount if after else None),
+            f"saldo final comunicado por el juego: {_fmt(e.balance_after)}",
+        ),
+    )
+    return evaluate(Check.GAME_BALANCE_CONSISTENT.value, (screen, server, events))
 
 
 def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
@@ -202,7 +254,18 @@ def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
             f"apuesta {network.wager} y premio {network.payout} según el servidor "
             f"→ {expected_server}",
         )
-    return evaluate(Check.BETSSON_BALANCE_RECONCILES.value, (header, game, server))
+
+    def judge_events(e: GameEventsSummary) -> tuple[bool | None, str]:
+        if e.bet is None or e.win is None or before is None or after is None:
+            return None, "el juego no comunicó apuesta y premio"
+        expected_events = before.amount - e.bet + e.win
+        return (
+            after.amount == expected_events,
+            f"apuesta {e.bet} y premio {e.win} según el juego → {expected_events}",
+        )
+
+    events = _events(evidence, judge_events)
+    return evaluate(Check.BETSSON_BALANCE_RECONCILES.value, (header, game, server, events))
 
 
 def evaluate_completed_spin(evidence: RunEvidence) -> tuple[CheckResult, ...]:
@@ -250,7 +313,18 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
         if not network.spin_requested
         else "el cliente envió una tirada al servidor",
     )
-    return evaluate(Check.SPIN_REJECTED.value, (screen, motion, server))
+    events = _events(
+        evidence,
+        lambda e: (
+            e.low_balance and not e.round_started,
+            "el juego avisó de saldo insuficiente y no inició ninguna ronda"
+            if e.low_balance and not e.round_started
+            else "el juego inició una ronda"
+            if e.round_started
+            else "el juego no avisó de saldo insuficiente",
+        ),
+    )
+    return evaluate(Check.SPIN_REJECTED.value, (screen, motion, server, events))
 
 
 def insufficient_message_shown(evidence: RunEvidence) -> CheckResult:
@@ -264,7 +338,15 @@ def insufficient_message_shown(evidence: RunEvidence) -> CheckResult:
         else "no apareció el mensaje de saldo insuficiente",
         (evidence.screen_after.evidence,),
     )
-    return evaluate(Check.INSUFFICIENT_MESSAGE_SHOWN.value, (screen,))
+    language = evidence.market_language.lower()
+    events = _events(
+        evidence,
+        lambda e: (
+            (language in e.languages) if e.languages else None,
+            f"idioma del juego: {', '.join(e.languages) or 'no comunicado'}; esperado {language}",
+        ),
+    )
+    return evaluate(Check.INSUFFICIENT_MESSAGE_SHOWN.value, (screen, events))
 
 
 def betsson_balance_unchanged(evidence: RunEvidence) -> CheckResult:
@@ -299,7 +381,16 @@ def game_balance_unchanged(evidence: RunEvidence) -> CheckResult:
         if network is None
         else "hubo una tirada en el servidor",
     )
-    return evaluate(Check.GAME_BALANCE_UNCHANGED.value, (screen, server))
+    events = _events(
+        evidence,
+        lambda e: (
+            not e.round_started,
+            "el juego no inició ninguna ronda"
+            if not e.round_started
+            else "el juego inició una ronda",
+        ),
+    )
+    return evaluate(Check.GAME_BALANCE_UNCHANGED.value, (screen, server, events))
 
 
 def evaluate_insufficient_balance(evidence: RunEvidence) -> tuple[CheckResult, ...]:

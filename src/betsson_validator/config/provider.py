@@ -29,6 +29,9 @@ class ProviderConfig(BaseModel):
     network_witness: Literal["pragmatic"] | None = Field(
         default=None, description="Testigo de red disponible para este proveedor, si lo hay"
     )
+    events_witness: Literal["pragmatic"] | None = Field(
+        default=None, description="Intérprete de los eventos postMessage del juego, si lo hay"
+    )
 
 
 def load_provider(provider_id: str, providers_dir: Path = DEFAULT_PROVIDERS_DIR) -> ProviderConfig:
