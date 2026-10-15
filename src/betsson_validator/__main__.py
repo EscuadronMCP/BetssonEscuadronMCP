@@ -62,6 +62,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Demostración: provoca a propósito un fallo de saldo en ese escenario.",
     )
     run.add_argument(
+        "--ax-probe",
+        action="store_true",
+        help="Diagnóstico: guarda el árbol de accesibilidad del juego (no cambia veredictos).",
+    )
+    run.add_argument(
         "--sequential",
         action="store_true",
         help="Ejecutar los escenarios uno tras otro (por defecto, en paralelo).",
@@ -89,6 +94,7 @@ def _context(args: argparse.Namespace, out_dir: Path) -> RunContext:
         reader=RapidOcrReader(),
         out_dir=out_dir,
         learner=learner,
+        ax_probe=getattr(args, "ax_probe", False),
     )
 
 

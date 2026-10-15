@@ -178,6 +178,7 @@ _MEDIA = (
     ("eventos_del_juego.json", "Eventos del juego (postMessage)"),
     ("trafico_juego_sin_tokens.json", "Tráfico del juego (sin tokens)"),
     ("resumen_observado.json", "Resumen de lo observado"),
+    ("accesibilidad.json", "Sonda de accesibilidad (diagnóstico)"),
 )
 
 

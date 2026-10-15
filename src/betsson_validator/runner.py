@@ -8,7 +8,7 @@ providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 import re
 from collections.abc import Callable
 from contextlib import suppress
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +22,7 @@ from betsson_validator.domain.parsing import detect_currency
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
+from betsson_validator.game import accessibility
 from betsson_validator.game.events import GameEventRecorder, capture_anomalies, payloads
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
 from betsson_validator.locks import account_lock
@@ -120,6 +121,8 @@ class RunContext:
     profiles_dir: Path = DEFAULT_PROFILES_DIR
     # Solo para demostraciones: altera lo observado antes de evaluar (se anuncia en el informe).
     fault: InjectedFault | None = None
+    # Diagnóstico opcional: árbol de accesibilidad del juego antes y después de girar.
+    ax_probe: bool = False
 
 
 def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
@@ -294,10 +297,15 @@ def _play(
 ) -> tuple[CheckResult, ...]:
     ready = _prepare(casino, ctx, plan=plan, model=model, witnesses=witnesses, files=files)
     game = ready.game
+    game_frame = casino.page.frame_locator(GAME_FRAME_SELECTOR)
+    probes = [accessibility.probe(game_frame, "antes_de_girar")] if ctx.ax_probe else []
     mark = witnesses.network.mark() if witnesses.network else 0
     events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
     after = game.observe_settled("despues_de_girar")
+    if ctx.ax_probe:  # con el mensaje del juego aún visible en el escenario 2
+        probes.append(accessibility.probe(game_frame, "despues_de_girar"))
+        files.save_json("accesibilidad", [asdict(item) for item in probes])
     events_summary: GameEventsSummary | None = None
     if witnesses.events is not None:  # se leen ANTES de salir de la página del juego
         game_events = GameEventRecorder.collect(casino.page)[events_mark:]
