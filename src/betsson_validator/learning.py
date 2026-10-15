@@ -16,10 +16,15 @@ from decimal import Decimal
 from betsson_validator.browser import browser_context
 from betsson_validator.casino.betsson import BetssonCasino
 from betsson_validator.evidence import EvidenceRecorder
-from betsson_validator.game.player import GameError, Image, ScreenGame, ScreenModel
+from betsson_validator.game.player import (
+    GameError,
+    Image,
+    ScreenGame,
+    ScreenModel,
+    control_template,
+)
 from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
 from betsson_validator.perception.motion import motion_score
-from betsson_validator.perception.templates import crop
 from betsson_validator.profiles import GameProfile
 from betsson_validator.runner import RunContext
 from betsson_validator.security import audit_and_quarantine, scrub_trace
@@ -31,7 +36,6 @@ _MIN_LOADING_S = 15
 _MAX_LOADING_S = 45
 _BET_PRESSES = 3
 _SCREEN_CHANGED = 0.3  # fracción de píxeles: la pantalla de bienvenida desapareció
-_TEMPLATE_PADDING = 4
 
 
 class LearningError(RuntimeError):
@@ -121,8 +125,7 @@ def _learn_and_validate(
         model.profile.templates.pop("spin", None)  # era el de continuar, no el de girar
         game.page.wait_for_timeout(3000)
         if motion_score(image, game.capture()) > _SCREEN_CHANGED:
-            pad = _TEMPLATE_PADDING
-            proven["continue"] = crop(image, (x - pad, y - pad, w + 2 * pad, h + 2 * pad))
+            proven["continue"] = control_template(image, (x, y, w, h))
         image = _wait_until_loaded(game)
         analysis = _analyze(game, model, image, model_name, "pantalla_de_juego")
 

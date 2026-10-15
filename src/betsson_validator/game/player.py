@@ -32,13 +32,13 @@ from betsson_validator.perception.motion import (
     motion_score,
 )
 from betsson_validator.perception.ocr import TextBox, TextReader
-from betsson_validator.perception.templates import crop, find_template
+from betsson_validator.perception.templates import TemplateMatch, crop, find_template
 from betsson_validator.profiles import GameProfile
 
 Image = npt.NDArray[np.uint8]
 Point = tuple[float, float]
 
-_TEMPLATE_PADDING = 4
+_TEMPLATE_INNER = 0.7  # fracción central del control que se guarda como plantilla
 _STILL_SCORE = 0.01
 
 
@@ -109,12 +109,21 @@ class ScreenModel:
         return hud, boxes
 
     def locate(self, control: str, image: Image) -> Point | None:
+        """Busca el control por su aspecto. Si otro control del perfil encaja mejor en ese mismo
+        sitio (p. ej. '+' cuando '-' está desactivado, o 'girar' en lugar de 'continuar'), la
+        localización es ambigua y se rechaza: pulsar el control equivocado puede costar dinero."""
         template = self.profile.template(control)
         if template is None:
             return None
         match = find_template(image, template)
         if match is None:
             return None
+        for other, other_template in self.profile.templates.items():
+            if other == control:
+                continue
+            rival = find_template(image, other_template)
+            if rival is not None and rival.score > match.score and _overlap(match, rival):
+                return None
         height, width = image.shape[:2]
         center_x, center_y = match.center
         return center_x / width, center_y / height
@@ -148,9 +157,7 @@ class ScreenModel:
         }
         for control, box in controls.items():
             if box is not None:
-                x, y, w, h = box.as_tuple()
-                p = _TEMPLATE_PADDING
-                self.profile.templates[control] = crop(image, (x - p, y - p, w + 2 * p, h + 2 * p))
+                self.profile.templates[control] = control_template(image, box.as_tuple())
         if analysis.credit_label:
             self.profile.credit_label = analysis.credit_label
         if analysis.bet_label:
@@ -252,6 +259,8 @@ class ScreenGame:
             image = self.capture()
             hud, _ = self.model.read(image)
             new = hud.bet.money.amount if hud.bet else None
+            if new is not None and current is not None and new > current:
+                raise GameError(f"Pulsar 'bajar apuesta' la subió ({current} → {new}). No se gira.")
             unchanged = unchanged + 1 if new is not None and new == current else 0
             current = new if new is not None else current
             if unchanged >= 2:  # noqa: PLR2004 - dos pulsaciones sin cambio: es el mínimo
@@ -293,6 +302,23 @@ class ScreenGame:
                 self.click(((box.x + box.width / 2) / width, (box.y + box.height / 2) / height))
                 return True
         return False
+
+
+def control_template(image: Image, box: tuple[int, int, int, int]) -> Image:
+    """Imagen de un control para reencontrarlo: solo su interior, sin el fondo del juego.
+
+    El fondo cambia entre sesiones (animaciones, paneles) y con él la coincidencia bajaba de
+    0,97 a 0,72; con el interior del botón se mantiene por encima de 0,9 (medido en capturas
+    reales de sesiones distintas).
+    """
+    x, y, w, h = box
+    dx, dy = round(w * (1 - _TEMPLATE_INNER) / 2), round(h * (1 - _TEMPLATE_INNER) / 2)
+    return crop(image, (x + dx, y + dy, w - 2 * dx, h - 2 * dy))
+
+
+def _overlap(a: TemplateMatch, b: TemplateMatch) -> bool:
+    (ax, ay), (bx, by) = a.center, b.center
+    return abs(ax - bx) < max(a.width, b.width) / 2 and abs(ay - by) < max(a.height, b.height) / 2
 
 
 def _is_still(previous: Image, current: Image) -> bool:
