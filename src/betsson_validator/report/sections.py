@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 from betsson_validator.domain.checks import DESCRIPTIONS, Check, Scenario
 from betsson_validator.domain.run import ScenarioRun
-from betsson_validator.domain.verdict import Outcome, Status
+from betsson_validator.domain.verdict import Outcome, Status, WitnessKind
 from betsson_validator.perception.motion import MotionThresholds, detect_spin_lifecycle
 from betsson_validator.report.charts import motion_chart
 from betsson_validator.report.observed import Observed, amount, currency
@@ -107,8 +107,10 @@ def witness_grid(run: ScenarioRun) -> str:
                 cells.append('<td class="cell none" title="no interviene">·</td>')
                 continue
             css, icon, label = _OUTCOME_CELL[testimony.outcome]
+            visual = "<small>jugador</small>" if testimony.kind is WitnessKind.VISUAL else ""
             cells.append(
-                f'<td class="cell {css}" title="{escape(testimony.detail)}">{icon} {label}</td>'
+                f'<td class="cell {css}" title="{escape(testimony.detail)}">'
+                f"{icon} {label}{visual}</td>"
             )
         rows.append(
             f"<tr><th class='check'>{escape(_describe(result.check))}</th>"
@@ -117,7 +119,9 @@ def witness_grid(run: ScenarioRun) -> str:
     return (
         '<div class="scroll"><table class="grid"><thead><tr><th>Comprobación</th>'
         f"<th>Resultado</th>{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
-        '<p class="hint">Pasa el ratón por una celda para ver lo que dijo ese testigo.</p>'
+        '<p class="hint"><b>jugador</b> = lo que ve el jugador (pantalla, movimiento o web de '
+        "Betsson): sin su confirmación no hay PASS. El resto corrobora: si contradice, es FAIL "
+        "por discrepancia. Pasa el ratón por una celda para ver lo que dijo ese testigo.</p>"
     )
 
 

@@ -368,6 +368,10 @@ def _play(
     summary_data["motion_scores"] = [round(score, 4) for score in spin.scores]
     summary_data["motion_thresholds"] = spin.thresholds.__dict__ if spin.thresholds else None
     summary_data["stages"] = clock.stages
+    summary_data["profile"] = {
+        "learned_with": model.profile.learned_with,
+        "learned_at": model.profile.learned_at,
+    }
     if ctx.fault is not None:
         summary_data["injected_fault"] = ctx.fault.description
         evidence = ctx.fault.apply(evidence)

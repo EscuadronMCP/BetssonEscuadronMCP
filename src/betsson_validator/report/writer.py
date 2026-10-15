@@ -11,7 +11,7 @@ from urllib.parse import quote
 from betsson_validator.domain.checks import DESCRIPTIONS, SCENARIO_TITLES, Check, Scenario
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, Outcome, Status
-from betsson_validator.report.observed import load_observed
+from betsson_validator.report.observed import Observed, load_observed
 from betsson_validator.report.sections import (
     dashboard,
     events_timeline,
@@ -200,7 +200,7 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
 <h2>{escape(SCENARIO_TITLES[run.scenario])} {_badge(run.status)}</h2>
 <p class="chips"><span>Mercado <b>{escape(run.market)}</b></span>
 <span>Proveedor <b>{escape(run.provider)}</b></span><span>Juego <b>{escape(run.game)}</b></span>
-<span>Duración <b>{duration:.0f} s</b></span>
+<span>Duración <b>{duration:.0f} s</b></span>{_profile_chip(observed)}
 <span>{escape(run.started_at.strftime("%Y-%m-%d %H:%M:%S UTC"))}</span></p>
 {story}
 {error}
@@ -265,6 +265,17 @@ def _render_evidence(paths: tuple[str, ...], out_dir: Path) -> str:
         else:
             links.append(f'<a href="{href}">{escape(path.name)}</a>')
     return f'<div class="evidence">{"".join(links)}</div>' if links else ""
+
+
+def _profile_chip(observed: Observed | None) -> str:
+    profile = observed.get("profile") if observed else None
+    if not isinstance(profile, dict) or not profile.get("learned_with"):
+        return ""
+    when = str(profile.get("learned_at") or "")[:10]
+    return (
+        f"<span>Perfil aprendido con <b>{escape(str(profile['learned_with']))}</b>"
+        f"{escape(' el ' + when) if when else ''}</span>"
+    )
 
 
 def _href(path: Path) -> str:
@@ -335,6 +346,7 @@ th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px sol
 .cell.ko { color:var(--fail); background:var(--fail-bg); }
 .cell.na { color:var(--na); background:var(--na-bg); }
 .cell.none { color:var(--muted); text-align:center; }
+.cell small { display:block; font-weight:500; font-size:11px; opacity:.8; }
 .badge { display:inline-block; padding:1px 10px; border-radius:999px; font-weight:700;
   font-size:13px; color:#fff; }
 .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
