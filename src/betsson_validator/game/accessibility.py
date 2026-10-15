@@ -45,17 +45,34 @@ def summarize_aria(phase: str, snapshot: str) -> AccessibilityProbe:
     return AccessibilityProbe(phase, "con datos" if nodes else "vacío", nodes, roles, tuple(names))
 
 
-def probe(frame: FrameLocator, phase: str) -> AccessibilityProbe:
-    """Árbol ARIA del juego; si un marco solo contiene otro marco, se baja a él (el árbol ARIA
-    no atraviesa marcos). Un fallo queda como estado "error", nunca rompe la prueba."""
+def probe(frame: FrameLocator, phase: str, *, settled: bool = True) -> AccessibilityProbe:
+    """Árbol ARIA del juego. El juego vive en un marco anidado (el árbol ARIA no atraviesa
+    marcos): mientras el marco tenga iframes se baja al más grande, que es el del juego, aunque
+    haya otros controles al lado. Un fallo queda como estado "error", nunca rompe la prueba."""
     current = frame
     for depth in range(1, MAX_FRAME_DEPTH + 1):
         try:
+            child = _largest_iframe(current) if depth < MAX_FRAME_DEPTH else None
+            if child is not None:
+                current = current.frame_locator("iframe").nth(child)
+                continue
             snapshot = current.locator("body").aria_snapshot(timeout=TIMEOUT_MS)
         except PlaywrightError as error:
-            return AccessibilityProbe(phase, "error", detail=type(error).__name__)
-        result = summarize_aria(phase, snapshot)
-        if result.roles != {"iframe": 1} or depth == MAX_FRAME_DEPTH:
-            return replace(result, detail=f"marco de nivel {depth}")
-        current = current.frame_locator("iframe").first
+            return AccessibilityProbe(
+                phase, "error", detail=f"{type(error).__name__} en el marco de nivel {depth}"
+            )
+        note = "" if settled else "; tomada con el marcador aún sin estabilizar"
+        return replace(summarize_aria(phase, snapshot), detail=f"marco de nivel {depth}{note}")
     return AccessibilityProbe(phase, "error", detail="sin marco")
+
+
+def _largest_iframe(frame: FrameLocator) -> int | None:
+    """Índice del iframe más grande del marco (el juego), o None si no tiene ninguno."""
+    iframes = frame.locator("iframe")
+    best: tuple[float, int] | None = None
+    for index in range(iframes.count()):
+        box = iframes.nth(index).bounding_box(timeout=TIMEOUT_MS)
+        area = box["width"] * box["height"] if box else 0.0
+        if best is None or area > best[0]:
+            best = (area, index)
+    return best[1] if best is not None else None

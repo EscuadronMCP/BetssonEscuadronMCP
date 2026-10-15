@@ -334,6 +334,8 @@ def _play(
     game = ready.game
     game_frame = casino.page.frame_locator(GAME_FRAME_SELECTOR)
     probes = [accessibility.probe(game_frame, "antes_de_girar")] if ctx.ax_probe else []
+    if probes:  # cada fase se guarda al tomarla: un fallo posterior no la pierde
+        files.save_json("accesibilidad", [asdict(item) for item in probes])
     mark = witnesses.network.mark() if witnesses.network else 0
     events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
@@ -347,7 +349,7 @@ def _play(
     after = game.observe_settled("despues_de_girar")
     clock.mark("marcador estable")
     if ctx.ax_probe:  # con el mensaje del juego aún visible en el escenario 2
-        probes.append(accessibility.probe(game_frame, "despues_de_girar"))
+        probes.append(accessibility.probe(game_frame, "despues_de_girar", settled=after.settled))
         files.save_json("accesibilidad", [asdict(item) for item in probes])
     # Los eventos se leen ANTES de salir de la página del juego.
     events_summary = _events_summary(casino, witnesses.events, ready, events_mark, files)

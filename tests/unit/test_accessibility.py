@@ -28,35 +28,49 @@ def test_names_are_bounded() -> None:
     assert all(len(name) <= 80 for name in result.names)
 
 
-def test_a_failing_probe_is_reported_not_raised() -> None:
-    class BrokenFrame:
-        def locator(self, _selector: str) -> "BrokenFrame":
-            return self
+class _Frame:
+    """Marco simulado: su árbol ARIA y sus iframes (con su tamaño en pantalla)."""
 
+    def __init__(self, snapshot: str, children: list[tuple["_Frame", float]] | None = None) -> None:
+        self.snapshot, self.children = snapshot, children or []
+        self._selector = ""
+
+    def locator(self, selector: str) -> "_Frame":
+        self._selector = selector
+        return self
+
+    def count(self) -> int:
+        return len(self.children) if self._selector == "iframe" else 1
+
+    def nth(self, index: int) -> Any:
+        _child, area = self.children[index]
+        return type("Iframe", (), {"bounding_box": lambda _s, **_k: {"width": area, "height": 1}})()
+
+    def frame_locator(self, _selector: str) -> Any:
+        children = self.children
+        return type("Frames", (), {"nth": lambda _s, i: children[i][0]})()
+
+    def aria_snapshot(self, **_kwargs: object) -> str:
+        return self.snapshot
+
+
+def test_a_failing_probe_is_reported_not_raised() -> None:
+    class Broken(_Frame):
         def aria_snapshot(self, **_kwargs: object) -> str:
             raise PlaywrightError("marco no disponible")
 
-    result = probe(cast(Any, BrokenFrame()), "antes_de_girar")
+    result = probe(cast(Any, Broken("")), "antes_de_girar")
     assert result.status == "error"
-    assert result.detail == "Error"
+    assert "Error" in result.detail
 
 
-def test_the_probe_descends_into_the_nested_game_frame() -> None:
-    class Frame:
-        def __init__(self, snapshot: str, child: "Frame | None" = None) -> None:
-            self.snapshot, self.child = snapshot, child
-
-        def locator(self, _selector: str) -> "Frame":
-            return self
-
-        def frame_locator(self, _selector: str) -> Any:
-            return type("Nested", (), {"first": self.child})()
-
-        def aria_snapshot(self, **_kwargs: object) -> str:
-            return self.snapshot
-
-    game = Frame('- button "Girar"')
-    launcher = Frame("- iframe", child=game)
-    result = probe(cast(Any, launcher), "antes_de_girar")
+def test_the_probe_reaches_the_nested_game_next_to_other_controls() -> None:
+    """Auditoría R03-10: «Ayuda» + iframe del juego: hay que llegar al juego."""
+    game = _Frame('- button "Girar"')
+    advert = _Frame('- link "Anuncio"')
+    launcher = _Frame('- button "Ayuda"\n- iframe', children=[(advert, 10.0), (game, 900.0)])
+    result = probe(cast(Any, launcher), "despues_de_girar", settled=False)
     assert result.roles == {"button": 1}
-    assert result.detail == "marco de nivel 2"
+    assert result.names == ("Girar",)
+    assert result.detail.startswith("marco de nivel 2")
+    assert "sin estabilizar" in result.detail
