@@ -1,0 +1,26 @@
+[
+  {
+    "seq": 150,
+    "t": 1792081382931,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "event": "autoplayEnded"
+    }
+  },
+  {
+    "seq": 151,
+    "t": 1792081382931,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 0,
+      "betAmount": 0.2,
+      "balanceBefore": 0,
+      "amount": 0,
+      "name": "balanceTooLow"
+    }
+  }
+]

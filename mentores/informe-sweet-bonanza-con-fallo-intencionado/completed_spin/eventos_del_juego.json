@@ -1,0 +1,180 @@
+[
+  {
+    "seq": 163,
+    "t": 1792081372880,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.91,
+      "betAmount": 0.2,
+      "balanceBefore": 192.91,
+      "amount": 192.91,
+      "name": "gameRoundStart"
+    }
+  },
+  {
+    "seq": 164,
+    "t": 1792081372880,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.91,
+      "betAmount": 0.2,
+      "balanceBefore": 192.91,
+      "amount": 192.91,
+      "name": "gameRoundStarted"
+    }
+  },
+  {
+    "seq": 165,
+    "t": 1792081372880,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.91,
+      "betAmount": 0.2,
+      "balanceBefore": 192.91,
+      "amount": 192.91,
+      "name": "spinStarted"
+    }
+  },
+  {
+    "seq": 166,
+    "t": 1792081373120,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 167,
+    "t": 1792081373120,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19271
+        }
+      }
+    }
+  },
+  {
+    "seq": 168,
+    "t": 1792081374751,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.71,
+      "betAmount": 0.2,
+      "balanceBefore": 192.71,
+      "amount": 192.71,
+      "roundTripMs": 241,
+      "name": "spinEnded"
+    }
+  },
+  {
+    "seq": 169,
+    "t": 1792081374751,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.71,
+      "betAmount": 0.2,
+      "balanceBefore": 192.71,
+      "amount": 192.71,
+      "name": "gameRoundEnded"
+    }
+  },
+  {
+    "seq": 170,
+    "t": 1792081374751,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.71,
+      "betAmount": 0.2,
+      "balanceBefore": 192.71,
+      "amount": 192.71,
+      "name": "resultShown"
+    }
+  },
+  {
+    "seq": 171,
+    "t": 1792081374754,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "event": "visualBalanceUpdate",
+      "params": {
+        "currency": "€",
+        "newAmount": 192.71,
+        "win": 0
+      }
+    }
+  },
+  {
+    "seq": 172,
+    "t": 1792081374754,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.71,
+      "betAmount": 0.2,
+      "balanceBefore": 192.71,
+      "amount": 192.71,
+      "name": "balanceChanged"
+    }
+  },
+  {
+    "seq": 173,
+    "t": 1792081374754,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 192.71,
+      "betAmount": 0.2,
+      "balanceBefore": 192.71,
+      "amount": 192.71,
+      "name": "balanceChanged",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19271
+        }
+      }
+    }
+  }
+]

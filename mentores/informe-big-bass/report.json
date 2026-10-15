@@ -1,0 +1,390 @@
+{
+  "generated_at": "2026-10-15T16:26:58.840839+00:00",
+  "code_version": "92331c03570c2c48ccc280e86b0adb107addb62f",
+  "run_id": null,
+  "requested_scenarios": [
+    "completed_spin",
+    "insufficient_balance"
+  ],
+  "partial_scope": false,
+  "status": "PASS",
+  "runs": [
+    {
+      "scenario": "completed_spin",
+      "market": "es",
+      "provider": "Pragmatic Play",
+      "game": "big-bass-halloween-splash-1000",
+      "started_at": "2026-10-15T16:23:34.338763Z",
+      "finished_at": "2026-10-15T16:24:47.587933Z",
+      "results": [
+        {
+          "check": "spin_completed",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "movimiento de los rodillos",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "el juego se movió y volvió al reposo (16 capturas)",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/02_girando.jpg",
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "sin mensajes de rechazo ni avisos tras la tirada",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "tirada liquidada (na=s)",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/trafico_juego_sin_tokens.json"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "el juego anunció el inicio y el fin de la ronda",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "wager_matches",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "apuesta mostrada antes 0.10 EUR y después 0.10 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "apuesta pedida 0.10 y aceptada por el servidor 0.10 (moneda x líneas)",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/trafico_juego_sin_tokens.json"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "apuesta comunicada por el juego: 0.1",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "currency_matches",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "divisa leída en el HUD del juego: EUR; esperada EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "cabecera de Betsson",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "divisa del saldo de Betsson: EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/00_saldo_betsson_antes.jpg",
+                "mentores/informe-big-bass/completed_spin/99_saldo_betsson_despues.jpg"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "divisa comunicada por el juego: EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "game_balance_consistent",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "crédito 192.71 EUR - apuesta 0.10 + premio 0 = 192.61; leído 192.61 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "saldo 192.71 → 192.61, apuesta aceptada 0.10 y premio declarado 0.00 según el servidor del juego",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/trafico_juego_sin_tokens.json"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "saldo final 192.61 y premio 0 comunicados por el juego",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "betsson_balance_reconciles",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "cabecera de Betsson",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "saldo 192.71 EUR - apuesta 0.10 + premio 0 = 192.61; Betsson muestra 192.61 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/00_saldo_betsson_antes.jpg",
+                "mentores/informe-big-bass/completed_spin/99_saldo_betsson_despues.jpg"
+              ]
+            },
+            {
+              "witness": "pantalla del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "crédito del juego tras la tirada 192.61 EUR frente a Betsson 192.61 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/03_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "apuesta aceptada 0.10 y premio declarado 0.00 por el servidor → 192.61",
+              "evidence": []
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "apuesta 0.1 y premio 0 según el juego → 192.61",
+              "evidence": [
+                "mentores/informe-big-bass/completed_spin/eventos_del_juego.json"
+              ]
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "quarantined": [],
+      "notes": [],
+      "injected_fault": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "insufficient_balance",
+      "market": "es",
+      "provider": "Pragmatic Play",
+      "game": "big-bass-halloween-splash-1000",
+      "started_at": "2026-10-15T16:23:34.338787Z",
+      "finished_at": "2026-10-15T16:25:26.685203Z",
+      "results": [
+        {
+          "check": "spin_rejected",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "mensaje de rechazo visible; crédito 0.00 EUR → 0.00 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/insufficient_balance/02_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "movimiento de los rodillos",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "sin animación de giro completo",
+              "evidence": []
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "no se envió ninguna tirada",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/trafico_juego_sin_tokens.json"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "el juego avisó de saldo insuficiente y no inició ninguna ronda",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "insufficient_message_shown",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "mensaje leído: «Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta.»",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/02_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "idioma del juego: es; esperado es",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "currency_matches",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla; sin contradicciones. Testigos no disponibles: eventos del juego.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "divisa leída en el HUD del juego: EUR; esperada EUR",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/insufficient_balance/02_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "cabecera de Betsson",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "divisa del saldo de Betsson: EUR",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/00_saldo_betsson_antes.jpg",
+                "mentores/informe-big-bass/insufficient_balance/99_saldo_betsson_despues.jpg"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "unavailable",
+              "detail": "divisa comunicada por el juego: ninguna",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/eventos_del_juego.json"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "betsson_balance_unchanged",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "cabecera de Betsson",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "saldo de Betsson 0.00 EUR → 0.00 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/00_saldo_betsson_antes.jpg",
+                "mentores/informe-big-bass/insufficient_balance/99_saldo_betsson_despues.jpg"
+              ]
+            }
+          ]
+        },
+        {
+          "check": "game_balance_unchanged",
+          "status": "PASS",
+          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "testimonies": [
+            {
+              "witness": "pantalla del juego",
+              "kind": "visual",
+              "outcome": "confirms",
+              "detail": "crédito del juego 0.00 EUR → 0.00 EUR",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/01_apuesta_minima.jpg",
+                "mentores/informe-big-bass/insufficient_balance/02_despues_de_girar.jpg"
+              ]
+            },
+            {
+              "witness": "servidor del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "no se envió ninguna tirada",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/trafico_juego_sin_tokens.json"
+              ]
+            },
+            {
+              "witness": "eventos del juego",
+              "kind": "corroborating",
+              "outcome": "confirms",
+              "detail": "el juego no inició ninguna ronda",
+              "evidence": [
+                "mentores/informe-big-bass/insufficient_balance/eventos_del_juego.json"
+              ]
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "quarantined": [],
+      "notes": [],
+      "injected_fault": null,
+      "status": "PASS"
+    }
+  ]
+}
