@@ -11,6 +11,15 @@ from urllib.parse import quote
 from betsson_validator.domain.checks import DESCRIPTIONS, SCENARIO_TITLES, Check, Scenario
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, Outcome, Status
+from betsson_validator.report.observed import load_observed
+from betsson_validator.report.sections import (
+    dashboard,
+    events_timeline,
+    gallery,
+    motion_section,
+    observed_values,
+    witness_grid,
+)
 
 _OUTCOME_LABELS = {
     Outcome.CONFIRMS: "confirma",
@@ -73,10 +82,12 @@ def render_html(runs: Sequence[ScenarioRun], out_dir: Path, info: RunInfo | None
 </head>
 <body>
 <main>
+<header class="top">
 <h1>Informe de validación de juegos</h1>
-<p class="summary">Resultado global: {_badge(overall)} · {len(runs)} escenario(s) ·
-generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))}</p>
-<p class="meta">{escape(_scope(info))}</p>
+<p class="meta">Betsson · {escape(", ".join(sorted({run.market for run in runs})))} ·
+generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))} · {escape(_scope(info))}</p>
+</header>
+{dashboard(runs, overall, info.code_version)}
 {_plain_summary(runs)}
 {sections}
 </main>
@@ -154,20 +165,46 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
             '<p class="error">Evidencias retiradas por seguridad (contenían secretos): '
             f"{escape(', '.join(run.quarantined))}</p>"
         )
+    folder = out_dir / run.scenario.value
+    observed = load_observed(folder)
+    duration = (run.finished_at - run.started_at).total_seconds()
+    panels = [
+        ("Capturas de lo que vio el jugador", gallery(folder, out_dir)),
+        ("Qué dijo cada testigo", witness_grid(run)),
+        (
+            "Valores observados por cada testigo",
+            observed_values(observed, run.scenario) if observed else "",
+        ),
+        ("Movimiento de los rodillos", motion_section(observed) if observed else ""),
+    ]
+    body = "".join(
+        f'<div class="panel"><h3>{escape(title)}</h3>{content}</div>'
+        for title, content in panels
+        if content
+    )
+    timeline = events_timeline(observed) if observed else ""
+    if timeline:
+        body += (
+            '<details class="panel"><summary><h3>Eventos que el juego envió a la web</h3>'
+            f"</summary>{timeline}</details>"
+        )
     return f"""<section>
 <h2>{escape(SCENARIO_TITLES[run.scenario])} {_badge(run.status)}</h2>
-<p class="meta">Mercado <b>{escape(run.market)}</b> · proveedor <b>{escape(run.provider)}</b> ·
-juego <b>{escape(run.game)}</b> · {escape(run.started_at.isoformat())} →
-{escape(run.finished_at.isoformat())}</p>
+<p class="chips"><span>Mercado <b>{escape(run.market)}</b></span>
+<span>Proveedor <b>{escape(run.provider)}</b></span><span>Juego <b>{escape(run.game)}</b></span>
+<span>Duración <b>{duration:.0f} s</b></span>
+<span>{escape(run.started_at.strftime("%Y-%m-%d %H:%M:%S UTC"))}</span></p>
 {error}
-{_render_media(run, out_dir)}
-<table>
+{body}
+<div class="panel"><h3>Detalle de cada comprobación</h3>
+<div class="scroll"><table>
 <thead><tr><th>Comprobación</th><th>Resultado</th><th>Motivo</th><th>Testigos</th></tr></thead>
 <tbody>
 {rows}
 {missing}
 </tbody>
-</table>
+</table></div></div>
+{_render_media(run, out_dir)}
 </section>"""
 
 
@@ -242,31 +279,86 @@ def _overall(runs: Sequence[ScenarioRun], info: RunInfo) -> Status:
 
 
 def _badge(status: Status) -> str:
-    return f'<span class="badge {status.value.lower()}">{status.value}</span>'
+    icon = "✓" if status is Status.PASS else "✗"
+    return f'<span class="badge {status.value.lower()}">{icon} {status.value}</span>'
 
 
 _CSS = """
-:root { --bg:#fff; --fg:#1b1b1f; --muted:#5f6068; --line:#e3e3e8;
-  --pass:#1a7f37; --fail:#c62828; }
+:root { --bg:#f6f7f9; --card:#fff; --fg:#1b1b1f; --muted:#5f6068; --line:#e3e3e8;
+  --accent:#2457d6; --pass:#1a7f37; --pass-bg:#e7f5ec; --fail:#c62828; --fail-bg:#fdecec;
+  --na:#5f6068; --na-bg:#f0f0f3; }
 @media (prefers-color-scheme: dark) {
-  :root { --bg:#151518; --fg:#ececf1; --muted:#a2a2ad; --line:#2c2c33;
-    --pass:#3fb950; --fail:#ff6b6b; }
+  :root { --bg:#111114; --card:#1a1a1f; --fg:#ececf1; --muted:#a2a2ad; --line:#2c2c33;
+    --accent:#7aa2ff; --pass:#3fb950; --pass-bg:#12301c; --fail:#ff6b6b; --fail-bg:#3a1717;
+    --na:#a2a2ad; --na-bg:#25252b; }
 }
-body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; }
-main { max-width:1100px; margin:0 auto; padding:24px 16px; }
-h1 { font-size:24px; margin:0 0 8px; } h2 { font-size:18px; margin:32px 0 4px; }
-.summary, .meta { color:var(--muted); margin:4px 0; }
-table { width:100%; border-collapse:collapse; margin-top:12px; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width:1180px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:26px; margin:0 0 4px; }
+h2 { font-size:20px; margin:36px 0 6px; display:flex; flex-wrap:wrap; gap:10px;
+  align-items:center; }
+h3 { font-size:15px; margin:0 0 10px; }
+.meta, .hint, .muted { color:var(--muted); }
+.meta { margin:4px 0; } .hint { font-size:13px; margin:6px 0 0; }
+.kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px;
+  margin:18px 0; }
+.kpi, .panel, .plain { background:var(--card); border:1px solid var(--line); border-radius:12px; }
+.kpi { padding:12px 14px; }
+.kpi-label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+.kpi-value { font-size:22px; font-weight:700; margin:4px 0 2px; }
+.kpi-note { color:var(--muted); font-size:12px; }
+.panel { padding:14px 16px; margin:12px 0; }
+.plain { padding:4px 16px; margin:12px 0; }
+details.panel summary { cursor:pointer; } details.panel summary h3 { display:inline; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 10px; }
+.chips span { background:var(--card); border:1px solid var(--line); border-radius:999px;
+  padding:2px 10px; font-size:13px; color:var(--muted); }
+.chips b { color:var(--fg); }
+table { width:100%; border-collapse:collapse; }
 th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px solid var(--line); }
-ul { margin:0; padding-left:18px; }
-.badge { display:inline-block; padding:1px 8px; border-radius:10px; font-weight:600; color:#fff; }
+.scroll { overflow-x:auto; }
+.grid th, .grid td, .values th, .values td { white-space:nowrap; }
+.grid th.check { white-space:normal; min-width:220px; font-weight:500; }
+.cell { font-weight:600; font-size:13px; border-radius:6px; }
+.grid td.cell { border:2px solid var(--card); }
+.cell.ok { color:var(--pass); background:var(--pass-bg); }
+.cell.ko { color:var(--fail); background:var(--fail-bg); }
+.cell.na { color:var(--na); background:var(--na-bg); }
+.cell.none { color:var(--muted); text-align:center; }
+.badge { display:inline-block; padding:1px 10px; border-radius:999px; font-weight:700;
+  font-size:13px; color:#fff; }
 .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
+.equation { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-top:12px;
+  padding:10px 14px; border-radius:10px; font-size:17px; }
+.equation.ok { background:var(--pass-bg); } .equation.ko { background:var(--fail-bg); }
+.equation i { color:var(--muted); font-style:normal; }
+.equation b { margin-left:auto; } .equation.ok b { color:var(--pass); }
+.equation.ko b { color:var(--fail); }
+.equation small { color:var(--muted); width:100%; order:9; font-size:12px; }
+.gallery { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; }
+.gallery figure { margin:0; }
+.gallery img { width:100%; border-radius:8px; border:1px solid var(--line); display:block; }
+.gallery figcaption { font-size:12px; color:var(--muted); margin-top:4px; }
+.chart { width:100%; height:auto; max-height:260px; }
+.chart .gridline { stroke:var(--line); stroke-width:1; }
+.chart .axis { fill:var(--muted); font-size:11px; }
+.chart .threshold { stroke:var(--muted); stroke-width:1; stroke-dasharray:4 4; }
+.chart .line { fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; }
+.chart .dot { fill:var(--accent); stroke:var(--card); stroke-width:2; }
+.chart .mark { stroke:var(--fg); stroke-width:1; opacity:.35; }
+.timeline { margin:8px 0 0; padding-left:22px; columns:2; font-size:13px; }
+.timeline .when { color:var(--muted); font-variant-numeric:tabular-nums; }
 .error { color:var(--fail); }
 .fault { border:2px dashed var(--fail); border-radius:8px; padding:8px 12px; font-weight:600; }
-.plain { border:1px solid var(--line); border-radius:8px; padding:4px 14px; margin:12px 0; }
-.evidence img { max-width:220px; margin:4px 4px 0 0; border:1px solid var(--line); }
+.evidence img { max-width:180px; margin:4px 4px 0 0; border:1px solid var(--line);
+  border-radius:4px; }
 .missing { color:var(--muted); font-size:13px; margin-right:8px; }
-@media (max-width:700px) {
-  table, thead, tbody, tr, th, td { display:block; } thead { display:none; }
-}
+ul { margin:0; padding-left:18px; }
+a { color:var(--accent); }
+.message { margin:12px 0 0; padding:12px 16px; border-left:4px solid var(--accent);
+  background:var(--na-bg); border-radius:0 10px 10px 0; font-size:17px; }
+.message small { display:block; color:var(--muted); font-size:12px; margin-top:6px; }
+@media (max-width:700px) { .timeline { columns:1; } }
+@media print { body { background:#fff; } .panel, .kpi, figure { break-inside:avoid; } }
 """
