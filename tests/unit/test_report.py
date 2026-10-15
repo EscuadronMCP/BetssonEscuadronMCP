@@ -82,3 +82,14 @@ def test_markdown_summary_lists_every_check() -> None:
     assert markdown.startswith("## Validación de juegos: FAIL")
     assert markdown.count("| PASS |") == 4
     assert "No evaluada" in markdown
+
+
+def test_report_links_full_evidence(tmp_path: Path) -> None:
+    folder = tmp_path / "completed_spin"
+    (folder / "video").mkdir(parents=True)
+    (folder / "video" / "run.webm").write_bytes(b"video")
+    (folder / "eventos_del_juego.json").write_text("[]")
+    _, html_path = write_report([run_with(all_checks_pass())], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert 'href="completed_spin/video/run.webm"' in html
+    assert "Eventos del juego" in html

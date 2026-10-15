@@ -102,6 +102,7 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
 juego <b>{escape(run.game)}</b> · {escape(run.started_at.isoformat())} →
 {escape(run.finished_at.isoformat())}</p>
 {error}
+{_render_media(run, out_dir)}
 <table>
 <thead><tr><th>Comprobación</th><th>Resultado</th><th>Motivo</th><th>Testigos</th></tr></thead>
 <tbody>
@@ -110,6 +111,26 @@ juego <b>{escape(run.game)}</b> · {escape(run.started_at.isoformat())} →
 </tbody>
 </table>
 </section>"""
+
+
+_MEDIA = (
+    ("video/*.webm", "Vídeo de la ejecución"),
+    ("trace.zip", "Traza de Playwright"),
+    ("eventos_del_juego.json", "Eventos del juego (postMessage)"),
+    ("trafico_juego_sin_tokens.json", "Tráfico del juego (sin tokens)"),
+    ("resumen_observado.json", "Resumen de lo observado"),
+)
+
+
+def _render_media(run: ScenarioRun, out_dir: Path) -> str:
+    """Enlaces a las evidencias completas del escenario (vídeo, traza, eventos, tráfico)."""
+    folder = out_dir / run.scenario.value
+    links = []
+    for pattern, label in _MEDIA:
+        for path in sorted(folder.glob(pattern)):
+            href = escape(str(path.relative_to(out_dir)))
+            links.append(f'<a href="{href}">{escape(label)}</a>')
+    return f'<p class="meta">Evidencias: {" · ".join(links)}</p>' if links else ""
 
 
 def _render_result_row(result: CheckResult, out_dir: Path) -> str:
