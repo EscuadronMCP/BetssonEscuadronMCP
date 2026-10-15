@@ -1,0 +1,6 @@
+# Pragmatic Play en betsson.es.
+id: pragmaticplay
+filter_label: Pragmatic Play
+# Sweet Bonanza 2500: comprobado en Real Play el 15/10 (apuesta mínima 0,20 €).
+game_slug: sweet-bonanza-2500
+game_load_timeout_s: 120

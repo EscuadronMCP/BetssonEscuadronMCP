@@ -41,6 +41,21 @@ class MarketAccounts(BaseModel):
     no_balance: AccountEnv
 
 
+class MarketUi(BaseModel):
+    """Textos visibles de la web del mercado: cambian con el idioma, no con el código."""
+
+    model_config = ConfigDict(frozen=True)
+
+    login_button: str
+    passkey_dismiss: str
+    filters_button: str
+    results_button: str
+    session_warning_text: str
+    session_limits_text: str
+    session_duration: str
+    session_loss_limit: str
+
+
 class MarketConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -49,6 +64,7 @@ class MarketConfig(BaseModel):
     language: str = Field(min_length=2, max_length=2)
     currency: str = Field(min_length=3, max_length=3)
     accounts: MarketAccounts
+    ui: MarketUi
 
 
 class MissingCredentialsError(RuntimeError):
