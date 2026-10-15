@@ -26,6 +26,10 @@ _HIDE_LOGIN_FIELDS_CSS = (
 )
 _BALANCE_SETTLE_MS = 2000
 _LOBBY_MAX_SCROLLS = 80
+_SESSION_TIMEOUT_S = 45
+_SESSION_QUIET_S = 6
+_CLICK_TIMEOUT_MS = 5000
+_DIALOG_CLOSE_TIMEOUT_MS = 15_000
 # Las fichas de juego enlazan a /casino/<categoría>/<juego>; el menú lateral, a /casino/<x>.
 # Se evalúa sobre un localizador de Playwright porque las fichas viven en shadow DOM.
 _COUNT_GAME_TILES_JS = """links => links.filter(a => {
@@ -190,21 +194,32 @@ class BetssonCasino:
             self._page.wait_for_timeout(500)
 
     def _start_game_session(self) -> None:
-        """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites."""
-        dialogs = self._page.get_by_role("dialog")
-        warning = dialogs.filter(has_text=self._ui.session_warning_text)
-        limits = dialogs.filter(has_text=self._ui.session_limits_text)
-        game = self._page.locator(_GAME_IFRAME)
-        deadline = time.monotonic() + 30
+        """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites.
+
+        Los avisos se detectan por su texto visible (no siempre son role=dialog). La sesión se da
+        por abierta cuando ningún aviso aparece durante unos segundos seguidos.
+        """
+        page = self._page
+        warning = page.get_by_text(self._ui.session_warning_text)
+        limits = page.get_by_text(self._ui.session_limits_text)
+        start = page.get_by_role("button", name=self._ui.login_button, exact=True)
+        deadline = time.monotonic() + _SESSION_TIMEOUT_S
+        quiet_since = time.monotonic()
+        duration = page.get_by_role("button", name=self._ui.session_duration, exact=True)
         while time.monotonic() < deadline:
-            if warning.count():
-                warning.get_by_role("button", name=self._ui.login_button, exact=True).click()
-            elif limits.count():
-                limits.get_by_role("button", name=self._ui.session_duration, exact=True).click()
-                limits.get_by_role("button", name=self._ui.session_loss_limit).click()
-                limits.get_by_role("button", name=self._ui.login_button, exact=True).click()
+            if limits.first.is_visible() and duration.first.is_visible():
+                duration.first.click(timeout=_CLICK_TIMEOUT_MS)
+                page.get_by_role("button", name=self._ui.session_loss_limit).first.click(
+                    timeout=_CLICK_TIMEOUT_MS
+                )
+                start.last.click(timeout=_CLICK_TIMEOUT_MS)
+                limits.first.wait_for(state="hidden", timeout=_DIALOG_CLOSE_TIMEOUT_MS)
+                quiet_since = time.monotonic()
+            elif warning.first.is_visible() and start.last.is_visible():
+                start.last.click(timeout=_CLICK_TIMEOUT_MS)
+                warning.first.wait_for(state="hidden", timeout=_DIALOG_CLOSE_TIMEOUT_MS)
+                quiet_since = time.monotonic()
+            elif time.monotonic() - quiet_since > _SESSION_QUIET_S:
                 return
-            elif game.count() and game.get_attribute("src"):
-                return  # sesión ya abierta: el juego carga directamente
-            self._page.wait_for_timeout(500)
+            page.wait_for_timeout(500)
         raise CasinoError("No se pudo abrir la sesión de juego obligatoria.")
