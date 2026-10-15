@@ -21,3 +21,6 @@ ui:
   session_limits_text: Tiempo de juego
   session_duration: 5 Horas
   session_loss_limit: 100%
+  # Si el botón del porcentaje está desactivado (saldo 0 €), se escribe este límite en el campo.
+  session_loss_input_placeholder: Introduce el límite de pérdidas
+  session_loss_limit_fallback: "1"

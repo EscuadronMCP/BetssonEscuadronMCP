@@ -193,6 +193,20 @@ class BetssonCasino:
                 raise CasinoError("El lobby no mostró ningún juego a tiempo.")
             self._page.wait_for_timeout(500)
 
+    def _set_loss_limit(self) -> None:
+        """Límite de pérdidas, si el diálogo lo pide.
+
+        Con saldo 0 € la web no muestra esta sección (avisa de que no hay saldo), así que es
+        opcional. Si el botón del porcentaje no está disponible, se escribe el límite en el campo.
+        """
+        percentage = self._page.get_by_role("button", name=self._ui.session_loss_limit)
+        if percentage.count() and percentage.first.is_visible() and percentage.first.is_enabled():
+            percentage.first.click(timeout=_CLICK_TIMEOUT_MS)
+            return
+        field = self._page.get_by_placeholder(self._ui.session_loss_input_placeholder)
+        if field.count() and field.first.is_visible():
+            field.first.fill(self._ui.session_loss_limit_fallback, timeout=_CLICK_TIMEOUT_MS)
+
     def _start_game_session(self) -> None:
         """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites.
 
@@ -209,9 +223,7 @@ class BetssonCasino:
         while time.monotonic() < deadline:
             if limits.first.is_visible() and duration.first.is_visible():
                 duration.first.click(timeout=_CLICK_TIMEOUT_MS)
-                page.get_by_role("button", name=self._ui.session_loss_limit).first.click(
-                    timeout=_CLICK_TIMEOUT_MS
-                )
+                self._set_loss_limit()
                 start.last.click(timeout=_CLICK_TIMEOUT_MS)
                 limits.first.wait_for(state="hidden", timeout=_DIALOG_CLOSE_TIMEOUT_MS)
                 quiet_since = time.monotonic()

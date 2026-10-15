@@ -54,6 +54,8 @@ class MarketUi(BaseModel):
     session_limits_text: str
     session_duration: str
     session_loss_limit: str
+    session_loss_input_placeholder: str
+    session_loss_limit_fallback: str
 
 
 class MarketConfig(BaseModel):
