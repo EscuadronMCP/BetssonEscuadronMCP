@@ -24,3 +24,8 @@ playwright-report/
 .DS_Store
 .idea/
 .vscode/
+
+# Cachés de herramientas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
