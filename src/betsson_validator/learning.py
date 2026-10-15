@@ -116,7 +116,9 @@ def _learn_and_validate(
     # modelo: es la de bienvenida y su botón principal solo sirve para continuar.
     no_hud = analysis.credit_label is None and analysis.bet_label is None
     if analysis.is_intro_screen or no_hud:
-        box = analysis.continue_button or analysis.spin_button
+        box = analysis.continue_button
+        if box is None and _hud_hidden(model, image):
+            box = analysis.spin_button
         if box is None:
             raise LearningError("Pantalla de bienvenida sin botón para continuar.")
         x, y, w, h = box.as_tuple()
@@ -171,6 +173,12 @@ def _press_until(
         if hud.bet is not None and done(hud.bet.money.amount):
             return hud.bet.money.amount
     raise LearningError(f"Pulsar el control aprendido '{control}' no cambió la apuesta.")
+
+
+def _hud_hidden(model: ScreenModel, image: Image) -> bool:
+    """El OCR no ve ningún importe del marcador: es seguro que no es la pantalla de juego."""
+    hud, _ = model.read(image)
+    return hud.credit is None and hud.bet is None and hud.win is None
 
 
 def _analyze(

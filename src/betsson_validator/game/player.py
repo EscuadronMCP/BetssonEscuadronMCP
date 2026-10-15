@@ -121,8 +121,8 @@ class ScreenModel:
         return hud, boxes
 
     def locate(self, control: str, image: Image) -> Point | None:
-        """Busca el control por su aspecto. Si otro control del perfil encaja mejor en ese mismo
-        sitio (p. ej. '+' cuando '-' está desactivado, o 'girar' en lugar de 'continuar'), la
+        """Busca el control por su aspecto. Si otro control del perfil encaja igual o mejor en ese
+        mismo sitio (p. ej. '+' cuando '-' está desactivado, o 'girar' en lugar de 'continuar'), la
         localización es ambigua y se rechaza: pulsar el control equivocado puede costar dinero."""
         template = self.profile.template(control)
         if template is None:
@@ -134,7 +134,7 @@ class ScreenModel:
             if other == control:
                 continue
             rival = find_template(image, other_template)
-            if rival is not None and rival.score > match.score and _overlap(match, rival):
+            if rival is not None and rival.score >= match.score and _overlap(match, rival):
                 return None
         height, width = image.shape[:2]
         center_x, center_y = match.center
@@ -290,8 +290,9 @@ class ScreenGame:
                 self.click(point)
             elif self._may_learn(start, image) and still >= 3:  # noqa: PLR2004
                 analysis = self.model.learn(image, "no se veía el crédito ni la apuesta")
-                if analysis is not None and analysis.continue_button is not None:
-                    self.click(self.model.locate("continue", image) or (0.5, 0.5))
+                found = self.model.locate("continue", image) if analysis is not None else None
+                if found is not None:  # nunca un clic a ciegas: podría caer en otro control
+                    self.click(found)
             self.page.wait_for_timeout(1000)
         path = self.evidence.save_image("juego_no_listo", self.capture())
         raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")

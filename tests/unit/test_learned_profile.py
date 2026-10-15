@@ -70,3 +70,25 @@ def test_each_control_is_found_only_where_it_is(
 def test_profile_labels_read_the_real_hud(model: ScreenModel) -> None:
     hud, _ = model.read(load("sweet_bonanza_ready.png"))
     assert hud.credit is not None and hud.bet is not None
+
+
+def test_two_identical_controls_are_ambiguous_and_never_clicked(model: ScreenModel) -> None:
+    """Auditoría: con dos plantillas idénticas el empate se resolvía a favor del control pedido."""
+    image = load("sweet_bonanza_ready.png")
+    spin = model.profile.template("spin")
+    assert spin is not None
+    clone = ScreenModel(
+        GameProfile(
+            provider="pragmaticplay",
+            game="clon",
+            credit_label=model.profile.credit_label,
+            bet_label=model.profile.bet_label,
+            win_label=model.profile.win_label,
+            templates={"spin": spin, "bet_up": spin.copy()},
+        ),
+        RapidOcrReader(),
+        "EUR",
+        None,
+    )
+    assert clone.locate("spin", image) is None
+    assert clone.locate("bet_up", image) is None

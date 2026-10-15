@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de validación — Betsson</title>
+<style>
+:root { --bg:#fff; --fg:#1b1b1f; --muted:#5f6068; --line:#e3e3e8;
+  --pass:#1a7f37; --fail:#c62828; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#151518; --fg:#ececf1; --muted:#a2a2ad; --line:#2c2c33;
+    --pass:#3fb950; --fail:#ff6b6b; }
+}
+body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:24px 16px; }
+h1 { font-size:24px; margin:0 0 8px; } h2 { font-size:18px; margin:32px 0 4px; }
+.summary, .meta { color:var(--muted); margin:4px 0; }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px solid var(--line); }
+ul { margin:0; padding-left:18px; }
+.badge { display:inline-block; padding:1px 8px; border-radius:10px; font-weight:600; color:#fff; }
+.badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
+.error { color:var(--fail); }
+.fault { border:2px dashed var(--fail); border-radius:8px; padding:8px 12px; font-weight:600; }
+.plain { border:1px solid var(--line); border-radius:8px; padding:4px 14px; margin:12px 0; }
+.evidence img { max-width:220px; margin:4px 4px 0 0; border:1px solid var(--line); }
+.missing { color:var(--muted); font-size:13px; margin-right:8px; }
+@media (max-width:700px) {
+  table, thead, tbody, tr, th, td { display:block; } thead { display:none; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Informe de validación de juegos</h1>
+<p class="summary">Resultado global: <span class="badge fail">FAIL</span> · 2 escenario(s) ·
+generado 2026-10-15 15:23 UTC</p>
+<div class="plain"><p><b>9 de 10 comprobaciones superadas</b> en sweet-bonanza-2500. Cada comprobación la confirman varios <b>testigos independientes</b>: lo que ve el jugador en la pantalla del juego y en la web de Betsson, lo que registra el servidor del juego y lo que el juego comunica a la web.</p><p><b>PASS</b> (verde) = la pantalla lo confirma y ningún testigo lo contradice. <b>FAIL</b> (rojo) = no se pudo ver en pantalla o algún testigo contradice lo que ve el jugador; el motivo aparece en cada fila.</p></div>
+<section>
+<h2>Escenario 1: tirada completada en Real Play <span class="badge pass">PASS</span></h2>
+<p class="meta">Mercado <b>es</b> · proveedor <b>Pragmatic Play</b> ·
+juego <b>sweet-bonanza-2500</b> · 2026-10-15T15:22:39.786667+00:00 →
+2026-10-15T15:23:32.981541+00:00</p>
+
+<p class="meta">Evidencias: <a href="completed_spin/trace.zip">Traza de Playwright</a> · <a href="completed_spin/eventos_del_juego.json">Eventos del juego (postMessage)</a> · <a href="completed_spin/trafico_juego_sin_tokens.json">Tráfico del juego (sin tokens)</a> · <a href="completed_spin/resumen_observado.json">Resumen de lo observado</a></p>
+<table>
+<thead><tr><th>Comprobación</th><th>Resultado</th><th>Motivo</th><th>Testigos</th></tr></thead>
+<tbody>
+<tr><td>La tirada empezó y terminó (pulsar el botón no basta).</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>movimiento de los rodillos</b> (confirma): el juego se movió y volvió al reposo (12 capturas)<div class="evidence"><a href="completed_spin/02_girando.jpg"><img src="completed_spin/02_girando.jpg" alt="evidencia"></a><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>pantalla del juego</b> (confirma): sin mensajes de rechazo tras la tirada<div class="evidence"><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>servidor del juego</b> (confirma): tirada liquidada (na=s)<div class="evidence"><a href="completed_spin/trafico_juego_sin_tokens.json">trafico_juego_sin_tokens.json</a></div></li><li><b>eventos del juego</b> (confirma): el juego anunció el inicio y el fin de la ronda<div class="evidence"><a href="completed_spin/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>La apuesta mostrada es la apuesta usada en la tirada.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): apuesta mostrada antes 0.20 EUR y después 0.20 EUR<div class="evidence"><a href="completed_spin/01_apuesta_minima.jpg"><img src="completed_spin/01_apuesta_minima.jpg" alt="evidencia"></a><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>servidor del juego</b> (confirma): apuesta pedida 0.20 y aceptada por el servidor 0.20 (moneda x líneas)<div class="evidence"><a href="completed_spin/trafico_juego_sin_tokens.json">trafico_juego_sin_tokens.json</a></div></li><li><b>eventos del juego</b> (confirma): apuesta comunicada por el juego: 0.2<div class="evidence"><a href="completed_spin/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>La divisa mostrada coincide con la del mercado.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): divisa leída en el HUD del juego: EUR; esperada EUR<div class="evidence"><a href="completed_spin/01_apuesta_minima.jpg"><img src="completed_spin/01_apuesta_minima.jpg" alt="evidencia"></a><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>cabecera de Betsson</b> (confirma): divisa del saldo de Betsson: EUR<div class="evidence"><a href="completed_spin/00_saldo_betsson_antes.jpg"><img src="completed_spin/00_saldo_betsson_antes.jpg" alt="evidencia"></a><a href="completed_spin/99_saldo_betsson_despues.jpg"><img src="completed_spin/99_saldo_betsson_despues.jpg" alt="evidencia"></a></div></li><li><b>eventos del juego</b> (confirma): divisa comunicada por el juego: EUR<div class="evidence"><a href="completed_spin/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>El saldo del juego es coherente con la tirada completada.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): crédito 193.59 EUR - apuesta 0.20 + premio 0 = 193.39; leído 193.39 EUR<div class="evidence"><a href="completed_spin/01_apuesta_minima.jpg"><img src="completed_spin/01_apuesta_minima.jpg" alt="evidencia"></a><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>servidor del juego</b> (confirma): saldo 193.59 → 193.39, apuesta aceptada 0.20 y premio declarado 0.00 según el servidor del juego<div class="evidence"><a href="completed_spin/trafico_juego_sin_tokens.json">trafico_juego_sin_tokens.json</a></div></li><li><b>eventos del juego</b> (confirma): saldo final 193.39 y premio 0 comunicados por el juego<div class="evidence"><a href="completed_spin/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>El saldo de Betsson cuadra: después = antes - apuesta + premio.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>cabecera de Betsson</b> (confirma): saldo 193.59 EUR - apuesta 0.20 + premio 0 = 193.39; Betsson muestra 193.39 EUR<div class="evidence"><a href="completed_spin/00_saldo_betsson_antes.jpg"><img src="completed_spin/00_saldo_betsson_antes.jpg" alt="evidencia"></a><a href="completed_spin/99_saldo_betsson_despues.jpg"><img src="completed_spin/99_saldo_betsson_despues.jpg" alt="evidencia"></a></div></li><li><b>pantalla del juego</b> (confirma): crédito del juego tras la tirada 193.39 EUR frente a Betsson 193.39 EUR<div class="evidence"><a href="completed_spin/03_despues_de_girar.jpg"><img src="completed_spin/03_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>servidor del juego</b> (confirma): apuesta aceptada 0.20 y premio declarado 0.00 por el servidor → 193.39</li><li><b>eventos del juego</b> (confirma): apuesta 0.2 y premio 0 según el juego → 193.39<div class="evidence"><a href="completed_spin/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+
+</tbody>
+</table>
+</section>
+<section>
+<h2>Escenario 2: saldo insuficiente <span class="badge fail">FAIL</span></h2>
+<p class="meta">Mercado <b>es</b> · proveedor <b>Pragmatic Play</b> ·
+juego <b>sweet-bonanza-2500</b> · 2026-10-15T15:22:39.786637+00:00 →
+2026-10-15T15:23:51.353263+00:00</p>
+<p class="fault">⚠️ FALLO INTENCIONADO (demostración): al saldo final de Betsson leído se le sumó 0.01 € antes de evaluar, como si Betsson abonara mal la tirada. Las capturas muestran el saldo real; el validador debe marcar FAIL por discrepancia.</p>
+<p class="meta">Evidencias: <a href="insufficient_balance/trace.zip">Traza de Playwright</a> · <a href="insufficient_balance/eventos_del_juego.json">Eventos del juego (postMessage)</a> · <a href="insufficient_balance/trafico_juego_sin_tokens.json">Tráfico del juego (sin tokens)</a> · <a href="insufficient_balance/resumen_observado.json">Resumen de lo observado</a></p>
+<table>
+<thead><tr><th>Comprobación</th><th>Resultado</th><th>Motivo</th><th>Testigos</th></tr></thead>
+<tbody>
+<tr><td>La tirada se rechaza en lugar de completarse como tirada pagada.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): mensaje de rechazo visible; crédito 0.00 EUR → 0.00 EUR<div class="evidence"><a href="insufficient_balance/01_apuesta_minima.jpg"><img src="insufficient_balance/01_apuesta_minima.jpg" alt="evidencia"></a><a href="insufficient_balance/02_despues_de_girar.jpg"><img src="insufficient_balance/02_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>movimiento de los rodillos</b> (confirma): sin animación de giro completo</li><li><b>servidor del juego</b> (confirma): no se envió ninguna tirada al servidor</li><li><b>eventos del juego</b> (confirma): el juego avisó de saldo insuficiente y no inició ninguna ronda<div class="evidence"><a href="insufficient_balance/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>El jugador ve un mensaje de saldo insuficiente en el idioma esperado.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): mensaje leído: «Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta.»<div class="evidence"><a href="insufficient_balance/02_despues_de_girar.jpg"><img src="insufficient_balance/02_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>eventos del juego</b> (confirma): idioma del juego: es; esperado es<div class="evidence"><a href="insufficient_balance/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>La divisa mostrada coincide con la del mercado.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): divisa leída en el HUD del juego: EUR; esperada EUR<div class="evidence"><a href="insufficient_balance/01_apuesta_minima.jpg"><img src="insufficient_balance/01_apuesta_minima.jpg" alt="evidencia"></a><a href="insufficient_balance/02_despues_de_girar.jpg"><img src="insufficient_balance/02_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>cabecera de Betsson</b> (confirma): divisa del saldo de Betsson: EUR<div class="evidence"><a href="insufficient_balance/00_saldo_betsson_antes.jpg"><img src="insufficient_balance/00_saldo_betsson_antes.jpg" alt="evidencia"></a><a href="insufficient_balance/99_saldo_betsson_despues.jpg"><img src="insufficient_balance/99_saldo_betsson_despues.jpg" alt="evidencia"></a></div></li><li><b>eventos del juego</b> (confirma): divisa comunicada por el juego: EUR<div class="evidence"><a href="insufficient_balance/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+<tr><td>El saldo de Betsson no cambia.</td><td><span class="badge fail">FAIL</span></td><td>Lo que ve el jugador lo contradice: cabecera de Betsson: saldo de Betsson 0.00 EUR → 0.01 EUR.</td><td><ul><li><b>cabecera de Betsson</b> (contradice): saldo de Betsson 0.00 EUR → 0.01 EUR<div class="evidence"><a href="insufficient_balance/00_saldo_betsson_antes.jpg"><img src="insufficient_balance/00_saldo_betsson_antes.jpg" alt="evidencia"></a><a href="insufficient_balance/99_saldo_betsson_despues.jpg"><img src="insufficient_balance/99_saldo_betsson_despues.jpg" alt="evidencia"></a></div></li></ul></td></tr>
+<tr><td>El saldo del juego no cambia.</td><td><span class="badge pass">PASS</span></td><td>Confirmado en pantalla y por todos los testigos.</td><td><ul><li><b>pantalla del juego</b> (confirma): crédito del juego 0.00 EUR → 0.00 EUR<div class="evidence"><a href="insufficient_balance/01_apuesta_minima.jpg"><img src="insufficient_balance/01_apuesta_minima.jpg" alt="evidencia"></a><a href="insufficient_balance/02_despues_de_girar.jpg"><img src="insufficient_balance/02_despues_de_girar.jpg" alt="evidencia"></a></div></li><li><b>servidor del juego</b> (confirma): sin tirada en el servidor, el saldo no pudo cambiar</li><li><b>eventos del juego</b> (confirma): el juego no inició ninguna ronda<div class="evidence"><a href="insufficient_balance/eventos_del_juego.json">eventos_del_juego.json</a></div></li></ul></td></tr>
+
+</tbody>
+</table>
+</section>
+</main>
+</body>
+</html>

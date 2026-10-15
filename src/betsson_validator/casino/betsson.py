@@ -29,6 +29,7 @@ _HIDE_LOGIN_FIELDS_CSS = (
     "{ filter: blur(8px) !important; -webkit-text-security: disc !important; }"
 )
 _BALANCE_SETTLE_MS = 2000
+_BALANCE_STABLE_ATTEMPTS = 5
 _BALANCE_CHANGE_TIMEOUT_S = 20
 _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
@@ -190,8 +191,18 @@ class BetssonCasino:
                 self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
                 self._page.reload(wait_until="domcontentloaded")
                 current = self.read_balance()
-        self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
-        return self.read_balance()
+        return self._stable_balance()
+
+    def _stable_balance(self) -> Money:
+        """Dos lecturas iguales seguidas: un contador a medio actualizar no vale como saldo."""
+        last = self.read_balance()
+        for _ in range(_BALANCE_STABLE_ATTEMPTS):
+            self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
+            current = self.read_balance()
+            if current == last:
+                return current
+            last = current
+        raise CasinoError("El saldo de Betsson no se estabiliza: no se puede validar.")
 
     def launch_game(self, provider: ProviderConfig, game: str) -> GameHandle:
         """Casino → Filtros → proveedor → Resultados → juego, como lo haría el jugador."""

@@ -6,6 +6,7 @@ quien lo usa lo valida con OCR y con la reacción del juego (ver profiles.py y g
 """
 
 import base64
+import threading
 from typing import Protocol
 
 import cv2
@@ -98,6 +99,7 @@ class ClaudeScreenLearner:
         self._client = anthropic.Anthropic()
         self._model = model
         self._cost_usd = 0.0
+        self._lock = threading.Lock()  # los escenarios corren en paralelo y comparten el aprendiz
         self.calls: list[dict[str, object]] = []
 
     @property
@@ -135,15 +137,16 @@ class ClaudeScreenLearner:
         cost = (
             response.usage.input_tokens * price_in + response.usage.output_tokens * price_out
         ) / 1_000_000
-        self._cost_usd += cost
-        self.calls.append(
-            {
-                "model": used,
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-                "cost_usd": round(cost, 6),
-            }
-        )
+        with self._lock:
+            self._cost_usd += cost
+            self.calls.append(
+                {
+                    "model": used,
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "cost_usd": round(cost, 6),
+                }
+            )
         if response.stop_reason == "refusal" or response.parsed_output is None:
             raise LearnerError(f"La IA no devolvió un análisis válido ({response.stop_reason}).")
         return response.parsed_output

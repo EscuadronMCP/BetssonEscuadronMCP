@@ -25,8 +25,6 @@
   .box { border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--soft); padding:8px 12px; margin:10px 0; break-inside:avoid; }
   .pass { color:var(--pass); font-weight:700; } .fail { color:var(--fail); font-weight:700; }
   .muted { color:var(--muted); }
-  .two { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .page-break { break-before:page; }
   .flow { display:flex; flex-wrap:wrap; gap:4px; align-items:center; margin:8px 0; font-size:9pt; }
   .flow span { border:1px solid var(--accent); border-radius:6px; padding:3px 7px; background:#fff; }
   .flow b { color:var(--accent); }
@@ -89,7 +87,7 @@
       <td>Credenciales solo en <code>.env</code> / GitHub Secrets; login difuminado; traza limpiada; escáner de texto y OCR de capturas que retira cualquier evidencia con secretos.</td></tr>
 </table>
 
-<h2 class="page-break">3. Enfoque: testigos independientes</h2>
+<h2>3. Enfoque: testigos independientes</h2>
 <p>Un auditor no se fía de una sola fuente. El validador tampoco: cada hecho se contrasta con varias fuentes que no dependen entre sí.</p>
 <table>
   <tr><th>Testigo</th><th>Tipo</th><th>Qué aporta</th></tr>
@@ -113,8 +111,6 @@ un botón o cambia un texto, se reencuentra solo; si cambia por completo, se rea
 <div class="flow"><span>Abrir Chrome</span><b>→</b><span>betsson.es + cookies</span><b>→</b><span>Login</span><b>→</b><span>Saldo Betsson</span><b>→</b><span>Casino → Filtros → Pragmatic Play</span><b>→</b><span>Juego + sesión obligatoria</span><b>→</b><span>Apuesta mínima</span><b>→</b><span>Condiciones previas</span><b>→</b><span>Una tirada observada</span><b>→</b><span>Saldos finales</span><b>→</b><span>Informe</span></div>
 
 <h2>4. Arquitectura y calidad</h2>
-<div class="two">
-<div>
 <table>
   <tr><th>Módulo</th><th>Responsabilidad</th></tr>
   <tr><td><code>casino/</code></td><td>Web de Betsson: cookies, login, saldo, filtros, sesión de juego.</td></tr>
@@ -125,19 +121,15 @@ un botón o cambia un texto, se reencuentra solo; si cambia por completo, se rea
   <tr><td><code>domain/</code></td><td>Dinero, regla del veredicto, resultados (lógica pura).</td></tr>
   <tr><td><code>report/</code></td><td>Informe HTML/JSON y resumen para GitHub.</td></tr>
 </table>
-</div>
-<div>
 <ul>
   <li><b>SOLID:</b> añadir un mercado, un proveedor o un juego se hace con configuración o con una implementación nueva registrada; el ejecutor no conoce a ningún proveedor.</li>
   <li><b>Inversión de dependencias:</b> OCR, IA y testigos se inyectan detrás de interfaces (<code>Protocol</code>).</li>
-  <li><b>Tipado estricto</b> (mypy), <b>ruff</b> y <b>170 tests unitarios</b> con capturas y tráfico reales; CI en cada push.</li>
+  <li><b>Tipado estricto</b> (mypy), <b>ruff</b> y <b>172 tests unitarios</b> con capturas y tráfico reales; CI en cada push.</li>
   <li><b>Errores explícitos:</b> un fallo esperado produce un FAIL con su motivo, nunca un cierre silencioso.</li>
   <li><b>Decisiones documentadas</b> en <code>docs/decisiones/</code> (ADR 001–003).</li>
 </ul>
-</div>
-</div>
 
-<h2 class="page-break">5. Seguridad y dinero real</h2>
+<h2>5. Seguridad y dinero real</h2>
 <table>
   <tr><th style="width:30%">Riesgo</th><th>Medida</th></tr>
   <tr><td>Credenciales en el código</td><td>Solo variables de entorno (<code>.env</code> ignorado por git) y GitHub Secrets; <code>.env.example</code> sin valores.</td></tr>
@@ -165,7 +157,8 @@ Lo mismo puede lanzarse desde GitHub Actions con la opción <i>inject_fault</i>.
   <tr><td>Big Bass Halloween Splash 1000, ambos escenarios (local)</td><td><span class="pass">PASS</span> · perfil aprendido por ≈ 0,001 $</td></tr>
   <tr><td>GitHub Actions (runner propio en España)</td><td><span class="pass">PASS</span> en ambos escenarios en 89 s, informe publicado como artefacto</td></tr>
   <tr><td>Fallo real detectado (15/10)</td><td><span class="fail">FAIL por discrepancia</span> cuando otra sesión gastó 2,10 € de la cuenta durante la tirada: el validador lo detectó y lo explicó.</td></tr>
-  <tr><td>Calidad</td><td>Formato, lint, tipos y 170 tests en verde en CI.</td></tr>
+  <tr><td>Sesión del juego expirada (15/10, 17:22)</td><td><span class="fail">FAIL</span> «el juego no reaccionó al botón de girar»: el proveedor mostró «Sesión expirada» al pulsar girar. No se gastó dinero y no hubo PASS falso.</td></tr>
+  <tr><td>Calidad</td><td>Formato, lint, tipos y 172 tests en verde en CI.</td></tr>
 </table>
 
 <h2>8. Costes y rendimiento</h2>
@@ -178,7 +171,7 @@ Lo mismo puede lanzarse desde GitHub Actions con la opción <i>inject_fault</i>.
   <tr><td>Peso del informe</td><td>&lt; 1 MB (capturas JPEG justas; vídeo solo con <code>--video</code>)</td></tr>
 </table>
 
-<h2 class="page-break">9. Revisión crítica y correcciones</h2>
+<h2>9. Revisión crítica y correcciones</h2>
 <p>Antes de la entrega se hizo una auditoría interna del código buscando PASS falsos y riesgos con dinero real. Todo lo corregido quedó
 cubierto por tests de regresión:</p>
 <ul>

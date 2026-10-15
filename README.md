@@ -37,6 +37,13 @@ Si todos coinciden → **PASS**. Si alguno contradice lo que ve el jugador → *
 ### Qué entrega
 Un **informe web** con cada comprobación en verde (PASS) o rojo (FAIL), el motivo en lenguaje claro, lo que dijo cada testigo y las capturas de pantalla que lo demuestran. Se genera en el ordenador o, automáticamente, en GitHub.
 
+### Para los mentores: carpeta [`mentores/`](mentores/)
+- **`Informe-del-proyecto.pdf`**: el proyecto explicado (reto, enfoque, arquitectura, seguridad, resultados, costes y limitaciones).
+- **`Informe-del-programa.pdf`** y la carpeta **`informe-del-programa/`** (abrir `index.html`): un informe real generado por el programa en betsson.es. El escenario 1 pasa y en el escenario 2 hay un **fallo provocado a propósito** para ver qué ocurre cuando algo falla.
+
+### Cómo se ve un fallo (fallo intencionado)
+`run --inject-fault <escenario>` suma 0,01 € al saldo final de Betsson leído **antes de evaluar**, como si Betsson cobrara o abonara mal la tirada. El informe lo anuncia en un recuadro, marca **FAIL** la comprobación del saldo con el motivo ("Lo que ve el jugador lo contradice…") y las capturas muestran el saldo real. También se puede lanzar desde GitHub Actions con la opción `inject_fault`. Nunca se usa en una validación normal.
+
 ---
 
 ## 💶 Es barato
@@ -63,7 +70,8 @@ Comparado con **15–30 minutos de una persona** por juego nuevo, el coste es de
 ## 🔒 Es seguro
 
 - Las contraseñas nunca se guardan en el código ni aparecen en capturas, vídeos ni informes; un escáner revisa cada evidencia y **retira cualquier archivo que contenga un secreto**.
-- Protección del dinero: siempre la apuesta mínima (comprobada en pantalla), un tope máximo y **nunca repite una tirada**.
+- Las capturas también se leen con OCR por si mostraran una credencial, y el informe final se limpia y se audita antes de publicarse.
+- Protección del dinero: siempre la apuesta mínima (comprobada en pantalla), un tope máximo, **nunca repite una tirada** y **no gira si la cuenta no es la esperada** (la cuenta "sin saldo" con fondos, o la "con saldo" sin ellos).
 
 ---
 
@@ -108,6 +116,7 @@ cp .env.example .env          # y rellena las credenciales (nunca se suben al re
 uv run python -m betsson_validator run                       # ambos escenarios (en paralelo), juego por defecto
 uv run python -m betsson_validator run --game big-bass-halloween-splash-1000
 uv run python -m betsson_validator run --video               # además, grabar vídeo (informe más pesado)
+uv run python -m betsson_validator run --inject-fault insufficient_balance  # demostración de un FAIL
 uv run python -m betsson_validator learn --game <slug>       # incorporar un juego nuevo (no gira)
 ```
 
@@ -127,7 +136,8 @@ El informe queda en `reports/<fecha>/index.html` (más `report.json` y las evide
 | **Pantalla readaptable** con perfiles aprendidos por IA | Sigue funcionando si el proveedor cambia la interfaz; un juego nuevo cuesta céntimos | `tests/unit/test_screen_model.py`, `profiles/` |
 | **Coste de IA casi nulo y medido** | Las ejecuciones no llaman a la IA; cada llamada registra tokens y coste | Salida de `learn`, notas del informe |
 | **Seguridad de evidencias** | Credenciales difuminadas, traza limpiada, escáner de secretos | `src/betsson_validator/security.py` |
-| **Salvaguardas de dinero real** | Apuesta mínima comprobada, tope, sin repetir tiradas, botones ambiguos rechazados | `game/player.py`, `tests/unit/test_learned_profile.py` |
+| **Salvaguardas de dinero real** | Apuesta mínima comprobada, tope, condiciones previas por escenario, sin repetir tiradas, botones ambiguos rechazados | `scenarios/preconditions.py`, `game/player.py` |
+| **Fallo intencionado de demostración** | Enseña cómo se detecta y documenta un fallo de saldo, sin tocar la web | `scenarios/faults.py`, carpeta `mentores/` |
 
 ### Calidad
 
@@ -153,9 +163,10 @@ src/betsson_validator/
   casino/                Web de Betsson: cookies, login, saldo, filtro, sesión de juego, lanzamiento
   game/                  Jugar mirando la pantalla (genérico) y grabar los eventos del juego
   perception/            OCR, búsqueda por imagen, movimiento, IA de visión
-  providers/pragmatic/   Testigos de red y de eventos de Pragmatic Play
-  scenarios/             Comprobaciones oficiales evaluadas con testigos
+  providers/             Registro de testigos por proveedor (pragmatic/: red y eventos de Pragmatic Play)
+  scenarios/             Comprobaciones oficiales, condiciones previas al giro y fallo de demostración
   domain/                Dinero, regla del veredicto, comprobaciones (lógica pura)
   report/                Informe HTML/JSON y resumen Markdown
 docs/                    Estado, decisiones (ADR), flujo real de betsson.es, documentación del reto
+mentores/                Informe del proyecto (PDF) e informe real generado por el programa
 ```

@@ -1,0 +1,101 @@
+{
+  "betsson_before": "0.00 EUR",
+  "betsson_after": "0.00 EUR",
+  "screen_before": {
+    "credit": "0.00 EUR",
+    "bet": "0.20 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/mentores-final/insufficient_balance/01_apuesta_minima.jpg"
+  },
+  "screen_after": {
+    "credit": "0.00 EUR",
+    "bet": "0.20 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": "Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta.",
+    "evidence": "reports/mentores-final/insufficient_balance/02_despues_de_girar.jpg"
+  },
+  "motion": {
+    "started": false,
+    "completed": false,
+    "samples": 32,
+    "peak": 0.5689960586333643,
+    "evidence": []
+  },
+  "network": {
+    "spin_requested": false,
+    "settled": false,
+    "wager_requested": null,
+    "wager_accepted": null,
+    "declared_win": null,
+    "balance_before": null,
+    "balance_after": null,
+    "evidence": "reports/mentores-final/insufficient_balance/trafico_juego_sin_tokens.json"
+  },
+  "events": {
+    "received": true,
+    "round_started": false,
+    "round_ended": false,
+    "low_balance": true,
+    "bet": null,
+    "win": null,
+    "balance_before": null,
+    "balance_after": null,
+    "languages": [
+      "es"
+    ],
+    "currencies": [
+      "EUR"
+    ],
+    "anomalies": [],
+    "evidence": "reports/mentores-final/insufficient_balance/eventos_del_juego.json"
+  },
+  "motion_scores": [
+    0.0,
+    0.569,
+    0.0,
+    0.0002,
+    0.0002,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0002,
+    0.0002,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "motion_thresholds": {
+    "start": 0.08,
+    "still": 0.01,
+    "still_samples": 4,
+    "min_active_samples": 3,
+    "relative_still": 0.1
+  },
+  "injected_fault": "FALLO INTENCIONADO (demostración): al saldo final de Betsson leído se le sumó 0.01 € antes de evaluar, como si Betsson abonara mal la tirada. Las capturas muestran el saldo real; el validador debe marcar FAIL por discrepancia."
+}
