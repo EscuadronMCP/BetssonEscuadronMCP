@@ -30,6 +30,8 @@ class AmountReading:
     money: Money
     source_text: str
     score: float
+    x: float = 0.0  # centro de la etiqueta en la captura (px): permite elegir entre duplicadas
+    y: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -64,18 +66,21 @@ def _same_line(a: TextBox, b: TextBox) -> bool:
     return abs(a.center_y - b.center_y) <= max(a.height, b.height) * 0.6
 
 
-def find_amount(
+def find_amounts(
     boxes: Sequence[TextBox], label: str, default_currency: str
-) -> AmountReading | None:
+) -> list[AmountReading]:
+    """Todas las lecturas "etiqueta + importe" de la pantalla (puede haber etiquetas repetidas)."""
     if not label.strip():
-        return None  # una etiqueta vacía coincidiría con cualquier texto
+        return []  # una etiqueta vacía coincidiría con cualquier texto
+    readings: list[AmountReading] = []
     for box in boxes:
         if not _starts_with_label(box.text, label):
             continue
         rest = box.text[len(label) :] if len(box.text) > len(label) else ""
         money = _amount_in(rest, default_currency)
         if money is not None:
-            return AmountReading(money=money, source_text=box.text, score=box.score)
+            readings.append(AmountReading(money, box.text, box.score, box.center_x, box.center_y))
+            continue
         neighbours = sorted(
             (b for b in boxes if b is not box and _same_line(b, box) and b.x > box.x),
             key=lambda b: b.x,
@@ -83,18 +88,46 @@ def find_amount(
         for neighbour in neighbours:
             money = _amount_in(neighbour.text, default_currency)
             if money is not None:
-                text = f"{box.text} {neighbour.text}"
-                return AmountReading(
-                    money=money, source_text=text, score=min(box.score, neighbour.score)
+                readings.append(
+                    AmountReading(
+                        money,
+                        f"{box.text} {neighbour.text}",
+                        min(box.score, neighbour.score),
+                        box.center_x,
+                        box.center_y,
+                    )
                 )
-    return None
+                break
+    return readings
 
 
-def read_hud(boxes: Sequence[TextBox], labels: HudLabels, default_currency: str) -> HudReading:
+def find_amount(
+    boxes: Sequence[TextBox],
+    label: str,
+    default_currency: str,
+    near: tuple[float, float] | None = None,
+) -> AmountReading | None:
+    """La lectura de esa etiqueta; si se repite, la más cercana a `near` (posición aprendida)."""
+    readings = find_amounts(boxes, label, default_currency)
+    if not readings:
+        return None
+    if near is None:
+        return readings[0]
+    return min(readings, key=lambda r: (r.x - near[0]) ** 2 + (r.y - near[1]) ** 2)
+
+
+def read_hud(
+    boxes: Sequence[TextBox],
+    labels: HudLabels,
+    default_currency: str,
+    anchors: dict[str, tuple[float, float]] | None = None,
+) -> HudReading:
+    """Lee el HUD; `anchors` (px) desempata etiquetas repetidas con la posición aprendida."""
+    near = anchors or {}
     return HudReading(
-        credit=find_amount(boxes, labels.credit, default_currency),
-        bet=find_amount(boxes, labels.bet, default_currency),
-        win=find_amount(boxes, labels.win, default_currency),
+        credit=find_amount(boxes, labels.credit, default_currency, near.get("credit")),
+        bet=find_amount(boxes, labels.bet, default_currency, near.get("bet")),
+        win=find_amount(boxes, labels.win, default_currency, near.get("win")),
         texts=tuple(box.text for box in boxes),
     )
 

@@ -139,6 +139,8 @@ def _learn_and_validate(
         raise LearningError(
             f"El crédito leído ({hud.credit.money}) no coincide con el saldo de Betsson."
         )
+    # Lectura validada (el crédito coincide con Betsson): se recuerda dónde está cada valor.
+    model.remember_hud_positions(hud, image)
     checks = [
         f"crédito {hud.credit.money} = saldo de Betsson",
         f"apuesta leída {hud.bet.money}",

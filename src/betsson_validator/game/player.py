@@ -96,10 +96,14 @@ class ScreenModel:
 
     def read(self, image: Image) -> tuple[HudReading, list[TextBox]]:
         boxes = self.reader.read(image)
-        hud = read_hud(boxes, self.labels(), self.currency)
+        height, width = image.shape[:2]
+        anchors = {
+            name: (rx * width, ry * height) for name, (rx, ry) in self.profile.hud_positions.items()
+        }
+        hud = read_hud(boxes, self.labels(), self.currency, anchors)
         if hud.win is None and not self.profile.win_label:
             for candidate in self.win_candidates:
-                win = find_amount(boxes, candidate, self.currency)
+                win = find_amount(boxes, candidate, self.currency, anchors.get("win"))
                 if win is not None:
                     return replace(hud, win=win), boxes
         return hud, boxes
@@ -173,6 +177,13 @@ class ScreenModel:
             height, width = image.shape[:2]
             x, y, w, h = analysis.reels_area.as_tuple()
             self.profile.reels_area = (x / width, y / height, (x + w) / width, (y + h) / height)
+
+    def remember_hud_positions(self, hud: HudReading, image: Image) -> None:
+        """Guarda dónde se leyeron crédito y apuesta (solo con lecturas ya validadas)."""
+        height, width = image.shape[:2]
+        for name, reading in (("credit", hud.credit), ("bet", hud.bet), ("win", hud.win)):
+            if reading is not None:
+                self.profile.hud_positions[name] = (reading.x / width, reading.y / height)
 
     def reels(self, image: Image) -> Image:
         if self.profile.reels_area is None:

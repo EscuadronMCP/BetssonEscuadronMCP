@@ -139,3 +139,27 @@ def test_win_label_falls_back_to_market_candidates(reader: RapidOcrReader) -> No
     model = ScreenModel(profile(win_label=""), reader, "EUR", None, win_candidates=("GANANCIA",))
     hud, _ = model.read(load("sweet_bonanza_after_spin.png"))
     assert hud.win is not None and hud.win.money.amount == Decimal("0.15")
+
+
+def test_hud_positions_are_remembered_and_round_trip(
+    reader: RapidOcrReader, tmp_path: Path
+) -> None:
+    image = load("sweet_bonanza_ready.png")
+    model = ScreenModel(profile(), reader, "EUR", None)
+    hud, _ = model.read(image)
+    model.remember_hud_positions(hud, image)
+    bet_x, bet_y = model.profile.hud_positions["bet"]
+    assert bet_x < 0.4 and bet_y > 0.85  # abajo a la izquierda
+    model.profile.save(tmp_path)
+    loaded = load_profile("pragmaticplay", "sweet-bonanza-2500", tmp_path)
+    assert loaded is not None
+    assert loaded.hud_positions["bet"] == pytest.approx((bet_x, bet_y))
+
+
+def test_big_bass_ready_screen_reads_the_hud_bet() -> None:
+    big_bass = load_profile("pragmaticplay", "big-bass-halloween-splash-1000")
+    assert big_bass is not None
+    image = np.asarray(cv2.imread(str(FIXTURES / "big_bass_ready.png")), dtype=np.uint8)
+    hud, _ = ScreenModel(big_bass, RapidOcrReader(), "EUR", None).read(image)
+    assert hud.bet is not None and hud.bet.money.amount == Decimal("2.00")
+    assert hud.credit is not None and hud.credit.money.amount == Decimal("199.25")

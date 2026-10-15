@@ -62,3 +62,13 @@ def test_find_message_across_boxes() -> None:
     boxes = [box("Saldo", 10, 10), box("insuficiente", 80, 10)]
     assert find_message(boxes, pattern) == "Saldo insuficiente"
     assert find_message([box("Hola", 0, 0)], pattern) is None
+
+
+def test_duplicated_label_is_resolved_with_the_learned_position() -> None:
+    # Big Bass: "APUESTA" del panel de apuesta extra (arriba a la derecha) y la del HUD (abajo).
+    boxes = [box("APUESTA 0,60 €", 797, 70), box("APUESTA 0,40 €", 144, 468)]
+    near_hud = {"bet": (180.0, 476.0)}
+    hud = read_hud(boxes, LABELS, "EUR", near_hud)
+    assert hud.bet is not None and hud.bet.money.amount == Decimal("0.40")
+    without_anchor = read_hud(boxes, LABELS, "EUR")
+    assert without_anchor.bet is not None and without_anchor.bet.money.amount == Decimal("0.60")
