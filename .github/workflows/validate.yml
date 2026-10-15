@@ -22,7 +22,9 @@ concurrency:
 jobs:
   validate:
     name: ${{ matrix.market }}
-    runs-on: ubuntu-latest
+    # betsson.es solo responde desde España: se ejecuta en un runner propio con IP española.
+    # Variable del repositorio VALIDATION_RUNS_ON, p. ej. ["self-hosted","betsson-es"].
+    runs-on: ${{ fromJSON(vars.VALIDATION_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 30
     strategy:
       fail-fast: false

@@ -5,6 +5,7 @@ description = "Validador automático de juegos de casino en Betsson que comprueb
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "anthropic==1.14.0",
     "onnxruntime==1.31.0",
     "opencv-python-headless==5.0.0.93",
     "playwright==1.64.0",
