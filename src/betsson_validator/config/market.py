@@ -12,7 +12,7 @@ DEFAULT_MARKETS_DIR = Path(__file__).resolve().parents[3] / "config" / "markets"
 class Credentials(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    username: SecretStr
+    email: SecretStr
     password: SecretStr
 
 
@@ -21,15 +21,15 @@ class AccountEnv(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    username_env: str
+    email_env: str
     password_env: str
 
     def resolve(self) -> Credentials:
-        missing = [name for name in (self.username_env, self.password_env) if not os.getenv(name)]
+        missing = [name for name in (self.email_env, self.password_env) if not os.getenv(name)]
         if missing:
             raise MissingCredentialsError(missing)
         return Credentials(
-            username=SecretStr(os.environ[self.username_env]),
+            email=SecretStr(os.environ[self.email_env]),
             password=SecretStr(os.environ[self.password_env]),
         )
 

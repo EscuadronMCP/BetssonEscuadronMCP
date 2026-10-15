@@ -6,8 +6,8 @@ language: es
 currency: EUR
 accounts:
   funded:
-    username_env: BETSSON_ES_FUNDED_USERNAME
+    email_env: BETSSON_ES_FUNDED_EMAIL
     password_env: BETSSON_ES_FUNDED_PASSWORD
   no_balance:
-    username_env: BETSSON_ES_NO_BALANCE_USERNAME
+    email_env: BETSSON_ES_NO_BALANCE_EMAIL
     password_env: BETSSON_ES_NO_BALANCE_PASSWORD

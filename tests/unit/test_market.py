@@ -17,18 +17,18 @@ def test_unknown_market_lists_available() -> None:
 
 def test_missing_credentials_name_variables_not_values(monkeypatch: pytest.MonkeyPatch) -> None:
     account = load_market("es").accounts.funded
-    monkeypatch.delenv(account.username_env, raising=False)
+    monkeypatch.delenv(account.email_env, raising=False)
     monkeypatch.delenv(account.password_env, raising=False)
     with pytest.raises(MissingCredentialsError) as error:
         account.resolve()
-    assert error.value.variables == [account.username_env, account.password_env]
+    assert error.value.variables == [account.email_env, account.password_env]
 
 
 def test_credentials_are_never_printed(monkeypatch: pytest.MonkeyPatch) -> None:
     account = load_market("es").accounts.funded
-    monkeypatch.setenv(account.username_env, "usuario-secreto")
+    monkeypatch.setenv(account.email_env, "jugador@example.com")
     monkeypatch.setenv(account.password_env, "clave-secreta")
     credentials = account.resolve()
-    assert "secret" not in repr(credentials)
+    assert "jugador@example.com" not in repr(credentials)
     assert "secreta" not in str(credentials)
     assert credentials.password.get_secret_value() == "clave-secreta"
