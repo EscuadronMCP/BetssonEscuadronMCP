@@ -31,6 +31,8 @@ _BALANCE_CHANGE_TIMEOUT_S = 20
 _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
 _FILTER_RESULTS_TIMEOUT_MS = 8000
+_FILTER_PANEL_TIMEOUT_MS = 15_000
+_FILTER_PANEL_ATTEMPTS = 3
 _LOBBY_MAX_SCROLLS = 80
 _SESSION_TIMEOUT_S = 90
 _CLICK_TIMEOUT_MS = 5000
@@ -203,10 +205,18 @@ class BetssonCasino:
         pulsar (había quedado desactivado).
         """
         page = self._page
-        page.get_by_role("button", name=self._ui.filters_button).click()
         # Botón del panel, no el texto: las fichas de los juegos también muestran el proveedor.
         chip = page.get_by_role("button", name=label, exact=True).first
-        chip.wait_for(timeout=_NAVIGATION_TIMEOUT_MS)
+        filters = page.get_by_role("button", name=self._ui.filters_button)
+        for _ in range(_FILTER_PANEL_ATTEMPTS):
+            filters.click(timeout=_CLICK_TIMEOUT_MS)
+            try:
+                chip.wait_for(timeout=_FILTER_PANEL_TIMEOUT_MS)
+                break
+            except PlaywrightTimeoutError:
+                continue  # el panel ya estaba abierto y el clic lo cerró: se vuelve a abrir
+        else:
+            raise CasinoError(f"El panel de filtros no muestra el proveedor '{label}'.")
         clear = page.get_by_role("button", name=self._ui.clear_filters_button, exact=True).first
         if clear.is_visible():
             clear.click(timeout=_CLICK_TIMEOUT_MS)

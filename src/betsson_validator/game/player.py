@@ -78,6 +78,7 @@ class SpinObservation:
     lifecycle: SpinLifecycle
     scores: tuple[float, ...]
     evidence: tuple[str, ...]
+    thresholds: MotionThresholds | None = None
 
 
 @dataclass
@@ -378,7 +379,7 @@ class ScreenGame:
             self.page.wait_for_timeout(self.timings.capture_interval_ms)
         self.page.wait_for_timeout(self.timings.settle_after_spin_ms)
         return SpinObservation(
-            detect_spin_lifecycle(scores, thresholds), tuple(scores), tuple(evidence)
+            detect_spin_lifecycle(scores, thresholds), tuple(scores), tuple(evidence), thresholds
         )
 
     def _idle_baseline(self, first: Image) -> tuple[Image, MotionThresholds]:

@@ -286,7 +286,10 @@ def _play(
         events=events_summary,
         market_language=ctx.market.language,
     )
-    files.save_json("resumen_observado", _describe(evidence, betsson_before, betsson_after))
+    summary_data = _describe(evidence, betsson_before, betsson_after)
+    summary_data["motion_scores"] = [round(score, 4) for score in spin.scores]
+    summary_data["motion_thresholds"] = spin.thresholds.__dict__ if spin.thresholds else None
+    files.save_json("resumen_observado", summary_data)
     return plan.evaluator(evidence)
 
 
