@@ -1,0 +1,359 @@
+[
+  {
+    "seq": 222,
+    "t": 1792083824822,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 191.65,
+      "betAmount": 0.2,
+      "balanceBefore": 191.65,
+      "amount": 191.65,
+      "name": "gameRoundStart"
+    }
+  },
+  {
+    "seq": 223,
+    "t": 1792083824822,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 191.65,
+      "betAmount": 0.2,
+      "balanceBefore": 191.65,
+      "amount": 191.65,
+      "name": "gameRoundStarted"
+    }
+  },
+  {
+    "seq": 224,
+    "t": 1792083824822,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 191.65,
+      "betAmount": 0.2,
+      "balanceBefore": 191.65,
+      "amount": 191.65,
+      "name": "spinStarted"
+    }
+  },
+  {
+    "seq": 225,
+    "t": 1792083825068,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 226,
+    "t": 1792083825068,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19145
+        }
+      }
+    }
+  },
+  {
+    "seq": 227,
+    "t": 1792083826697,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.18,
+      "balanceAfter": 191.45,
+      "betAmount": 0.2,
+      "balanceBefore": 191.45,
+      "amount": 191.45,
+      "roundTripMs": 230,
+      "name": "spinEnded"
+    }
+  },
+  {
+    "seq": 228,
+    "t": 1792083827310,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "event": "visualBalanceUpdate",
+      "params": {
+        "currency": "€",
+        "newAmount": 191.45,
+        "win": 0.18
+      }
+    }
+  },
+  {
+    "seq": 229,
+    "t": 1792083827629,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.18,
+      "balanceAfter": 191.45,
+      "betAmount": 0.2,
+      "balanceBefore": 191.45,
+      "amount": 191.45,
+      "name": "spinStarted"
+    }
+  },
+  {
+    "seq": 230,
+    "t": 1792083827761,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 231,
+    "t": 1792083827761,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19145
+        }
+      }
+    }
+  },
+  {
+    "seq": 232,
+    "t": 1792083828943,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.45,
+      "betAmount": 0.2,
+      "balanceBefore": 191.45,
+      "amount": 191.45,
+      "roundTripMs": 134,
+      "name": "spinEnded"
+    }
+  },
+  {
+    "seq": 233,
+    "t": 1792083829602,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "event": "visualBalanceUpdate",
+      "params": {
+        "currency": "€",
+        "newAmount": 191.45,
+        "win": 0.33
+      }
+    }
+  },
+  {
+    "seq": 234,
+    "t": 1792083829891,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.45,
+      "betAmount": 0.2,
+      "balanceBefore": 191.45,
+      "amount": 191.45,
+      "name": "spinStarted"
+    }
+  },
+  {
+    "seq": 235,
+    "t": 1792083829975,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 236,
+    "t": 1792083829975,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19145
+        }
+      }
+    }
+  },
+  {
+    "seq": 237,
+    "t": 1792083830171,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 238,
+    "t": 1792083830171,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19178
+        }
+      }
+    }
+  },
+  {
+    "seq": 239,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.78,
+      "betAmount": 0.2,
+      "balanceBefore": 191.78,
+      "amount": 191.78,
+      "roundTripMs": 134,
+      "name": "spinEnded"
+    }
+  },
+  {
+    "seq": 240,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.78,
+      "betAmount": 0.2,
+      "balanceBefore": 191.78,
+      "amount": 191.78,
+      "name": "gameRoundEnded"
+    }
+  },
+  {
+    "seq": 241,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.78,
+      "betAmount": 0.2,
+      "balanceBefore": 191.78,
+      "amount": 191.78,
+      "name": "balanceChanged"
+    }
+  },
+  {
+    "seq": 242,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.78,
+      "betAmount": 0.2,
+      "balanceBefore": 191.78,
+      "amount": 191.78,
+      "name": "balanceChanged",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 19178
+        }
+      }
+    }
+  },
+  {
+    "seq": 243,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "event": "visualBalanceUpdate",
+      "params": {
+        "currency": "€",
+        "newAmount": 191.78,
+        "win": 0.33
+      }
+    }
+  },
+  {
+    "seq": 244,
+    "t": 1792083831110,
+    "origin": "https://cajdsoitek.jmxyelekig.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0.33,
+      "balanceAfter": 191.78,
+      "betAmount": 0.2,
+      "balanceBefore": 191.78,
+      "amount": 191.78,
+      "name": "resultShown"
+    }
+  }
+]

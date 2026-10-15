@@ -1,0 +1,148 @@
+{
+  "betsson_before": "0.00 EUR",
+  "betsson_after": "0.00 EUR",
+  "screen_before": {
+    "credit": "0.00 EUR",
+    "bet": "0.10 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/entrega-bigbass2/insufficient_balance/01_apuesta_minima.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "screen_after": {
+    "credit": "0.00 EUR",
+    "bet": "0.10 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": "Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta.",
+    "evidence": "reports/entrega-bigbass2/insufficient_balance/02_despues_de_girar.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "motion": {
+    "started": false,
+    "completed": false,
+    "samples": 32,
+    "peak": 0.0,
+    "evidence": []
+  },
+  "network": {
+    "spin_requested": false,
+    "settled": false,
+    "wager_requested": null,
+    "wager_accepted": null,
+    "declared_win": null,
+    "balance_before": null,
+    "balance_after": null,
+    "evidence": "reports/entrega-bigbass2/insufficient_balance/trafico_juego_sin_tokens.json",
+    "observed_calls": 1,
+    "unreadable": 0
+  },
+  "events": {
+    "received": true,
+    "round_started": false,
+    "round_ended": false,
+    "low_balance": true,
+    "bet": null,
+    "win": null,
+    "balance_before": null,
+    "balance_after": null,
+    "languages": [
+      "es"
+    ],
+    "currencies": [
+      "EUR"
+    ],
+    "anomalies": [],
+    "evidence": "reports/entrega-bigbass2/insufficient_balance/eventos_del_juego.json"
+  },
+  "motion_scores": [
+    0.0001,
+    0.4856,
+    0.0201,
+    0.0097,
+    0.0102,
+    0.0095,
+    0.0091,
+    0.0093,
+    0.0099,
+    0.0102,
+    0.013,
+    0.0113,
+    0.0136,
+    0.0111,
+    0.0104,
+    0.0108,
+    0.0108,
+    0.011,
+    0.0113,
+    0.0116,
+    0.0113,
+    0.0112,
+    0.011,
+    0.0112,
+    0.0109,
+    0.0113,
+    0.0115,
+    0.0112,
+    0.0112,
+    0.011,
+    0.0106,
+    0.0112
+  ],
+  "motion_thresholds": {
+    "start": 0.08,
+    "still": 0.01,
+    "still_samples": 4,
+    "min_active_samples": 3,
+    "relative_still": 0.1
+  },
+  "stages": [
+    {
+      "name": "web abierta",
+      "s": 5.3
+    },
+    {
+      "name": "sesión iniciada",
+      "s": 14.9
+    },
+    {
+      "name": "saldo inicial leído",
+      "s": 15.0
+    },
+    {
+      "name": "juego abierto",
+      "s": 21.8
+    },
+    {
+      "name": "juego listo con apuesta mínima",
+      "s": 49.7
+    },
+    {
+      "name": "giro observado",
+      "s": 62.1
+    },
+    {
+      "name": "ronda cerrada",
+      "s": 62.1
+    },
+    {
+      "name": "marcador estable",
+      "s": 64.2
+    },
+    {
+      "name": "saldo final de Betsson",
+      "s": 68.8
+    }
+  ],
+  "profile": {
+    "learned_with": "claude-haiku-5-5",
+    "learned_at": "2026-10-15T13:54:07+00:00"
+  }
+}

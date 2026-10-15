@@ -1,0 +1,134 @@
+{
+  "betsson_before": "191.75 EUR",
+  "betsson_after": "191.65 EUR",
+  "screen_before": {
+    "credit": "191.75 EUR",
+    "bet": "0.10 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/entrega-bigbass2/completed_spin/01_apuesta_minima.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "screen_after": {
+    "credit": "191.65 EUR",
+    "bet": "0.10 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/entrega-bigbass2/completed_spin/03_despues_de_girar.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "motion": {
+    "started": true,
+    "completed": true,
+    "samples": 16,
+    "peak": 0.652291953570726,
+    "evidence": [
+      "reports/entrega-bigbass2/completed_spin/02_girando.jpg"
+    ]
+  },
+  "network": {
+    "spin_requested": true,
+    "settled": true,
+    "wager_requested": "0.10",
+    "wager_accepted": "0.10",
+    "declared_win": "0.00",
+    "balance_before": "191.75",
+    "balance_after": "191.65",
+    "evidence": "reports/entrega-bigbass2/completed_spin/trafico_juego_sin_tokens.json",
+    "observed_calls": 2,
+    "unreadable": 0
+  },
+  "events": {
+    "received": true,
+    "round_started": true,
+    "round_ended": true,
+    "low_balance": false,
+    "bet": "0.1",
+    "win": "0",
+    "balance_before": "191.75",
+    "balance_after": "191.65",
+    "languages": [
+      "es"
+    ],
+    "currencies": [
+      "EUR"
+    ],
+    "anomalies": [],
+    "evidence": "reports/entrega-bigbass2/completed_spin/eventos_del_juego.json"
+  },
+  "motion_scores": [
+    0.0029,
+    0.3315,
+    0.431,
+    0.4346,
+    0.5672,
+    0.6414,
+    0.6523,
+    0.6471,
+    0.4743,
+    0.3621,
+    0.2165,
+    0.1353,
+    0.0198,
+    0.0101,
+    0.01,
+    0.0119
+  ],
+  "motion_thresholds": {
+    "start": 0.11789592760180995,
+    "still": 0.04894796380090497,
+    "still_samples": 4,
+    "min_active_samples": 3,
+    "relative_still": 0.1
+  },
+  "stages": [
+    {
+      "name": "web abierta",
+      "s": 4.8
+    },
+    {
+      "name": "sesión iniciada",
+      "s": 13.9
+    },
+    {
+      "name": "saldo inicial leído",
+      "s": 14.0
+    },
+    {
+      "name": "juego abierto",
+      "s": 21.4
+    },
+    {
+      "name": "juego listo con apuesta mínima",
+      "s": 30.1
+    },
+    {
+      "name": "giro observado",
+      "s": 38.1
+    },
+    {
+      "name": "ronda cerrada",
+      "s": 38.1
+    },
+    {
+      "name": "marcador estable",
+      "s": 40.6
+    },
+    {
+      "name": "saldo final de Betsson",
+      "s": 44.2
+    }
+  ],
+  "profile": {
+    "learned_with": "claude-haiku-5-5",
+    "learned_at": "2026-10-15T13:54:07+00:00"
+  }
+}

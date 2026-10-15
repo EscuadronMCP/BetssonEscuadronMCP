@@ -1,0 +1,55 @@
+[
+  {
+    "seq": 235,
+    "t": 1792083832661,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "event": "autoplayEnded"
+    }
+  },
+  {
+    "seq": 236,
+    "t": 1792083832662,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "winAmount": 0,
+      "balanceAfter": 0,
+      "betAmount": 0.2,
+      "balanceBefore": 0,
+      "amount": 0,
+      "name": "balanceTooLow"
+    }
+  },
+  {
+    "seq": 237,
+    "t": 1792083844190,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance"
+    }
+  },
+  {
+    "seq": 238,
+    "t": 1792083844190,
+    "origin": "https://7jij6dlkql.kfwfkwegow.net",
+    "data": {
+      "sender": "vs20swbon2500_cv114",
+      "lang": "ES",
+      "success": true,
+      "name": "post_updateBalance",
+      "event": "updateBalance",
+      "params": {
+        "total": {
+          "currency": "€",
+          "amount": 0
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,146 @@
+{
+  "betsson_before": "191.65 EUR",
+  "betsson_after": "191.78 EUR",
+  "screen_before": {
+    "credit": "191.65 EUR",
+    "bet": "0.20 EUR",
+    "win": null,
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/entrega-sweet2/completed_spin/01_apuesta_minima.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "screen_after": {
+    "credit": "191.78 EUR",
+    "bet": "0.20 EUR",
+    "win": "0.33 EUR",
+    "currencies_seen": [
+      "EUR"
+    ],
+    "message": null,
+    "evidence": "reports/entrega-sweet2/completed_spin/03_despues_de_girar.jpg",
+    "notice": null,
+    "settled": true
+  },
+  "motion": {
+    "started": true,
+    "completed": true,
+    "samples": 28,
+    "peak": 0.332283778397768,
+    "evidence": [
+      "reports/entrega-sweet2/completed_spin/02_girando.jpg"
+    ]
+  },
+  "network": {
+    "spin_requested": true,
+    "settled": true,
+    "wager_requested": "0.20",
+    "wager_accepted": "0.20",
+    "declared_win": "0.33",
+    "balance_before": "191.65",
+    "balance_after": "191.78",
+    "evidence": "reports/entrega-sweet2/completed_spin/trafico_juego_sin_tokens.json",
+    "observed_calls": 5,
+    "unreadable": 0
+  },
+  "events": {
+    "received": true,
+    "round_started": true,
+    "round_ended": true,
+    "low_balance": false,
+    "bet": "0.2",
+    "win": "0.33",
+    "balance_before": "191.65",
+    "balance_after": "191.78",
+    "languages": [
+      "es"
+    ],
+    "currencies": [
+      "EUR"
+    ],
+    "anomalies": [],
+    "evidence": "reports/entrega-sweet2/completed_spin/eventos_del_juego.json"
+  },
+  "motion_scores": [
+    0.0,
+    0.053,
+    0.2631,
+    0.2316,
+    0.1291,
+    0.2108,
+    0.3323,
+    0.0895,
+    0.1473,
+    0.0969,
+    0.1345,
+    0.1529,
+    0.0775,
+    0.2166,
+    0.2149,
+    0.0942,
+    0.0937,
+    0.0892,
+    0.0515,
+    0.2345,
+    0.2276,
+    0.1373,
+    0.1569,
+    0.0506,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "motion_thresholds": {
+    "start": 0.08,
+    "still": 0.01,
+    "still_samples": 4,
+    "min_active_samples": 3,
+    "relative_still": 0.1
+  },
+  "stages": [
+    {
+      "name": "web abierta",
+      "s": 8.0
+    },
+    {
+      "name": "sesión iniciada",
+      "s": 17.3
+    },
+    {
+      "name": "saldo inicial leído",
+      "s": 17.3
+    },
+    {
+      "name": "juego abierto",
+      "s": 28.5
+    },
+    {
+      "name": "juego listo con apuesta mínima",
+      "s": 41.0
+    },
+    {
+      "name": "giro observado",
+      "s": 52.6
+    },
+    {
+      "name": "ronda cerrada",
+      "s": 52.6
+    },
+    {
+      "name": "marcador estable",
+      "s": 54.7
+    },
+    {
+      "name": "saldo final de Betsson",
+      "s": 58.9
+    }
+  ],
+  "profile": {
+    "learned_with": "claude-sonnet-5-5",
+    "learned_at": "2026-10-15T13:57:22+00:00"
+  }
+}
