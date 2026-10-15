@@ -23,3 +23,5 @@ screen:
   ready_timeout_s: 150
   spin_timeout_s: 45
   network_spin_action: doSpin
+  # Salvaguarda de dinero real: si tras bajar la apuesta se lee más que esto, no se gira.
+  max_bet: 0.50

@@ -29,3 +29,6 @@ playwright-report/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Informes y evidencias generados en cada ejecución
+reports/

@@ -1,6 +1,7 @@
 """Configuración por proveedor. Añadir un proveedor es añadir un YAML en config/providers/."""
 
 import re
+from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -48,6 +49,10 @@ class ScreenProfile(BaseModel):
     ready_timeout_s: int = 150
     spin_timeout_s: int = 45
     network_spin_action: str = "doSpin"
+    max_bet: Decimal = Field(
+        default=Decimal("0.50"),
+        description="Salvaguarda: no se gira si la apuesta mostrada es mayor",
+    )
 
     @property
     def insufficient_funds_regex(self) -> re.Pattern[str]:

@@ -1,4 +1,4 @@
-"""Arranque del navegador con grabación de evidencias (traza y vídeo).
+"""Arranque del navegador con grabación de evidencias (vídeo y traza).
 
 betsson.es usa AWS WAF con control de bots, que rechaza el login (403) si el navegador
 anuncia que está automatizado. Por eso Chrome se lanza sin esa marca. Es una decisión del
@@ -30,7 +30,7 @@ class BrowserSettings:
 
 @contextmanager
 def browser_context(settings: BrowserSettings, evidence_dir: Path) -> Iterator[BrowserContext]:
-    """Abre un contexto que graba vídeo y traza en evidence_dir y los cierra al salir."""
+    """Abre un contexto que graba vídeo en evidence_dir y lo cierra al salir."""
     evidence_dir.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
@@ -46,10 +46,18 @@ def browser_context(settings: BrowserSettings, evidence_dir: Path) -> Iterator[B
             record_video_dir=str(evidence_dir / "video"),
             record_video_size={"width": settings.width, "height": settings.height},
         )
-        context.tracing.start(screenshots=True, snapshots=True)
         try:
             yield context
         finally:
-            context.tracing.stop(path=str(evidence_dir / "trace.zip"))
             context.close()
             browser.close()
+
+
+@contextmanager
+def tracing(context: BrowserContext, path: Path) -> Iterator[None]:
+    """Traza de Playwright. Se abre DESPUÉS del login: la traza guarda el texto tecleado."""
+    context.tracing.start(screenshots=True, snapshots=True)
+    try:
+        yield
+    finally:
+        context.tracing.stop(path=str(path))
