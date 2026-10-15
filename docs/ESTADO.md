@@ -21,7 +21,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - [x] **E3. Testigos:** pantalla (OCR), movimiento, cabecera de Betsson, red del juego y eventos del juego. El historial de transacciones de Betsson queda fuera: los otros cuatro ya corroboran cada comprobación.
 - [x] **E4. Escenario 2:** saldo insuficiente, PASS real.
 - [x] **E5. Workflow de GitHub Actions:** PASS en el runner propio (15/10).
-- [~] **E6. Perfiles aprendidos:** perfil real de Sweet Bonanza aprendido y validado (0,0019–0,0075 $). Pendiente: PASS de principio a fin con el perfil y fusión de la rama `feature/perfiles-aprendidos` en `main`.
+- [x] **E6. Perfiles aprendidos:** perfil real de Sweet Bonanza aprendido y validado (0,0019–0,0075 $). PASS de principio a fin en ambos escenarios con los cinco testigos y **cero llamadas a la IA** (15/10, `reports/e2e-v5`).
 - [ ] **E7. Demo de extensibilidad:** `learn` sobre un segundo juego y, si da tiempo, de otro proveedor (bonus).
 
 ## Funciona
@@ -36,13 +36,12 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| E6. PASS de principio a fin con perfil + fusión en `main` | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
+| Workflow de validación en el runner + E7 (segundo juego) | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
 
 ## Siguiente paso
-1. Ejecución completa con el perfil aprendido → si da PASS, fusionar `feature/perfiles-aprendidos` en `main`.
-2. Lanzar el workflow de validación en el runner propio y comprobar el informe publicado.
-3. E7: `learn --game <otro juego>` y ejecución para demostrar la extensibilidad.
-4. Preparar la demo de 7 minutos.
+1. Lanzar el workflow de validación en el runner propio y comprobar el informe publicado.
+2. E7: `learn --game <otro juego>` y ejecución para demostrar la extensibilidad.
+3. Preparar la demo de 7 minutos.
 
 ## Problemas conocidos
 - **betsson.es bloquea las IP de fuera de España** ("no disponible en este país"), así que los runners de GitHub no sirven. Se resuelve con un runner propio: este Mac, etiqueta `betsson-es`, variable `VALIDATION_RUNS_ON`. En producción sería Oracle Cloud Madrid, en x86 porque Chrome no tiene build ARM64 para Linux. Si el Mac pierde la red, el runner se cae: relanzarlo con `cd ~/actions-runner-betsson && nohup ./run.sh &`.
