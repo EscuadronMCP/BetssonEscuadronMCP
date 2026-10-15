@@ -41,3 +41,9 @@ Antes de jugar a tragaperras, la web exige abrir una **sesión de juego**:
   3. `doCollect` → `balance=64.65`, `na=s` (liquidada).
 - Algunas URL del juego llevan tokens de sesión (`mgckey`, `token`, `SESSION`): se ocultan siempre antes de guardar tráfico (`providers/pragmatic/network.py::redact`).
 - La detección de movimiento sobre la zona de los rodillos marca el giro durante unos 5 s y luego reposo (serie real en `tests/unit/test_motion.py`).
+
+## 7. Saldo insuficiente (cuenta sin saldo, 15/10)
+- Saldo de Betsson en la cabecera: **0,00 €**. El HUD del juego muestra **CRÉDITO 0,00 €**.
+- Al pulsar girar, el juego muestra un diálogo propio: **"MENSAJE — Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta."** con el botón **ACEPTAR**. Está en español, dentro del canvas del juego (se lee por OCR).
+- **La red no registra ningún `doSpin`**: el cliente rechaza la tirada sin preguntar al servidor. El testigo de red confirma así que no hubo tirada cobrada.
+- Con esta cuenta no apareció el diálogo de límites de la sesión de juego: el flujo debe tratarlo como opcional.
