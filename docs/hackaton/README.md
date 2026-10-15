@@ -2,15 +2,15 @@
 
 Documentación oficial del Malackaton (Universidad de Málaga) y del reto de Betsson.
 
-Coloca aquí los PDF:
+| Archivo | Contenido |
+|---|---|
+| `2026-10-15_malackathon-student-challenge.pdf` | **Enunciado oficial del reto de Betsson** (el más importante) |
+| `Bases Hackathon ETSII1.pdf` | Bases del Malackathon |
+| `Programa-y-NormasMalackathon (2).pdf` | Programa de los dos días |
+| `Crear Base de Datos en OCI.pdf` | Tutorial de Oracle Cloud: base de datos autónoma |
+| `uma-hackaton-v1.0.0.pdf` | Enlaces de Oracle: REST Data Services, servidor web y SSH |
 
-- Bases del hackathon
-- Descripción del reto Betsson: *Casino Lobby, lanzamiento y jugada*
-- Tutoriales facilitados por la universidad (incluida la infraestructura de Oracle)
-
-## Resumen del reto (provisional)
-
-- **Título:** Casino Lobby, lanzamiento y jugada
-- **Descripción:** cuando un casino publica un juego nuevo, hay que demostrar que se ve en el lobby, lanzar el juego y jugar una partida. El reto es una aplicación que lo haga sola en webs reales de Betsson y deje capturas y un veredicto.
-- **Tags:** Web development, Automation, AI, Testing
-- **Dificultad (1-5):** 4-5
+## Datos aportados por la organización
+- Webs: `betsson.com` (inglés, EUR) y `betsson.pe` (español, PEN).
+- Dos cuentas de prueba: una con saldo y otra sin saldo (pendientes de entrega; van en `.env`).
+- Para acceder a betsson.com desde España hace falta una IP de Malta (VPN).
