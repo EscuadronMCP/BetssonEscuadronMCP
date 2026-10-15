@@ -7,7 +7,7 @@ Entra en **betsson.es**, lanza un juego de **PragmaticPlay** en Real Play y comp
 1. **Una tirada se completa** y los saldos cuadran: `saldo después = saldo antes − apuesta + premio`.
 2. **Con saldo insuficiente**, la tirada se rechaza con el mensaje adecuado en español y ningún saldo cambia.
 
-Todo sin intervención humana, con un informe de PASS/FAIL por comprobación y evidencias (capturas, traza y vídeo).
+Todo **de principio a fin y sin intervención humana**: la prueba abre el navegador, inicia sesión, lanza el juego, juega y genera el informe sola. Termina con un informe de PASS/FAIL por comprobación y evidencias (capturas, traza y vídeo).
 
 > **Estado:** en desarrollo. Qué funciona, qué está en curso y qué viene: [`docs/ESTADO.md`](docs/ESTADO.md).
 

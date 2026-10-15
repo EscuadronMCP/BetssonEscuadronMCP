@@ -39,6 +39,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 3. Preguntar a los mentores: captcha o verificación en dos pasos en el login, bloqueo de IP de GitHub Actions, tráfico de red como testigo, número de tiradas permitidas, preparación de la cuenta sin saldo, y si el historial muestra cada tirada.
 
 ## Problemas conocidos
+- **Requisito:** el flujo completo (navegador → login → juego → informe) debe ser 100 % automático. Un captcha o verificación en dos pasos en el login lo bloquearía: confirmar con los mentores cuanto antes.
 - Sin comprobar si betsson.es deja jugar desde los runners de GitHub Actions (EE. UU.). Si no, hará falta IP española (p. ej. runner propio en la región de Oracle Cloud en Madrid).
 
 ## Cambios de rumbo
