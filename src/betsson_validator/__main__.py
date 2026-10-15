@@ -14,6 +14,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml
 from dotenv import load_dotenv
 
 from betsson_validator.browser import BrowserSettings
@@ -123,7 +124,11 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
     info = RunInfo(
         code_version=_code_version(), requested=tuple(scenarios), run_id=os.getenv("GITHUB_RUN_ID")
     )
-    json_path, html_path = write_report(runs, ctx.out_dir, info)
+    try:
+        json_path, html_path = write_report(runs, ctx.out_dir, info)
+    except OSError as error:  # sin informe escrito no se anuncia ninguno
+        print(f"No se pudo escribir el informe en {ctx.out_dir}: {type(error).__name__}")
+        return _CONFIG_ERROR
     secrets = ctx.market.accounts.secrets()
     scrub_files((json_path, html_path), secrets)  # el informe se publica siempre: se limpia
     for leaked in audit_and_quarantine(ctx.out_dir, secrets):
@@ -193,12 +198,21 @@ def _learn(ctx: RunContext) -> int:
     return 0
 
 
+_CONFIG_ERROR = 2
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     load_dotenv()
+    # Con el PID: dos ejecuciones lanzadas en el mismo segundo no comparten carpeta.
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    out_dir: Path = args.out or Path("reports") / f"{stamp}-{args.command}"
-    ctx = _context(args, out_dir)
+    out_dir: Path = args.out or Path("reports") / f"{stamp}-{os.getpid()}-{args.command}"
+    try:
+        ctx = _context(args, out_dir)
+    except (ValueError, OSError, yaml.YAMLError) as error:  # incluye la validación de pydantic
+        first_line = str(error).splitlines()[0] if str(error) else type(error).__name__
+        print(f"Configuración no válida: {first_line}")
+        return _CONFIG_ERROR
     return _run(args, ctx) if args.command == "run" else _learn(ctx)
 
 
