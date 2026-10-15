@@ -19,6 +19,8 @@ _COOKIE_ACCEPT = "#onetrust-accept-btn-handler"
 _WAF_COOKIE = "aws-waf-token"
 _AUTH_ENDPOINT = "/api/v2/authentication-transaction"
 _LOGIN_OK = 201
+_LOGIN_THROTTLED = 400
+_LOGIN_RETRY_WAIT_MS = 60_000
 _BALANCE_BUTTON = re.compile(r"^\s*\d[\d.\s]*,\d{2}\s*€\s*$")
 _GAME_IFRAME = "iframe[src*='Gamelauncher']"
 # Difumina los campos de login para que las credenciales no salgan en el vídeo.
@@ -96,6 +98,20 @@ class BetssonCasino:
         button.dispatch_event("click")
 
     def login(self, credentials: Credentials) -> None:
+        """Inicia sesión. Si la web responde 400 (bloqueo temporal por demasiados inicios de
+        sesión seguidos) se reintenta UNA vez tras una pausa: insistir más alarga el bloqueo."""
+        status = self._attempt_login(credentials)
+        if status == _LOGIN_THROTTLED:
+            self._page.wait_for_timeout(_LOGIN_RETRY_WAIT_MS)
+            self._page.goto(
+                self._url("/"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
+            )
+            status = self._attempt_login(credentials)
+        if status != _LOGIN_OK:
+            raise CasinoError(f"Login rechazado por betsson.es (HTTP {status}).")
+        self._dismiss_passkey_prompt()
+
+    def _attempt_login(self, credentials: Credentials) -> int:
         self._wait_for_waf_token()
         self._page.get_by_role("button", name=self._ui.login_button).first.click()
         email = self._page.locator("input[name=email]")
@@ -108,10 +124,7 @@ class BetssonCasino:
         )
         with self._page.expect_response(lambda r: _AUTH_ENDPOINT in r.url) as response_info:
             self._page.get_by_role("button", name=self._ui.login_button, exact=True).last.click()
-        status = response_info.value.status
-        if status != _LOGIN_OK:
-            raise CasinoError(f"Login rechazado por betsson.es (HTTP {status}).")
-        self._dismiss_passkey_prompt()
+        return response_info.value.status
 
     def _wait_for_waf_token(self, timeout_s: float = 30) -> None:
         deadline = time.monotonic() + timeout_s
