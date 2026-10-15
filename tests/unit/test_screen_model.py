@@ -167,3 +167,45 @@ def test_big_bass_ready_screen_reads_the_hud_bet() -> None:
     hud, _ = ScreenModel(big_bass, RapidOcrReader(), "EUR", None).read(image)
     assert hud.bet is not None and hud.bet.money.amount == Decimal("2.00")
     assert hud.credit is not None and hud.credit.money.amount == Decimal("199.25")
+
+
+# --- Auditoría R02 (PER-002/003/004/009/010): la propuesta de la IA es un dato no confiable ----
+
+
+@pytest.mark.parametrize(
+    "bad_box",
+    [
+        Box(x=880, y=480, width=92, height=82),  # se sale de la captura (896 x 504)
+        Box(x=651, y=415, width=3, height=3),  # demasiado pequeña
+        Box(x=0, y=0, width=800, height=480),  # media pantalla no es un botón
+    ],
+)
+def test_invalid_ai_proposal_never_mutates_the_active_profile(
+    reader: RapidOcrReader, bad_box: Box
+) -> None:
+    ready = load("sweet_bonanza_ready.png")
+    original = crop(ready, SPIN_BOX)
+    active = profile(templates={"spin": original})
+    model = ScreenModel(active, reader, "EUR", None)
+    problems = model.apply(REAL_ANALYSIS.model_copy(update={"spin_button": bad_box}), ready)
+    assert problems
+    assert model.profile.templates["spin"] is original
+    assert model.profile.credit_label == "CRÉDITO"
+
+
+def test_valid_ai_proposal_is_adopted(reader: RapidOcrReader) -> None:
+    ready = load("sweet_bonanza_ready.png")
+    model = ScreenModel(profile(), reader, "EUR", None)
+    assert model.apply(REAL_ANALYSIS, ready) == []
+    assert "spin" in model.profile.templates
+    assert model.locate("spin", ready) is not None
+
+
+def test_a_rejected_relearn_keeps_the_profile_and_is_reported(reader: RapidOcrReader) -> None:
+    ready = load("sweet_bonanza_ready.png")
+    original = crop(ready, SPIN_BOX)
+    bad = REAL_ANALYSIS.model_copy(update={"spin_button": Box(x=880, y=480, width=92, height=82)})
+    model = ScreenModel(profile(templates={"spin": original}), reader, "EUR", FakeLearner(bad))
+    assert model.learn(ready, "prueba") is None
+    assert model.profile.templates["spin"] is original
+    assert "rechazada" in model.notes[-1]

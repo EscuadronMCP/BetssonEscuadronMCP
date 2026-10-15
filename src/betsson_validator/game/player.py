@@ -43,6 +43,11 @@ Point = tuple[float, float]
 
 _TEMPLATE_INNER = 0.7  # fracción central del control que se guarda como plantilla
 _STILL_SCORE = 0.01
+# Lo que la IA proponga como control debe parecer un botón: ni un punto ni media pantalla, y
+# con contenido (un recorte uniforme encajaría en cualquier zona lisa).
+_MIN_CONTROL_PX = 8
+_MAX_CONTROL_SHARE = 0.1
+_MIN_TEMPLATE_STD = 4.0
 _BLANK_SCREEN_STD = 15.0  # desviación de grises por debajo de la cual la pantalla está vacía
 
 
@@ -158,32 +163,69 @@ class ScreenModel:
             return None
         self._learned = True
         analysis = self.learner.analyze(image)
-        self.apply(analysis, image)
-        self.notes.append(
-            f"Perfil reaprendido con IA de visión ({self.learner.cost_usd:.4f} $): {reason}."
-        )
+        problems = self.apply(analysis, image)
+        cost = f"{self.learner.cost_usd:.4f} $"
+        if problems:
+            self.notes.append(
+                f"Propuesta de la IA rechazada ({cost}): {'; '.join(problems)}. Se mantiene el "
+                f"perfil anterior ({reason})."
+            )
+            return None
+        self.notes.append(f"Perfil reaprendido con IA de visión ({cost}): {reason}.")
         return analysis
 
-    def apply(self, analysis: ScreenAnalysis, image: Image) -> None:
-        controls: dict[str, Box | None] = {
-            "continue": analysis.continue_button,
-            "spin": analysis.spin_button,
-            "bet_down": analysis.bet_decrease_button,
-            "bet_up": analysis.bet_increase_button,
-        }
-        for control, box in controls.items():
-            if box is not None:
-                self.profile.templates[control] = control_template(image, box.as_tuple())
-        if analysis.credit_label:
-            self.profile.credit_label = analysis.credit_label
-        if analysis.bet_label:
-            self.profile.bet_label = analysis.bet_label
-        if analysis.win_label:
-            self.profile.win_label = analysis.win_label
-        if analysis.reels_area is not None:
-            height, width = image.shape[:2]
-            x, y, w, h = analysis.reels_area.as_tuple()
-            self.profile.reels_area = (x / width, y / height, (x + w) / width, (y + h) / height)
+    def apply(self, analysis: ScreenAnalysis, image: Image) -> list[str]:
+        """Aplica la propuesta de la IA a una COPIA del perfil y solo la adopta si es válida.
+
+        La salida de la IA es un dato no confiable: cada caja debe caber en la captura, tener un
+        tamaño de control y contenido, y cada control propuesto debe reencontrarse sin
+        ambigüedad. Si algo falla, el perfil activo queda intacto y se devuelven los motivos.
+        """
+        height, width = image.shape[:2]
+        candidate = replace(self.profile, templates=dict(self.profile.templates))
+        problems: list[str] = []
+        proposed = [
+            (control, box)
+            for control, box in (
+                ("continue", analysis.continue_button),
+                ("spin", analysis.spin_button),
+                ("bet_down", analysis.bet_decrease_button),
+                ("bet_up", analysis.bet_increase_button),
+            )
+            if box is not None
+        ]
+        for control, box in proposed:
+            if problem := _control_box_problem(box, width, height):
+                problems.append(f"{control}: {problem}")
+                continue
+            template = control_template(image, box.as_tuple())
+            if float(np.std(template)) < _MIN_TEMPLATE_STD:
+                problems.append(f"{control}: el recorte no tiene contenido")
+                continue
+            candidate.templates[control] = template
+        candidate.credit_label = analysis.credit_label or candidate.credit_label
+        candidate.bet_label = analysis.bet_label or candidate.bet_label
+        candidate.win_label = analysis.win_label or candidate.win_label
+        if (area := analysis.reels_area) is not None:
+            x, y, w, h = area.as_tuple()
+            if x + w > width or y + h > height:
+                problems.append("zona de rodillos fuera de la captura")
+            else:
+                candidate.reels_area = (x / width, y / height, (x + w) / width, (y + h) / height)
+        if not problems:
+            problems = self._adopt_if_relocatable(candidate, [c for c, _ in proposed], image)
+        return problems
+
+    def _adopt_if_relocatable(
+        self, candidate: GameProfile, controls: list[str], image: Image
+    ) -> list[str]:
+        """Adopta el candidato solo si cada control propuesto se reencuentra sin ambigüedad."""
+        previous, self.profile = self.profile, candidate
+        lost = [control for control in controls if self.locate(control, image) is None]
+        if lost:
+            self.profile = previous
+            return [f"{control}: no se reencuentra sin ambigüedad" for control in lost]
+        return []
 
     def remember_hud_positions(self, hud: HudReading, image: Image) -> None:
         """Guarda dónde se leyeron crédito y apuesta (solo con lecturas ya validadas)."""
@@ -432,6 +474,18 @@ def control_template(image: Image, box: tuple[int, int, int, int]) -> Image:
 def _overlap(a: TemplateMatch, b: TemplateMatch) -> bool:
     (ax, ay), (bx, by) = a.center, b.center
     return abs(ax - bx) < max(a.width, b.width) / 2 and abs(ay - by) < max(a.height, b.height) / 2
+
+
+def _control_box_problem(box: Box, width: int, height: int) -> str | None:
+    """Una caja de control válida: dentro de la captura y del tamaño de un botón."""
+    x, y, w, h = box.as_tuple()
+    if x + w > width or y + h > height:
+        return "caja fuera de la captura"
+    if min(w, h) < _MIN_CONTROL_PX:
+        return "caja demasiado pequeña"
+    if w * h > _MAX_CONTROL_SHARE * width * height:
+        return "caja demasiado grande para ser un botón"
+    return None
 
 
 def same_reading(a: HudReading, b: HudReading) -> bool:

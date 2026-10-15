@@ -190,7 +190,8 @@ def _analyze(
     game.evidence.save_image(name, image)
     analysis = model.learner.analyze(image, model=model_name)
     game.evidence.save_json(f"{name}_{model_name}", analysis.model_dump())
-    model.apply(analysis, image)
+    if problems := model.apply(analysis, image):
+        raise LearningError(f"Propuesta de la IA no válida: {'; '.join(problems)}")
     return analysis
 
 
