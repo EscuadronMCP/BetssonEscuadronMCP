@@ -42,11 +42,14 @@ Datos:   reports/<fecha>-<proceso>-run/report.json
 
 El programa termina con código **0 si todo es PASS** y **1 si algo es FAIL** (útil en automatización).
 
+> 🧪 **Cada informe incluye, por defecto, una prueba que falla a propósito.** Sobre lo observado de verdad en el escenario 1 se vuelve a evaluar con el saldo final de Betsson desviado 0,01 €, sin apostar más. Así se ve en cualquier ejecución cómo detecta y documenta el validador un fallo de dinero: FAIL, motivo y qué dijo cada testigo. Aparece en su propia sección y **no cuenta** en el resultado ni en el código de salida. Se desactiva con `--no-demo-fault`.
+
 | Quiero… | Comando |
 |---|---|
 | Los dos escenarios con el juego por defecto (Sweet Bonanza 2500) | `uv run python -m betsson_validator run` |
 | Otro juego ya aprendido (p. ej. Big Bass Halloween Splash 1000) | `uv run python -m betsson_validator run --game big-bass-halloween-splash-1000` |
-| **Ver cómo se ve un FALLO** (provocado a propósito, sin apostar más) | `uv run python -m betsson_validator run --inject-fault insufficient_balance` |
+| Provocar el fallo **dentro** de un escenario real (lo marca FAIL y lo anuncia) | `uv run python -m betsson_validator run --inject-fault insufficient_balance` |
+| Sin la prueba que falla a propósito | `… run --no-demo-fault` |
 | Solo un escenario | `… run --scenario completed_spin` o `… run --scenario insufficient_balance` |
 | Ver el navegador mientras trabaja | `… run --headed` |
 | Grabar también un vídeo | `… run --video` |
@@ -73,7 +76,8 @@ En **Actions → «Validación de juegos» → Run workflow**, elige el escenari
   - la **regla del dinero** como ecuación y el mensaje de saldo insuficiente destacado;
   - la **gráfica del movimiento** de los rodillos, la cronología de la ejecución y los eventos del juego;
   - el detalle de cada comprobación y los enlaces a las evidencias: traza, eventos, tráfico sin tokens y resumen en JSON.
-- **Si algo falla:** el motivo y una captura de la pantalla en ese momento.
+- **La prueba que falla a propósito**, con su FAIL detectado, el motivo y la cuadrícula de testigos.
+- **Si algo falla de verdad:** el motivo y una captura de la pantalla en ese momento.
 
 ---
 
@@ -183,7 +187,7 @@ Se ejecuta **desde el repositorio** con `uv` (instrucciones de la sección 1). N
 | **Informe gráfico** con valores por testigo, ecuación del dinero, gráfica del giro y cronología | Se entiende sin conocer el proyecto y deja ver cada dato | `report/` y carpeta `mentores/` |
 | **Seguridad de evidencias** | Escáner de texto, zip y OCR de capturas; informe final auditado | `src/betsson_validator/security.py` |
 | **Salvaguardas de dinero real** | Condiciones previas por escenario, cerrojo por cuenta, sin repetir tiradas | `scenarios/preconditions.py`, `locks.py` |
-| **Fallo intencionado de demostración** | Enseña cómo se detecta y documenta un fallo, sin apostar más | `scenarios/faults.py` |
+| **Prueba que falla a propósito en cada informe** | Enseña cómo se detecta y documenta un fallo de dinero, sin apostar más ni alterar el veredicto | `scenarios/faults.py` |
 | **Sonda de accesibilidad** (`--ax-probe`) | Mide si el juego expone semántica (resultado: árbol vacío) | `game/accessibility.py` |
 
 ### Calidad
