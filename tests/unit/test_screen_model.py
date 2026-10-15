@@ -53,7 +53,6 @@ REAL_ANALYSIS = ScreenAnalysis(
     credit_label="CRÉDITO",
     bet_label="APUESTA",
     win_label="GANANCIA",
-    message_text=None,
 )
 
 

@@ -66,6 +66,8 @@ class MarketUi(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     login_button: str
+    # Botón de la cabecera con el saldo del jugador (expresión regular, formato del mercado).
+    balance_pattern: str
     passkey_dismiss: str
     filters_button: str
     results_button: str
@@ -88,6 +90,9 @@ class MarketConfig(BaseModel):
     base_url: HttpUrl
     language: str = Field(min_length=2, max_length=2)
     currency: str = Field(min_length=3, max_length=3)
+    # Lo que ve un jugador local: idioma del navegador y zona horaria.
+    locale: str = "es-ES"
+    timezone: str = "Europe/Madrid"
     accounts: MarketAccounts
     ui: MarketUi
 

@@ -60,9 +60,6 @@ class ScreenAnalysis(BaseModel):
     win_label: str | None = Field(
         description="Texto exacto de la etiqueta junto al premio, si se ve (p. ej. 'GANANCIA')."
     )
-    message_text: str | None = Field(
-        description="Texto completo de cualquier mensaje o diálogo superpuesto, si lo hay."
-    )
 
 
 class ScreenLearner(Protocol):
@@ -100,7 +97,6 @@ class ClaudeScreenLearner:
         self._model = model
         self._cost_usd = 0.0
         self._lock = threading.Lock()  # los escenarios corren en paralelo y comparten el aprendiz
-        self.calls: list[dict[str, object]] = []
 
     @property
     def cost_usd(self) -> float:
@@ -139,14 +135,6 @@ class ClaudeScreenLearner:
         ) / 1_000_000
         with self._lock:
             self._cost_usd += cost
-            self.calls.append(
-                {
-                    "model": used,
-                    "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens,
-                    "cost_usd": round(cost, 6),
-                }
-            )
         if response.stop_reason == "refusal" or response.parsed_output is None:
             raise LearnerError(f"La IA no devolvió un análisis válido ({response.stop_reason}).")
         return response.parsed_output

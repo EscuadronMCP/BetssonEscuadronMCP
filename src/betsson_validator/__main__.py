@@ -70,17 +70,20 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 def _context(args: argparse.Namespace, out_dir: Path) -> RunContext:
     provider = load_provider(args.provider)
+    market = load_market(args.market)
     learner: ScreenLearner | None = (
         ClaudeScreenLearner() if os.getenv("ANTHROPIC_API_KEY") else None
     )
     return RunContext(
-        market=load_market(args.market),
+        market=market,
         provider=provider,
         game=args.game or provider.game_slug,
         settings=BrowserSettings(
             headless=not args.headed,
             channel=None if args.channel == "chromium" else args.channel,
             record_video=getattr(args, "video", False),
+            locale=market.locale,
+            timezone=market.timezone,
         ),
         reader=RapidOcrReader(),
         out_dir=out_dir,

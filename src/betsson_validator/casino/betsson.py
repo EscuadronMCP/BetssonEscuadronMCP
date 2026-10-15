@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-from playwright.sync_api import FrameLocator, Locator, Page
+from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from betsson_validator.config.market import Credentials, MarketConfig
@@ -21,7 +21,6 @@ _AUTH_ENDPOINT = "/api/v2/authentication-transaction"
 _LOGIN_OK = 201
 _LOGIN_THROTTLED = 400
 _LOGIN_RETRY_WAIT_MS = 60_000
-_BALANCE_BUTTON = re.compile(r"^\s*\d[\d.\s]*,\d{2}\s*€\s*$")
 GAME_FRAME_SELECTOR = "iframe[src*='Gamelauncher']"
 # Difumina los campos de login para que las credenciales no salgan en el vídeo.
 _HIDE_LOGIN_FIELDS_CSS = (
@@ -59,8 +58,6 @@ class GameHandle:
     """Juego lanzado: el iframe (para capturas y clics) y su contenido."""
 
     iframe: Locator
-    frame: FrameLocator
-    url: str
 
 
 class BetssonCasino:
@@ -147,7 +144,7 @@ class BetssonCasino:
             dismiss.dispatch_event("click")  # el diálogo sigue animándose: clic directo
 
     def balance_locator(self) -> Locator:
-        return self._page.get_by_role("button", name=_BALANCE_BUTTON).first
+        return self._page.get_by_role("button", name=re.compile(self._ui.balance_pattern)).first
 
     def capture_balance(self, path: Path) -> Path:
         """Recorte de la cabecera alrededor del saldo, tal y como lo ve el jugador."""
@@ -216,8 +213,6 @@ class BetssonCasino:
         iframe.wait_for(timeout=provider.game_load_timeout_s * 1000)
         return GameHandle(
             iframe=iframe,
-            frame=self._page.frame_locator(GAME_FRAME_SELECTOR),
-            url=self._page.url,
         )
 
     def _filter_by_provider(self, label: str) -> None:

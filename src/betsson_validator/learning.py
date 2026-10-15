@@ -22,6 +22,7 @@ from betsson_validator.game.player import (
     ScreenGame,
     ScreenModel,
     control_template,
+    is_still,
 )
 from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
 from betsson_validator.perception.motion import motion_score
@@ -30,7 +31,6 @@ from betsson_validator.runner import RunContext
 from betsson_validator.security import audit_and_quarantine, scrub_trace
 
 _LOADING_TIMEOUT_S = 150
-_STILL_SCORE = 0.01
 _STILL_SAMPLES = 3
 _MIN_LOADING_S = 15
 _MAX_LOADING_S = 45
@@ -202,7 +202,7 @@ def _wait_until_loaded(game: ScreenGame) -> Image:
     while time.monotonic() - start < _LOADING_TIMEOUT_S:
         game.page.wait_for_timeout(1000)
         current = game.capture()
-        moving = previous.shape != current.shape or motion_score(previous, current) >= _STILL_SCORE
+        moving = not is_still(previous, current)
         still = 0 if moving else still + 1
         previous = current
         elapsed = time.monotonic() - start

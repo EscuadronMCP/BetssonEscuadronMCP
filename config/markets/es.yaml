@@ -4,6 +4,8 @@ id: es
 base_url: https://www.betsson.es
 language: es
 currency: EUR
+locale: es-ES
+timezone: Europe/Madrid
 accounts:
   funded:
     email_env: BETSSON_ES_FUNDED_EMAIL
@@ -14,6 +16,8 @@ accounts:
 ui:
   # Textos de la interfaz de betsson.es (comprobados el 15/10, ver docs/betsson-es-flujo.md).
   login_button: Iniciar sesión
+  # Saldo en la cabecera, p. ej. "193,59 €".
+  balance_pattern: "^\\s*\\d[\\d.\\s]*,\\d{2}\\s*€\\s*$"
   passkey_dismiss: Cancelar
   filters_button: Filtros
   results_button: Resultados

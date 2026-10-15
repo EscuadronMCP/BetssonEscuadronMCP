@@ -283,7 +283,7 @@ class ScreenGame:
             hud, boxes = self.model.read(image)
             if hud.credit is not None and hud.bet is not None:
                 return self._observation("juego_listo", image, hud, boxes, save=False)
-            still = still + 1 if previous is not None and _is_still(previous, image) else 0
+            still = still + 1 if previous is not None and is_still(previous, image) else 0
             previous = image
             point = self.model.locate("continue", image)
             if point is not None:
@@ -429,5 +429,6 @@ def _overlap(a: TemplateMatch, b: TemplateMatch) -> bool:
     return abs(ax - bx) < max(a.width, b.width) / 2 and abs(ay - by) < max(a.height, b.height) / 2
 
 
-def _is_still(previous: Image, current: Image) -> bool:
+def is_still(previous: Image, current: Image) -> bool:
+    """Dos capturas prácticamente iguales (la pantalla no cambia)."""
     return previous.shape == current.shape and motion_score(previous, current) < _STILL_SCORE
