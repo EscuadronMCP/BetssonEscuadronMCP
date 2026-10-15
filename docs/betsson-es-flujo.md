@@ -24,7 +24,7 @@ Cómo es la web por dentro, comprobado con Playwright. Base para automatizar la 
 Antes de jugar a tragaperras, la web exige abrir una **sesión de juego**:
 1. Puede salir un aviso "Atención — Hace menos de 60 mins. que finalizaste tu sesión de juego" → botón "Iniciar sesión".
 2. Diálogo de límites: **tiempo de juego** (15 Min, 30 Min, 1 Hora, …) y **límite de pérdidas** (campo con placeholder "Introduce el límite de pérdidas", en EUR) → botón "Iniciar sesión".
-- **Usamos 15 min y límite de pérdidas de 1 €**: así ninguna ejecución puede perder más de 1 € aunque algo falle.
+- **Usamos 5 Horas y el botón 100 %** del saldo (indicación del equipo, conforme a la normativa). Es configurable en `config/markets/es.yaml`. Al no haber tope bajo de pérdidas, la protección es hacer una sola tirada con la apuesta mínima.
 
 ## 5. El juego
 - Iframe de Betsson: `/api/v1/Gamelauncher/?gameId=pragmaticPlaySweetBonanza2500&…&marketCode=es&forReal=true` (`forReal=true` = Real Play).
