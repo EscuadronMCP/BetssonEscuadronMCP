@@ -182,3 +182,12 @@ def test_real_spin_with_residual_glow_completes() -> None:
     assert lifecycle.started
     assert lifecycle.completed
     assert 39 <= (lifecycle.end_index or 0) <= 44
+
+
+def test_isolated_flashes_separated_by_rests_are_not_a_spin() -> None:
+    """Auditoría R02 (MOV-003): destellos sueltos no se acumulan como un giro."""
+    rest = [0.0] * 5
+    flashes = [0.3, *rest, 0.3, *rest, 0.3, *rest]
+    lifecycle = detect_spin_lifecycle(flashes)
+    assert not lifecycle.completed
+    assert not lifecycle.started

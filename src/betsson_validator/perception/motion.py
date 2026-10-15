@@ -91,24 +91,30 @@ class SpinLifecycle:
 def detect_spin_lifecycle(
     scores: Iterable[float], thresholds: MotionThresholds = DEFAULT_THRESHOLDS
 ) -> SpinLifecycle:
-    """Analiza la serie de actividad visual y localiza inicio y fin del giro."""
+    """Analiza la serie de actividad visual y localiza inicio y fin del giro.
+
+    La actividad debe ser seguida: si tras un destello llega un reposo completo sin haber
+    alcanzado la actividad mínima, era un parpadeo y se descarta (varios destellos sueltos
+    separados por reposos no suman un giro).
+    """
     start_index: int | None = None
     active = 0
     still_run = 0
     peak = 0.0
     for index, score in enumerate(scores):
-        peak = max(peak, score)
         if start_index is None:
             if score >= thresholds.start:
-                start_index = index
-                active = 1
+                start_index, active, still_run, peak = index, 1, 0, score
             continue
+        peak = max(peak, score)
         if score >= thresholds.start:
             active += 1
         if score <= max(thresholds.still, peak * thresholds.relative_still):
             still_run += 1
-            if still_run >= thresholds.still_samples and active >= thresholds.min_active_samples:
-                return SpinLifecycle(True, True, start_index, index, peak)
+            if still_run >= thresholds.still_samples:
+                if active >= thresholds.min_active_samples:
+                    return SpinLifecycle(True, True, start_index, index, peak)
+                start_index, active, still_run, peak = None, 0, 0, 0.0  # fue un parpadeo
         else:
             still_run = 0
     started = start_index is not None and active >= thresholds.min_active_samples
