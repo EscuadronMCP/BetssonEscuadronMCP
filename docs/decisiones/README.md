@@ -15,3 +15,9 @@ Plantilla:
 ## Decisión
 ## Consecuencias
 ```
+
+## Índice
+
+| Nº | Decisión | Estado |
+|---|---|---|
+| 001 | [Enfoque: testigos independientes con perfiles aprendidos](001-enfoque-testigos-y-perfiles.md) | aceptada |

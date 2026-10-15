@@ -18,7 +18,17 @@ Normas obligatorias para cualquier sesión de Claude Code en este repositorio. T
 - **Entregables:** (1) código en GitHub con configuración por mercado y sin secretos; (2) workflow de **GitHub Actions** que ejecuta ambos escenarios una vez por mercado (ahora solo betsson.es) y publica el informe; (3) informe con PASS/FAIL por comprobación, escenario y mercado, con capturas, traza o vídeo; (4) presentación de 7 min (solo finalistas).
 - **Evaluación (100 + 10 bonus):** escenarios funcionan 30 · "ve como un jugador" 20 · código y arquitectura 15 · informe y evidencias 15 · workflow de GitHub 10 · demo 10.
 
-**El equipo decide el enfoque técnico.** No se da por supuesta ninguna solución: cualquier decisión de enfoque o tecnología pasa por la sección 1 y se registra en `docs/decisiones/`.
+### Enfoque aceptado
+**Testigos independientes con perfiles aprendidos, en Python** ([`docs/decisiones/001-enfoque-testigos-y-perfiles.md`](docs/decisiones/001-enfoque-testigos-y-perfiles.md)). Cada hecho se confirma con varias fuentes (pantalla del juego, saldo e historial de Betsson, red del juego); la pantalla es obligatoria para un PASS y cualquier discrepancia es FAIL. El juego se lee con perfiles por proveedor que una IA genera una vez y que luego se ejecutan de forma determinista. Todo lo que implementes debe encajar con esta decisión; la hoja de ruta por etapas está en `docs/ESTADO.md`.
+
+### Rumbo y cambios de rumbo (obligatorio)
+Cualquier compañero que haga pull debe poder saber, con su IA, por dónde se va y hacia dónde. Por eso:
+- Si **pivotas**, encuentras un **error de enfoque** o crees que **es mejor ir por otro lado**: no lo implementes en silencio. Proponlo al usuario y, si se acepta, en el **mismo commit**:
+  1. Crea una ADR nueva en `docs/decisiones/` y marca la anterior como "sustituida por NNN".
+  2. Añade una fila a "Cambios de rumbo" en `docs/ESTADO.md` (fecha, cambio, motivo, enlace a la ADR).
+  3. Actualiza el apartado "Enfoque" del `README.md` y este apartado "Enfoque aceptado".
+- Los **errores o limitaciones** que descubras (p. ej. un testigo que no funciona, una API distinta de lo esperado) van a "Problemas conocidos" de `docs/ESTADO.md` aunque no cambien el rumbo.
+- Al cerrar una etapa de la hoja de ruta, márcala en `docs/ESTADO.md`.
 
 ## 1. Investigar antes de implementar (obligatorio)
 
