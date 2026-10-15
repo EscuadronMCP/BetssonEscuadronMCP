@@ -28,7 +28,7 @@ _HIDE_LOGIN_FIELDS_CSS = (
 _BALANCE_SETTLE_MS = 2000
 _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
-_FILTER_PANEL_SETTLE_MS = 3000
+_FILTER_RESULTS_TIMEOUT_MS = 8000
 _LOBBY_MAX_SCROLLS = 80
 _SESSION_TIMEOUT_S = 90
 _CLICK_TIMEOUT_MS = 5000
@@ -178,16 +178,7 @@ class BetssonCasino:
         self._page.goto(
             self._url("/casino"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
         )
-        self._page.get_by_role("button", name=self._ui.filters_button).click()
-        # La web recuerda los filtros de la cuenta: se limpian para que pulsar el chip lo active.
-        clear = self._page.get_by_role("button", name=self._ui.clear_filters_button, exact=True)
-        try:
-            clear.first.wait_for(timeout=_FILTER_PANEL_SETTLE_MS)
-            clear.first.click(timeout=_CLICK_TIMEOUT_MS)
-        except PlaywrightTimeoutError:
-            pass  # no había filtros activos
-        self._page.get_by_text(provider.filter_label, exact=True).first.click()
-        self._page.get_by_role("button", name=self._ui.results_button).first.click()
+        self._filter_by_provider(provider.filter_label)
         self._find_in_lobby(game, provider.filter_label).click()
         self._start_game_session()
         iframe = self._page.locator(_GAME_IFRAME)
@@ -197,6 +188,32 @@ class BetssonCasino:
             frame=self._page.frame_locator(_GAME_IFRAME),
             url=self._page.url,
         )
+
+    def _filter_by_provider(self, label: str) -> None:
+        """Filtros → chip del proveedor → Resultados, sin depender de cuánto tarde el panel.
+
+        La web recuerda los filtros de la cuenta: si el proveedor ya estaba activo, pulsar su
+        chip lo DESactiva y desaparece "Resultados". Por eso: se espera a que el panel cargue,
+        se limpia si hay filtros, y si tras pulsar el chip no aparece "Resultados", se vuelve a
+        pulsar (había quedado desactivado).
+        """
+        page = self._page
+        page.get_by_role("button", name=self._ui.filters_button).click()
+        chip = page.get_by_text(label, exact=True).first
+        chip.wait_for(timeout=_NAVIGATION_TIMEOUT_MS)
+        clear = page.get_by_role("button", name=self._ui.clear_filters_button, exact=True).first
+        if clear.is_visible():
+            clear.click(timeout=_CLICK_TIMEOUT_MS)
+        results = page.get_by_role("button", name=self._ui.results_button).first
+        for _ in range(2):
+            chip.click(timeout=_CLICK_TIMEOUT_MS)
+            try:
+                results.wait_for(timeout=_FILTER_RESULTS_TIMEOUT_MS)
+            except PlaywrightTimeoutError:
+                continue  # el chip quedó desactivado: se vuelve a pulsar
+            results.click(timeout=_CLICK_TIMEOUT_MS)
+            return
+        raise CasinoError(f"No se pudo filtrar el lobby por el proveedor '{label}'.")
 
     def _find_in_lobby(self, slug: str, provider_label: str) -> Locator:
         """El listado carga los juegos al bajar: se baja hasta que aparece, como un jugador."""
