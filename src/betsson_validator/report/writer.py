@@ -348,7 +348,7 @@ th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px sol
 .cell.none { color:var(--muted); text-align:center; }
 .cell small { display:block; font-weight:500; font-size:11px; opacity:.8; }
 .badge { display:inline-block; padding:1px 10px; border-radius:999px; font-weight:700;
-  font-size:13px; color:#fff; }
+  font-size:13px; color:#fff; white-space:nowrap; }
 .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
 .equation { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-top:12px;
   padding:10px 14px; border-radius:10px; font-size:17px; }
@@ -387,5 +387,12 @@ a { color:var(--accent); }
   background:var(--na-bg); border-radius:0 10px 10px 0; font-size:17px; }
 .message small { display:block; color:var(--muted); font-size:12px; margin-top:6px; }
 @media (max-width:700px) { .timeline { columns:1; } }
-@media print { body { background:#fff; } .panel, .kpi, figure { break-inside:avoid; } }
+@media print {
+  body { background:#fff; font-size:12px; } main { padding:0; }
+  .panel, .kpi, figure, tr { break-inside:avoid; }
+  .scroll { overflow:visible; }
+  .grid th, .grid td, .values th, .values td { white-space:normal; font-size:10.5px; padding:5px; }
+  .grid th.check { min-width:0; }
+  .evidence img { max-width:140px; }
+}
 """

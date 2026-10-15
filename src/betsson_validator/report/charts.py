@@ -55,9 +55,20 @@ def motion_chart(
         f"<title>Captura {i + 1}: actividad {_fmt(v)}</title></circle>"
         for i, v in enumerate(scores)
     )
+
+    def mark(index: int, label: str) -> str:
+        # Cerca del borde derecho, el rótulo va a la izquierda de la línea para no salirse.
+        near_edge = x(index) > _WIDTH - _RIGHT - 60
+        anchor, dx = ("end", -4) if near_edge else ("start", 4)
+        return (
+            f'<line class="mark" x1="{x(index):.1f}" x2="{x(index):.1f}" '
+            f'y1="{_TOP}" y2="{_TOP + plot_h}"/>'
+            f'<text class="axis" x="{x(index) + dx:.1f}" y="{_TOP + 12}" '
+            f'text-anchor="{anchor}">{escape(label)}</text>'
+        )
+
     marks = "".join(
-        f'<line class="mark" x1="{x(i):.1f}" x2="{x(i):.1f}" y1="{_TOP}" y2="{_TOP + plot_h}"/>'
-        f'<text class="axis mark-label" x="{x(i) + 4:.1f}" y="{_TOP + 12}">{escape(label)}</text>'
+        mark(i, label)
         for i, label in ((start_index, "inicio"), (end_index, "fin"))
         if i is not None and 0 <= i < len(scores)
     )
