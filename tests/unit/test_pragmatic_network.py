@@ -92,26 +92,47 @@ def test_malformed_amounts_are_ignored_not_crashing() -> None:
     assert spin.declared_win is None
 
 
-def test_game_service_traffic_is_attributed_to_the_game_frame() -> None:
-    """Auditoría R02 (NET-001/002): el texto "gameService" en la URL no basta."""
+def test_another_iframe_calling_its_own_server_is_not_game_traffic() -> None:
+    """Auditoría R03-05: solo cuenta el tráfico del marco del juego y sus descendientes."""
     from types import SimpleNamespace  # noqa: PLC0415
     from typing import Any, cast  # noqa: PLC0415
 
-    from betsson_validator.providers.pragmatic.recorder import _foreign_reason  # noqa: PLC0415
+    from betsson_validator.providers.pragmatic.recorder import GameServiceRecorder  # noqa: PLC0415
+
+    class Context:
+        def on(self, _event: str, _handler: object) -> None:
+            return None
 
     casino = SimpleNamespace(parent_frame=None, url="https://www.betsson.es/casino")
     game = SimpleNamespace(parent_frame=casino, url="https://a.proveedor.net/gs2c/playGame.do")
-    other = SimpleNamespace(parent_frame=casino, url="https://anuncios.example/frame")
+    nested = SimpleNamespace(parent_frame=game, url="about:blank")
+    ads = SimpleNamespace(parent_frame=casino, url="https://ads.unrelated.test/frame")
 
-    def response(frame: object, url: str) -> Any:
-        return cast(Any, SimpleNamespace(request=SimpleNamespace(frame=frame), url=url))
+    def response(frame: object, request: str, body: str) -> Any:
+        return cast(
+            Any,
+            SimpleNamespace(
+                url="https://api.cualquiera.test/gs2c/ge/v4/gameService",
+                ok=True,
+                request=SimpleNamespace(frame=frame, post_data=request),
+                text=lambda: body,
+            ),
+        )
 
-    blank = SimpleNamespace(parent_frame=game, url="about:blank")
-    server = "https://b.proveedor.net/gs2c/ge/v4/gameService"
-    assert _foreign_reason(response(game, server)) is None
-    assert _foreign_reason(response(blank, server)) is None  # hereda el sitio del juego
-    assert _foreign_reason(response(casino, server)) is not None
-    assert _foreign_reason(response(other, server)) is not None
+    recorder = GameServiceRecorder(cast(Any, Context()))
+    recorder._on_response(response(game, "action=doInit", "balance=10.00&na=s"))
+    recorder._on_response(response(ads, "action=doInit", "balance=99.00&na=s"))
+    recorder._on_response(response(casino, "action=doInit", "balance=99.00&na=s"))
+    recorder.bind(cast(Any, game))
+    mark = recorder.mark()
+    spin = "balance=9.80&c=0.01&l=20&tw=0.00&na=s"
+    recorder._on_response(response(ads, "action=doSpin&c=0.05&l=20", spin))
+    recorder._on_response(response(nested, "action=doSpin&c=0.01&l=20", spin))
+    summary = recorder.summarize(mark, "")
+    assert summary.balance_before == Decimal("10.00")
+    assert summary.wager_accepted == Decimal("0.20")
+    assert summary.observed_calls == 2
+    assert len(recorder.ignored) == 3
 
 
 def test_http_error_is_not_proof_of_a_rejected_wager() -> None:

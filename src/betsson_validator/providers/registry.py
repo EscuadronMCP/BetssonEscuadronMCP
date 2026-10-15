@@ -7,7 +7,7 @@ el ejecutor no conoce a ningún proveedor concreto.
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
-from playwright.sync_api import BrowserContext
+from playwright.sync_api import BrowserContext, Frame
 
 from betsson_validator.providers.pragmatic.events import loading_finished, summarize_events
 from betsson_validator.providers.pragmatic.recorder import GameServiceRecorder
@@ -16,6 +16,8 @@ from betsson_validator.scenarios.evidence import GameEventsSummary, NetworkSumma
 
 class NetworkWitness(Protocol):
     """Observa el tráfico del juego con su servidor, sin modificarlo."""
+
+    def bind(self, game_frame: Frame) -> None: ...
 
     def mark(self) -> int: ...
 

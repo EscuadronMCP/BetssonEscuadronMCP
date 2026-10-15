@@ -1,12 +1,13 @@
 """Graba el tráfico gameService del juego sin modificarlo (observación pasiva).
 
-Solo cuenta el tráfico que el propio juego pide a su servidor: peticiones hechas desde un marco
-incrustado (no la página del casino) del mismo sitio que el servidor (p. ej. el juego en
-`a.proveedor.net` y su servidor en `b.proveedor.net`). También se lleva la salud de la captura:
-respuestas ilegibles y tráfico descartado, con el motivo, para poder diagnosticarlo.
+Solo cuenta el tráfico que pide el propio juego: en cuanto el juego está abierto, el grabador se
+vincula a su marco (`bind`) y desde entonces solo admite peticiones de ese marco o de sus
+descendientes; lo grabado antes de vincularlo se filtra igual. La página del casino, otros
+marcos (anuncios, antifraude) o un service worker no son el juego. También lleva la salud de la
+captura: respuestas ilegibles y tráfico descartado, con el motivo, para poder diagnosticarlo.
 """
 
-from urllib.parse import urlsplit
+from dataclasses import dataclass
 
 from playwright.sync_api import BrowserContext, Frame, Response
 
@@ -21,21 +22,40 @@ from betsson_validator.providers.pragmatic.network import (
 from betsson_validator.scenarios.evidence import NetworkSummary
 
 
+@dataclass(frozen=True)
+class _Entry:
+    frame: Frame
+    call: GameServiceCall | None  # None: respuesta ilegible (error HTTP, vacía, otro esquema)
+    redacted: dict[str, str]
+
+
 class GameServiceRecorder:
     def __init__(self, context: BrowserContext) -> None:
-        self._calls: list[GameServiceCall] = []
-        self._redacted: list[dict[str, str]] = []
-        # Posición (número de llamadas ya grabadas) de cada respuesta que no se pudo leer.
-        self._unreadable_at: list[int] = []
+        self._entries: list[_Entry] = []
+        self._game_frame: Frame | None = None
         self.ignored: list[str] = []  # motivo de cada respuesta gameService descartada
         context.on("response", self._on_response)
+
+    def bind(self, game_frame: Frame) -> None:
+        """Vincula el grabador al marco del juego y descarta lo que no venía de él."""
+        self._game_frame = game_frame
+        kept = [entry for entry in self._entries if _within(entry.frame, game_frame)]
+        self.ignored += ["no venía del marco del juego"] * (len(self._entries) - len(kept))
+        self._entries = kept
 
     def _on_response(self, response: Response) -> None:
         if GAME_SERVICE_PATH not in response.url:
             return
-        reason = _foreign_reason(response)
-        if reason is not None:
-            self.ignored.append(reason)
+        try:
+            frame = response.request.frame
+        except Exception:  # p. ej. una petición de un service worker: no es del juego
+            self.ignored.append("sin marco de origen")
+            return
+        if frame.parent_frame is None:
+            self.ignored.append("pedida por la página del casino, no por el juego")
+            return
+        if self._game_frame is not None and not _within(frame, self._game_frame):
+            self.ignored.append("no venía del marco del juego")
             return
         try:
             request_body = response.request.post_data or ""
@@ -43,27 +63,26 @@ class GameServiceRecorder:
         except Exception:  # una respuesta ilegible no debe tumbar la prueba, pero se anota
             response_body = ""
         call = GameServiceCall.from_bodies(request_body, response_body)
-        if not call.response or "balance" not in call.response:
-            # Error HTTP, cuerpo vacío o sin el esquema del juego: no prueba nada.
-            self._unreadable_at.append(len(self._calls))
-            return
-        self._calls.append(call)
-        self._redacted.append({"request": redact(request_body), "response": redact(response_body)})
+        readable = bool(call.response) and "balance" in call.response
+        redacted = {"request": redact(request_body), "response": redact(response_body)}
+        self._entries.append(_Entry(frame, call if readable else None, redacted))
 
     def mark(self) -> int:
         """Posición actual: permite quedarse solo con las llamadas posteriores a un momento."""
-        return len(self._calls)
+        return len(self._entries)
 
     def redacted_log(self) -> list[dict[str, str]]:
         """Tráfico sin tokens de sesión, apto para guardarse como evidencia."""
         ignored = [{"descartado": reason} for reason in self.ignored]
-        return [*self._redacted, *ignored]
+        return [*(entry.redacted for entry in self._entries), *ignored]
 
     def summarize(self, mark: int, evidence: str) -> NetworkSummary:
         """Lo que dijo el servidor sobre la tirada que empezó en `mark`."""
-        before, during = self._calls[:mark], self._calls[mark:]
-        observed = len(self._calls)
-        unreadable = sum(1 for at in self._unreadable_at if at >= mark)
+        before = [e.call for e in self._entries[:mark] if e.call is not None]
+        during_entries = self._entries[mark:]
+        during = [e.call for e in during_entries if e.call is not None]
+        observed = sum(1 for e in self._entries if e.call is not None)
+        unreadable = sum(1 for e in during_entries if e.call is None)
         try:
             spin = summarize_round(during)
         except NoSpinObservedError:
@@ -87,33 +106,11 @@ class GameServiceRecorder:
         )
 
 
-def _site(url: str) -> str:
-    """Dominio registrable aproximado (las dos últimas etiquetas): a.x.net y b.x.net comparten."""
-    parts = urlsplit(url)
-    if parts.scheme not in {"http", "https"}:
-        return ""
-    return ".".join((parts.hostname or "").split(".")[-2:])
-
-
-def _foreign_reason(response: Response) -> str | None:
-    """None si la pidió el juego; si no, el motivo (sin URL completa: puede llevar tokens)."""
-    try:
-        frame = response.request.frame
-    except Exception:  # p. ej. una petición de un service worker
-        return "sin marco de origen"
-    if frame.parent_frame is None:
-        return "pedida por la página del casino, no por el juego"
-    site = _frame_site(frame)
-    if site != _site(response.url):
-        return f"marco de {site or 'origen desconocido'} distinto del servidor"
-    return None
-
-
-def _frame_site(frame: Frame) -> str:
-    """Sitio del marco; uno sin URL propia (about:blank) hereda el de quien lo creó."""
-    current: Frame | None = frame
+def _within(frame: Frame | None, root: Frame) -> bool:
+    """El marco es el del juego o uno de sus descendientes."""
+    current = frame
     while current is not None:
-        if site := _site(current.url):
-            return site
+        if current == root:
+            return True
         current = current.parent_frame
-    return ""
+    return False

@@ -91,6 +91,20 @@ class GameEventRecorder:
         return int(page.evaluate("window.__gameEventsDropped || 0"))
 
 
+def authorized_events(
+    events: list[GameEvent], origins: frozenset[str]
+) -> tuple[list[GameEvent], list[GameEvent]]:
+    """Separa los eventos de los orígenes del juego de los de cualquier otro origen.
+
+    Sin orígenes conocidos (no se pudo leer el árbol de marcos) no se descarta nada: la ventana
+    emisora ya está atribuida al marco del juego por el oyente.
+    """
+    if not origins:
+        return events, []
+    kept = [event for event in events if event.get("origin") in origins]
+    return kept, [event for event in events if event.get("origin") not in origins]
+
+
 def capture_anomalies(events: list[GameEvent], dropped: int) -> tuple[str, ...]:
     """Problemas de la captura en sí, independientes del proveedor."""
     found: list[str] = []

@@ -204,3 +204,15 @@ def test_capture_problems_are_reported_as_anomalies() -> None:
     assert any("orígenes distintos" in a for a in found)
     assert any("3 eventos descartados" in a for a in found)
     assert capture_anomalies(events[:1], dropped=0) == ()
+
+
+def test_events_from_an_unauthorized_origin_do_not_count() -> None:
+    """Auditoría R03-09: si el marco navega a otro origen, sus mensajes no son del juego."""
+    from betsson_validator.game.events import authorized_events  # noqa: PLC0415
+
+    game = {"seq": 0, "origin": "https://a.proveedor.net", "data": {"name": "gameRoundEnded"}}
+    other = {"seq": 1, "origin": "https://unrelated.test", "data": {"name": "gameRoundEnded"}}
+    kept, foreign = authorized_events([game, other], frozenset({"https://a.proveedor.net"}))
+    assert kept == [game]
+    assert foreign == [other]
+    assert authorized_events([other], frozenset()) == ([other], [])

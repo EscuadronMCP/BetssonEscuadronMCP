@@ -12,6 +12,10 @@ from contextlib import suppress
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
+
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import Frame
 
 from betsson_validator.browser import BrowserSettings, browser_context, tracing
 from betsson_validator.casino.betsson import GAME_FRAME_SELECTOR, BetssonCasino
@@ -24,7 +28,12 @@ from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game import accessibility
-from betsson_validator.game.events import GameEventRecorder, capture_anomalies, payloads
+from betsson_validator.game.events import (
+    GameEventRecorder,
+    authorized_events,
+    capture_anomalies,
+    payloads,
+)
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
 from betsson_validator.locks import account_lock
 from betsson_validator.perception.learner import ScreenLearner
@@ -252,6 +261,9 @@ class _Ready:
     header_before: Path
     game: ScreenGame
     observation: ScreenObservation
+    # Orígenes del árbol de marcos del juego con el juego listo: los únicos autorizados a
+    # enviar eventos (si el marco navega después a otro origen, sus mensajes no cuentan).
+    game_origins: frozenset[str]
 
 
 def _prepare(
@@ -270,6 +282,9 @@ def _prepare(
     clock.mark("saldo inicial leído")
     handle = casino.launch_game(ctx.provider, ctx.game)
     clock.mark("juego abierto")
+    game_frame = _game_frame(casino)
+    if witnesses.network is not None and game_frame is not None:
+        witnesses.network.bind(game_frame)
     events = witnesses.events
     game = ScreenGame(
         page=casino.page,
@@ -295,7 +310,8 @@ def _prepare(
     bet = check_bet(seen.bet, ctx.provider.max_bet, ctx.market.currency, seen.currencies_seen)
     require_known_minimum(bet, model.profile.min_bet)
     plan.precondition(betsson_before, seen.credit, bet)
-    return _Ready(betsson_before, header_before, game, ready)
+    origins = _frame_origins(game_frame) if game_frame is not None else frozenset()
+    return _Ready(betsson_before, header_before, game, ready, origins)
 
 
 def _play(
@@ -331,10 +347,14 @@ def _play(
         files.save_json("accesibilidad", [asdict(item) for item in probes])
     events_summary: GameEventsSummary | None = None
     if witnesses.events is not None:  # se leen ANTES de salir de la página del juego
-        game_events = GameEventRecorder.collect(casino.page)[events_mark:]
-        events_file = files.save_json("eventos_del_juego", game_events)
+        captured = GameEventRecorder.collect(casino.page)[events_mark:]
+        game_events, foreign = authorized_events(captured, ready.game_origins)
+        events_file = files.save_json("eventos_del_juego", captured)
         events_summary = witnesses.events.summarize(payloads(game_events), str(events_file))
         problems = capture_anomalies(game_events, GameEventRecorder.dropped(casino.page))
+        if foreign:
+            origins = ", ".join(sorted({str(e.get("origin")) for e in foreign}))
+            problems = (*problems, f"{len(foreign)} eventos de un origen no autorizado ({origins})")
         if problems:
             events_summary = replace(
                 events_summary, anomalies=(*events_summary.anomalies, *problems)
@@ -386,6 +406,28 @@ def _play(
         evidence = ctx.fault.apply(evidence)
     files.save_json("resumen_observado", summary_data)
     return plan.evaluator(evidence)
+
+
+def _game_frame(casino: BetssonCasino) -> Frame | None:
+    """Marco del juego según el navegador (el iframe del lanzador de Betsson)."""
+    try:
+        element = casino.page.locator(GAME_FRAME_SELECTOR).element_handle(timeout=5_000)
+        return element.content_frame() if element else None
+    except PlaywrightError:
+        return None
+
+
+def _frame_origins(frame: Frame) -> frozenset[str]:
+    """Orígenes web del marco y de todos sus descendientes."""
+    origins: set[str] = set()
+    pending = [frame]
+    while pending:
+        current = pending.pop()
+        parts = urlsplit(current.url)
+        if parts.scheme in {"http", "https"}:
+            origins.add(f"{parts.scheme}://{parts.netloc}")
+        pending.extend(current.child_frames)
+    return frozenset(origins)
 
 
 _ROUND_CLOSE_TIMEOUT_S = 30
