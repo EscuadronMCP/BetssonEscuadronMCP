@@ -88,11 +88,10 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
 ## 5. Flujo de trabajo de cada sesión
 
 1. Haz `git pull --rebase origin main`. Lee este archivo, `docs/ESTADO.md`, `README.md`, `docs/hackaton/` y los `docs/decisiones/` relevantes.
-2. Entiende la tarea; si es ambigua, pregunta.
+2. Entiende la tarea; si es ambigua, pregunta. Apúntala en "En curso" de `docs/ESTADO.md` (commit + push).
 3. **Investiga** (sección 1) y propone el enfoque.
-4. Implementa en pasos pequeños: **código → tests → lint → commit → push** (sección 2).
-5. Revisa tu propio diff buscando fallos de seguridad, violaciones SOLID y código mejorable antes de cada commit.
-6. Al acabar, actualiza `docs/ESTADO.md`, haz commit + push y resume al usuario qué se hizo, qué falta y cómo probarlo.
+4. Implementa en pasos pequeños: **código → tests → lint → revisión del propio diff (seguridad, SOLID, limpieza, secretos) → commit → push** (sección 2).
+5. Al acabar, actualiza `docs/ESTADO.md`, haz commit + push y resume al usuario qué se hizo, qué falta y cómo probarlo.
 
 ## Estructura del repositorio
 
