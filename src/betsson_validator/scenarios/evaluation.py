@@ -218,7 +218,9 @@ def game_balance_consistent(evidence: RunEvidence) -> CheckResult:
         evidence.screen_before.bet,
     )
     win = _win(evidence)
-    if before is None or after is None or bet is None:
+    if not evidence.screen_after.settled:
+        screen_ok, detail = None, "el marcador del juego no se estabilizó a tiempo para leerlo"
+    elif before is None or after is None or bet is None:
         screen_ok, detail = None, "no se pudo leer el crédito o la apuesta"
     else:
         expected = expected_amount_after(before.amount, bet.amount, win)
@@ -285,7 +287,7 @@ def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
             f"Betsson muestra {after}"
         )
     header = _t(HEADER, WitnessKind.VISUAL, header_ok, detail, evidence.betsson_evidence)
-    game_credit = evidence.screen_after.credit
+    game_credit = evidence.screen_after.credit if evidence.screen_after.settled else None
     game_ok = None if game_credit is None or after is None else game_credit.amount == after.amount
     game = _t(
         SCREEN,

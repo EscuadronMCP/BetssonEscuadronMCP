@@ -95,6 +95,7 @@ def _snapshot(observation: ScreenObservation) -> ScreenSnapshot:
         message=observation.message,
         evidence=observation.evidence,
         notice=observation.notice,
+        settled=observation.settled,
     )
 
 

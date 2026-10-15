@@ -19,6 +19,8 @@ class ScreenSnapshot:
     evidence: str
     # Otro aviso visible del juego (sesión expirada, error de conexión…), si lo hubo.
     notice: str | None = None
+    # False si el marcador seguía cambiando al leerlo: no vale como prueba del saldo.
+    settled: bool = True
 
 
 @dataclass(frozen=True)

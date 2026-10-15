@@ -73,6 +73,8 @@ class ScreenObservation:
     message: str | None
     # Cualquier otro aviso del juego (p. ej. "Sesión expirada"): explica un fallo, nunca lo oculta.
     notice: str | None = None
+    # False si el marcador seguía cambiando al agotarse la espera: la lectura no vale como prueba.
+    settled: bool = True
 
 
 @dataclass(frozen=True)
@@ -233,23 +235,22 @@ class ScreenGame:
         return self._observation(name, image, hud, boxes)
 
     def observe_settled(self, name: str, timeout_s: float = 12) -> ScreenObservation:
-        """Lee el HUD cuando el crédito deja de cambiar (el juego anima el contador del premio)."""
+        """Lee el HUD cuando crédito y premio dejan de cambiar (el juego anima sus contadores).
+
+        Si siguen cambiando al agotarse la espera, la observación queda marcada como no
+        estabilizada y la evaluación no la acepta como prueba.
+        """
         deadline = time.monotonic() + timeout_s
         image = self.capture()
         hud, boxes = self.model.read(image)
-        while time.monotonic() < deadline:
+        settled = False
+        while not settled and time.monotonic() < deadline:
             self.page.wait_for_timeout(1000)
             next_image = self.capture()
             next_hud, next_boxes = self.model.read(next_image)
-            same = (
-                hud.credit is not None
-                and next_hud.credit is not None
-                and hud.credit.money == next_hud.credit.money
-            )
+            settled = same_reading(hud, next_hud)
             image, hud, boxes = next_image, next_hud, next_boxes
-            if same:
-                break
-        return self._observation(name, image, hud, boxes)
+        return replace(self._observation(name, image, hud, boxes), settled=settled)
 
     def _observation(
         self,
@@ -431,6 +432,17 @@ def control_template(image: Image, box: tuple[int, int, int, int]) -> Image:
 def _overlap(a: TemplateMatch, b: TemplateMatch) -> bool:
     (ax, ay), (bx, by) = a.center, b.center
     return abs(ax - bx) < max(a.width, b.width) / 2 and abs(ay - by) < max(a.height, b.height) / 2
+
+
+def same_reading(a: HudReading, b: HudReading) -> bool:
+    """Dos lecturas seguidas del marcador coinciden: el crédito igual y el premio sin cambiar.
+
+    Un premio que aparece en una lectura y no en la otra se tolera (algunas etiquetas
+    parpadean); un premio con dos importes distintos significa que el contador sigue subiendo.
+    """
+    if a.credit is None or b.credit is None or a.credit.money != b.credit.money:
+        return False
+    return a.win is None or b.win is None or a.win.money == b.win.money
 
 
 def is_still(previous: Image, current: Image) -> bool:
