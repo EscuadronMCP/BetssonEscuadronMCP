@@ -70,3 +70,36 @@ def test_thresholds_are_configurable() -> None:
     thresholds = MotionThresholds(start=0.5, still=0.01, still_samples=1, min_active_samples=1)
     assert not detect_spin_lifecycle([0.3, 0.0], thresholds).started
     assert detect_spin_lifecycle([0.6, 0.0], thresholds).completed
+
+
+# Actividad visual medida en la zona de rodillos durante una tirada real de Sweet Bonanza 2500
+# (15/10, una captura cada ~250 ms): giro con cascada y después reposo.
+REAL_SPIN_SCORES = [
+    0.40,
+    0.19,
+    0.30,
+    0.15,
+    0.03,
+    0.05,
+    0.20,
+    0.29,
+    0.15,
+    0.05,
+    0.09,
+    0.10,
+    0.05,
+    0.22,
+    0.10,
+    0.21,
+    0.12,
+    0.11,
+    0.03,
+    *([0.0] * 20),
+]
+
+
+def test_real_spin_is_detected_start_to_end() -> None:
+    lifecycle = detect_spin_lifecycle(REAL_SPIN_SCORES)
+    assert lifecycle.started
+    assert lifecycle.completed
+    assert lifecycle.end_index == 22

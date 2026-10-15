@@ -30,3 +30,14 @@ Antes de jugar a tragaperras, la web exige abrir una **sesión de juego**:
 - Iframe de Betsson: `/api/v1/Gamelauncher/?gameId=pragmaticPlaySweetBonanza2500&…&marketCode=es&forReal=true` (`forReal=true` = Real Play).
 - Dentro, el cliente de Pragmatic Play en un dominio propio: `…/gs2c/game/load?ssid=…`. Coincide con el análisis no oficial (`gs2c`, `gameService`).
 - La carga es lenta (pantalla de Pragmatic Play con barra de progreso): hay que esperar a que termine sin usar esperas fijas.
+
+## 6. Una tirada real (15/10, apuesta mínima)
+- Interfaz del juego (Sweet Bonanza 2500): **CRÉDITO** y **APUESTA** abajo a la izquierda; botón de giro abajo a la derecha, con "−" y "+" a los lados. Pulsar "−" abre un panel de apuesta (multiplicador 20×, valor de moneda, total apostado). La apuesta mínima es **0,20 €** (moneda 0,01 € × 20).
+- Antes de la interfaz hay una pantalla de bienvenida con un botón circular de "continuar".
+- Resultado en pantalla: "GANANCIA 0,15 €", CRÉDITO de 64,70 € a **64,65 €** (= 64,70 − 0,20 + 0,15), y el número de jugada (`#106756765013119`) en la barra inferior.
+- Red (`POST …/gs2c/ge/v4/gameService`):
+  1. `doSpin` `c=0.01&l=20` → `balance=64.50` (apuesta ya cobrada), `tw=0.15`, `rs_c=1` (cascada en curso).
+  2. `doSpin` de continuación de la cascada (no cobra) → `na=c` (falta cobrar).
+  3. `doCollect` → `balance=64.65`, `na=s` (liquidada).
+- Algunas URL del juego llevan tokens de sesión (`mgckey`, `token`, `SESSION`): se ocultan siempre antes de guardar tráfico (`providers/pragmatic/network.py::redact`).
+- La detección de movimiento sobre la zona de los rodillos marca el giro durante unos 5 s y luego reposo (serie real en `tests/unit/test_motion.py`).
