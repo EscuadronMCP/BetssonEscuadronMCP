@@ -4,6 +4,7 @@ Memoria compartida del equipo. Se actualiza en cada commit que cierra un paso (v
 
 ## Funciona
 - Repositorio, normas del equipo (`CLAUDE.md`) y estructura de documentación.
+- `.claude/settings.json`: Claude Code hace commit/pull/push a `main` sin pedir permiso; `push --force` y leer `.env` bloqueados.
 - Propuesta de stack: `docs/decisiones/001-stack-automatizacion.md` (Playwright + modelo de visión para el canvas del juego).
 
 ## En curso
