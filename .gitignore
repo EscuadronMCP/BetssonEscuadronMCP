@@ -1,0 +1,26 @@
+# Secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+oci_api_key*
+
+# Dependencias y builds
+node_modules/
+dist/
+build/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Resultados de ejecuciones (capturas, informes, trazas)
+artifacts/
+test-results/
+playwright-report/
+
+# Sistema y editores
+.DS_Store
+.idea/
+.vscode/
