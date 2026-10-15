@@ -48,6 +48,9 @@ _STILL_SCORE = 0.01
 _MIN_CONTROL_PX = 8
 _MAX_CONTROL_SHARE = 0.1
 _MIN_TEMPLATE_STD = 4.0
+# Distancia relativa máxima entre un control de apuesta y el botón de girar (medido: <= 0,08 en
+# Sweet Bonanza y Big Bass; un falso "-" en Big Bass apareció a 0,6).
+_BET_NEAR_SPIN = 0.2
 _BLANK_SCREEN_STD = 15.0  # desviación de grises por debajo de la cual la pantalla está vacía
 
 
@@ -401,9 +404,17 @@ class ScreenGame:
         image = self.capture()
         current = ready.hud.bet.money.amount if ready.hud.bet else None
         unchanged = 0
+        spin = self.model.locate("spin", image)
         for _ in range(self.timings.max_bet_presses):
             point = self.model.locate("bet_down", image)
             if point is None:
+                break
+            if not near_spin(point, spin):
+                # Un "-" lejos del botón de girar es otra cosa (15/10: en Big Bass abrió el panel
+                # de tirada automática): no se pulsa.
+                self.model.notes.append(
+                    "El botón de bajar apuesta apareció lejos del de girar y no se pulsó."
+                )
                 break
             self.click(point)
             self.page.wait_for_timeout(350)
@@ -498,6 +509,13 @@ def _control_box_problem(box: Box, width: int, height: int) -> str | None:
     if w * h > _MAX_CONTROL_SHARE * width * height:
         return "caja demasiado grande para ser un botón"
     return None
+
+
+def near_spin(point: Point, spin: Point | None) -> bool:
+    """Los controles de apuesta están junto al botón de girar; lejos de él, no son fiables."""
+    if spin is None:
+        return False
+    return abs(point[0] - spin[0]) <= _BET_NEAR_SPIN and abs(point[1] - spin[1]) <= _BET_NEAR_SPIN
 
 
 def same_reading(a: HudReading, b: HudReading) -> bool:

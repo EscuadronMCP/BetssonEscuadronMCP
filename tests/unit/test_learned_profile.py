@@ -122,3 +122,14 @@ def test_saving_writes_everything_or_keeps_the_previous_profile(tmp_path: Path) 
         broken.save(tmp_path)
     kept = load_profile("pragmaticplay", "sweet-bonanza-2500", tmp_path)
     assert kept is not None and kept.credit_label == profile.credit_label
+
+
+def test_bet_controls_far_from_spin_are_never_pressed() -> None:
+    """15/10 (real): un falso «-» de Big Bass en (0,68; 0,32) abrió la tirada automática."""
+    from betsson_validator.game.player import near_spin  # noqa: PLC0415
+
+    spin = (0.776, 0.901)
+    assert near_spin((0.698, 0.907), spin)  # «-» real de Sweet Bonanza
+    assert near_spin((0.700, 0.930), spin)  # «-» real de Big Bass
+    assert not near_spin((0.682, 0.321), spin)  # el falso «-» dentro del panel
+    assert not near_spin((0.698, 0.907), None)  # sin girar localizado, no se pulsa
