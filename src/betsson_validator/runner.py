@@ -59,6 +59,7 @@ from betsson_validator.scenarios.evidence import (
 from betsson_validator.scenarios.faults import InjectedFault
 from betsson_validator.scenarios.preconditions import (
     check_bet,
+    require_consistent_start,
     require_funds,
     require_known_minimum,
     require_no_funds,
@@ -313,6 +314,7 @@ def _prepare(
     seen = _snapshot(ready)
     bet = check_bet(seen.bet, ctx.provider.max_bet, ctx.market.currency, seen.currencies_seen)
     require_known_minimum(bet, model.profile.min_bet)
+    require_consistent_start(betsson_before, seen.credit)
     plan.precondition(betsson_before, seen.credit, bet)
     origins = _frame_origins(game_frame) if game_frame is not None else frozenset()
     return _Ready(betsson_before, header_before, game, ready, origins)

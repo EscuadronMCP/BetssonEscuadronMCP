@@ -73,3 +73,13 @@ def test_a_bet_above_the_known_minimum_never_spins() -> None:
     require_known_minimum(eur("0.40"), None)  # sin mínimo conocido manda el tope max_bet
     with pytest.raises(PreconditionError, match="mínima conocida"):
         require_known_minimum(eur("0.40"), Decimal("0.20"))
+
+
+def test_money_moved_by_another_session_before_spinning_stops_the_run() -> None:
+    """Otra sesión (otro ordenador) movió dinero entre el login y el juego listo: no se gira."""
+    from betsson_validator.scenarios.preconditions import require_consistent_start  # noqa: PLC0415
+
+    require_consistent_start(eur("192.35"), eur("192.35"))
+    require_consistent_start(eur("192.35"), None)  # sin crédito leído deciden las demás reglas
+    with pytest.raises(PreconditionError, match="otra sesión"):
+        require_consistent_start(eur("192.35"), eur("192.25"))

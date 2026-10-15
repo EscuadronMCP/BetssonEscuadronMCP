@@ -45,6 +45,20 @@ def require_known_minimum(bet: Money, min_bet: Decimal | None) -> None:
         )
 
 
+def require_consistent_start(betsson: Money, credit: Money | None) -> None:
+    """El crédito del juego listo debe ser el saldo de Betsson leído al entrar.
+
+    Si no coincide, otra sesión ha movido dinero de la cuenta entre medias (p. ej. alguien la
+    usa desde otro ordenador, que el cerrojo local no ve): no se gira, porque la regla del
+    dinero no podría cuadrar y se gastaría una tirada para nada.
+    """
+    if credit is not None and credit.amount != betsson.amount:
+        raise PreconditionError(
+            f"El crédito del juego ({credit}) no coincide con el saldo de Betsson al entrar "
+            f"({betsson}): otra sesión puede estar usando la cuenta. No se gira."
+        )
+
+
 def require_funds(betsson: Money, credit: Money | None, bet: Money) -> None:
     """Escenario 1: la cuenta debe poder pagar la apuesta en Betsson y en el juego."""
     if credit is None:
