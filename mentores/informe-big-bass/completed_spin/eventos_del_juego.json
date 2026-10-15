@@ -1,55 +1,55 @@
 [
   {
-    "seq": 104,
-    "t": 1792083731956,
+    "seq": 101,
+    "t": 1792084791953,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.75,
+      "balanceAfter": 193.88,
       "betAmount": 0.1,
-      "balanceBefore": 191.75,
-      "amount": 191.75,
+      "balanceBefore": 193.88,
+      "amount": 193.88,
       "name": "gameRoundStart"
     }
   },
   {
-    "seq": 105,
-    "t": 1792083731956,
+    "seq": 102,
+    "t": 1792084791953,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.75,
+      "balanceAfter": 193.88,
       "betAmount": 0.1,
-      "balanceBefore": 191.75,
-      "amount": 191.75,
+      "balanceBefore": 193.88,
+      "amount": 193.88,
       "name": "gameRoundStarted"
     }
   },
   {
-    "seq": 106,
-    "t": 1792083731956,
+    "seq": 103,
+    "t": 1792084791953,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.75,
+      "balanceAfter": 193.88,
       "betAmount": 0.1,
-      "balanceBefore": 191.75,
-      "amount": 191.75,
+      "balanceBefore": 193.88,
+      "amount": 193.88,
       "name": "spinStarted"
     }
   },
   {
-    "seq": 107,
-    "t": 1792083732239,
+    "seq": 104,
+    "t": 1792084792186,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
@@ -59,8 +59,8 @@
     }
   },
   {
-    "seq": 108,
-    "t": 1792083732239,
+    "seq": 105,
+    "t": 1792084792186,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
@@ -71,108 +71,108 @@
       "params": {
         "total": {
           "currency": "€",
-          "amount": 19165
+          "amount": 19378
         }
       }
     }
   },
   {
-    "seq": 109,
-    "t": 1792083734748,
+    "seq": 106,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.65,
+      "balanceAfter": 193.78,
       "betAmount": 0.1,
-      "balanceBefore": 191.65,
-      "amount": 191.65,
-      "roundTripMs": 318,
+      "balanceBefore": 193.78,
+      "amount": 193.78,
+      "roundTripMs": 268,
       "name": "spinEnded"
     }
   },
   {
-    "seq": 110,
-    "t": 1792083734748,
+    "seq": 107,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.65,
+      "balanceAfter": 193.78,
       "betAmount": 0.1,
-      "balanceBefore": 191.65,
-      "amount": 191.65,
+      "balanceBefore": 193.78,
+      "amount": 193.78,
       "name": "gameRoundEnded"
     }
   },
   {
-    "seq": 111,
-    "t": 1792083734748,
+    "seq": 108,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.65,
+      "balanceAfter": 193.78,
       "betAmount": 0.1,
-      "balanceBefore": 191.65,
-      "amount": 191.65,
+      "balanceBefore": 193.78,
+      "amount": 193.78,
       "name": "resultShown"
     }
   },
   {
-    "seq": 112,
-    "t": 1792083734748,
+    "seq": 109,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "event": "visualBalanceUpdate",
       "params": {
         "currency": "€",
-        "newAmount": 191.65,
+        "newAmount": 193.78,
         "win": 0
       }
     }
   },
   {
-    "seq": 113,
-    "t": 1792083734748,
+    "seq": 110,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.65,
+      "balanceAfter": 193.78,
       "betAmount": 0.1,
-      "balanceBefore": 191.65,
-      "amount": 191.65,
+      "balanceBefore": 193.78,
+      "amount": 193.78,
       "name": "balanceChanged"
     }
   },
   {
-    "seq": 114,
-    "t": 1792083734748,
+    "seq": 111,
+    "t": 1792084794729,
     "origin": "https://cajdsoitek.jmxyelekig.net",
     "data": {
       "sender": "vs10bbsplxh_cv117",
       "lang": "ES",
       "success": true,
       "winAmount": 0,
-      "balanceAfter": 191.65,
+      "balanceAfter": 193.78,
       "betAmount": 0.1,
-      "balanceBefore": 191.65,
-      "amount": 191.65,
+      "balanceBefore": 193.78,
+      "amount": 193.78,
       "name": "balanceChanged",
       "event": "updateBalance",
       "params": {
         "total": {
           "currency": "€",
-          "amount": 19165
+          "amount": 19378
         }
       }
     }

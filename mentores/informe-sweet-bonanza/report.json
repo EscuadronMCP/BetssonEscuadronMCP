@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-15T17:05:35.319230+00:00",
-  "code_version": "9ff6d0ce996a9ec35ef0dd761ca2ed1e13ee9d7d",
+  "generated_at": "2026-10-15T17:20:47.943288+00:00",
+  "code_version": "a7f13b18607f1a4e49dbd2c55f46787150e96980",
   "run_id": null,
   "requested_scenarios": [
     "completed_spin",
@@ -14,8 +14,8 @@
       "market": "es",
       "provider": "Pragmatic Play",
       "game": "sweet-bonanza-2500",
-      "started_at": "2026-10-15T17:03:00.437218Z",
-      "finished_at": "2026-10-15T17:04:01.916536Z",
+      "started_at": "2026-10-15T17:17:59.403501Z",
+      "finished_at": "2026-10-15T17:19:04.499181Z",
       "results": [
         {
           "check": "spin_completed",
@@ -26,7 +26,7 @@
               "witness": "movimiento de los rodillos",
               "kind": "visual",
               "outcome": "confirms",
-              "detail": "el juego se movió y volvió al reposo (28 capturas)",
+              "detail": "el juego se movió y volvió al reposo (12 capturas)",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/02_girando.jpg",
                 "mentores/informe-sweet-bonanza/completed_spin/03_despues_de_girar.jpg"
@@ -141,7 +141,7 @@
               "witness": "pantalla del juego",
               "kind": "visual",
               "outcome": "confirms",
-              "detail": "crédito 191.65 EUR - apuesta 0.20 + premio 0.33 = 191.78; leído 191.78 EUR",
+              "detail": "crédito 194.08 EUR - apuesta 0.20 + premio 0 = 193.88; leído 193.88 EUR",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/01_apuesta_minima.jpg",
                 "mentores/informe-sweet-bonanza/completed_spin/03_despues_de_girar.jpg"
@@ -151,7 +151,7 @@
               "witness": "servidor del juego",
               "kind": "corroborating",
               "outcome": "confirms",
-              "detail": "saldo 191.65 → 191.78, apuesta aceptada 0.20 y premio declarado 0.33 según el servidor del juego",
+              "detail": "saldo 194.08 → 193.88, apuesta aceptada 0.20 y premio declarado 0.00 según el servidor del juego",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/trafico_juego_sin_tokens.json"
               ]
@@ -160,7 +160,7 @@
               "witness": "eventos del juego",
               "kind": "corroborating",
               "outcome": "confirms",
-              "detail": "saldo final 191.78 y premio 0.33 comunicados por el juego",
+              "detail": "saldo final 193.88 y premio 0 comunicados por el juego",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/eventos_del_juego.json"
               ]
@@ -176,7 +176,7 @@
               "witness": "cabecera de Betsson",
               "kind": "visual",
               "outcome": "confirms",
-              "detail": "saldo 191.65 EUR - apuesta 0.20 + premio 0.33 = 191.78; Betsson muestra 191.78 EUR",
+              "detail": "saldo 194.08 EUR - apuesta 0.20 + premio 0 = 193.88; Betsson muestra 193.88 EUR",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/00_saldo_betsson_antes.jpg",
                 "mentores/informe-sweet-bonanza/completed_spin/99_saldo_betsson_despues.jpg"
@@ -186,7 +186,7 @@
               "witness": "pantalla del juego",
               "kind": "corroborating",
               "outcome": "confirms",
-              "detail": "crédito del juego tras la tirada 191.78 EUR frente a Betsson 191.78 EUR",
+              "detail": "crédito del juego tras la tirada 193.88 EUR frente a Betsson 193.88 EUR",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/03_despues_de_girar.jpg"
               ]
@@ -195,14 +195,14 @@
               "witness": "servidor del juego",
               "kind": "corroborating",
               "outcome": "confirms",
-              "detail": "apuesta aceptada 0.20 y premio declarado 0.33 por el servidor → 191.78",
+              "detail": "apuesta aceptada 0.20 y premio declarado 0.00 por el servidor → 193.88",
               "evidence": []
             },
             {
               "witness": "eventos del juego",
               "kind": "corroborating",
               "outcome": "confirms",
-              "detail": "apuesta 0.2 y premio 0.33 según el juego → 191.78",
+              "detail": "apuesta 0.2 y premio 0 según el juego → 193.88",
               "evidence": [
                 "mentores/informe-sweet-bonanza/completed_spin/eventos_del_juego.json"
               ]
@@ -220,13 +220,13 @@
           {
             "check": "betsson_balance_reconciles",
             "status": "FAIL",
-            "reason": "Lo que ve el jugador lo contradice: cabecera de Betsson: saldo 191.65 EUR - apuesta 0.20 + premio 0.33 = 191.78; Betsson muestra 191.79 EUR.",
+            "reason": "Lo que ve el jugador lo contradice: cabecera de Betsson: saldo 194.08 EUR - apuesta 0.20 + premio 0 = 193.88; Betsson muestra 193.89 EUR.",
             "testimonies": [
               {
                 "witness": "cabecera de Betsson",
                 "kind": "visual",
                 "outcome": "contradicts",
-                "detail": "saldo 191.65 EUR - apuesta 0.20 + premio 0.33 = 191.78; Betsson muestra 191.79 EUR",
+                "detail": "saldo 194.08 EUR - apuesta 0.20 + premio 0 = 193.88; Betsson muestra 193.89 EUR",
                 "evidence": [
                   "mentores/informe-sweet-bonanza/completed_spin/00_saldo_betsson_antes.jpg",
                   "mentores/informe-sweet-bonanza/completed_spin/99_saldo_betsson_despues.jpg"
@@ -236,7 +236,7 @@
                 "witness": "pantalla del juego",
                 "kind": "corroborating",
                 "outcome": "contradicts",
-                "detail": "crédito del juego tras la tirada 191.78 EUR frente a Betsson 191.79 EUR",
+                "detail": "crédito del juego tras la tirada 193.88 EUR frente a Betsson 193.89 EUR",
                 "evidence": [
                   "mentores/informe-sweet-bonanza/completed_spin/03_despues_de_girar.jpg"
                 ]
@@ -245,14 +245,14 @@
                 "witness": "servidor del juego",
                 "kind": "corroborating",
                 "outcome": "contradicts",
-                "detail": "apuesta aceptada 0.20 y premio declarado 0.33 por el servidor → 191.78",
+                "detail": "apuesta aceptada 0.20 y premio declarado 0.00 por el servidor → 193.88",
                 "evidence": []
               },
               {
                 "witness": "eventos del juego",
                 "kind": "corroborating",
                 "outcome": "contradicts",
-                "detail": "apuesta 0.2 y premio 0.33 según el juego → 191.78",
+                "detail": "apuesta 0.2 y premio 0 según el juego → 193.88",
                 "evidence": [
                   "mentores/informe-sweet-bonanza/completed_spin/eventos_del_juego.json"
                 ]
@@ -268,8 +268,8 @@
       "market": "es",
       "provider": "Pragmatic Play",
       "game": "sweet-bonanza-2500",
-      "started_at": "2026-10-15T17:03:00.437244Z",
-      "finished_at": "2026-10-15T17:04:10.005612Z",
+      "started_at": "2026-10-15T17:17:59.403471Z",
+      "finished_at": "2026-10-15T17:19:19.421638Z",
       "results": [
         {
           "check": "spin_rejected",
@@ -341,7 +341,7 @@
         {
           "check": "currency_matches",
           "status": "PASS",
-          "reason": "Confirmado en pantalla y por todos los testigos.",
+          "reason": "Confirmado en pantalla; sin contradicciones. Testigos no disponibles: eventos del juego.",
           "testimonies": [
             {
               "witness": "pantalla del juego",
@@ -366,8 +366,8 @@
             {
               "witness": "eventos del juego",
               "kind": "corroborating",
-              "outcome": "confirms",
-              "detail": "divisa comunicada por el juego: EUR",
+              "outcome": "unavailable",
+              "detail": "divisa comunicada por el juego: ninguna",
               "evidence": [
                 "mentores/informe-sweet-bonanza/insufficient_balance/eventos_del_juego.json"
               ]

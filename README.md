@@ -1,5 +1,17 @@
 # BetssonEscuadronMCP — validador automático de juegos de casino
 
+## 📄 Informes en PDF · PDF reports (carpeta [`mentores/`](mentores/))
+
+| Documento · Document | Español | English |
+|---|---|---|
+| **Informe del proyecto** · *Project report* (capturas de los dos juegos y de los informes, precio, resultados) | [`mentores/Informe-del-proyecto.pdf`](mentores/Informe-del-proyecto.pdf) | [`mentores/Project-report.pdf`](mentores/Project-report.pdf) |
+| Informe del programa · *Program report* — Sweet Bonanza 2500 | [`PDF`](mentores/Informe-del-programa-Sweet-Bonanza.pdf) · [`HTML`](mentores/informe-sweet-bonanza/index.html) | — |
+| Informe del programa · *Program report* — Big Bass Halloween Splash 1000 | [`PDF`](mentores/Informe-del-programa-Big-Bass.pdf) · [`HTML`](mentores/informe-big-bass/index.html) | — |
+
+Los informes del programa son ejecuciones reales en betsson.es del código entregado: ambos escenarios en PASS en los dos juegos y, en cada uno, la **prueba que falla a propósito** detectada.
+
+---
+
 **Comprueba solo, en la web real de Betsson, que un juego de casino funciona bien para el jugador**: entra, juega una tirada con dinero real y entrega un informe en verde o rojo, con capturas, de cada cosa que ha comprobado.
 
 Proyecto del equipo EscuadronMCP para el reto de **Betsson** en el **Malackathon 2026** (Universidad de Málaga): *Intelligent Game Validation*.

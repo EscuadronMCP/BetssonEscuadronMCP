@@ -1,27 +1,27 @@
 {
-  "betsson_before": "191.75 EUR",
-  "betsson_after": "191.65 EUR",
+  "betsson_before": "193.88 EUR",
+  "betsson_after": "193.78 EUR",
   "screen_before": {
-    "credit": "191.75 EUR",
+    "credit": "193.88 EUR",
     "bet": "0.10 EUR",
     "win": null,
     "currencies_seen": [
       "EUR"
     ],
     "message": null,
-    "evidence": "reports/entrega-bigbass2/completed_spin/01_apuesta_minima.jpg",
+    "evidence": "reports/def-bigbass/completed_spin/01_apuesta_minima.jpg",
     "notice": null,
     "settled": true
   },
   "screen_after": {
-    "credit": "191.65 EUR",
+    "credit": "193.78 EUR",
     "bet": "0.10 EUR",
     "win": null,
     "currencies_seen": [
       "EUR"
     ],
     "message": null,
-    "evidence": "reports/entrega-bigbass2/completed_spin/03_despues_de_girar.jpg",
+    "evidence": "reports/def-bigbass/completed_spin/03_despues_de_girar.jpg",
     "notice": null,
     "settled": true
   },
@@ -29,9 +29,9 @@
     "started": true,
     "completed": true,
     "samples": 16,
-    "peak": 0.652291953570726,
+    "peak": 0.6477719850481999,
     "evidence": [
-      "reports/entrega-bigbass2/completed_spin/02_girando.jpg"
+      "reports/def-bigbass/completed_spin/02_girando.jpg"
     ]
   },
   "network": {
@@ -40,9 +40,9 @@
     "wager_requested": "0.10",
     "wager_accepted": "0.10",
     "declared_win": "0.00",
-    "balance_before": "191.75",
-    "balance_after": "191.65",
-    "evidence": "reports/entrega-bigbass2/completed_spin/trafico_juego_sin_tokens.json",
+    "balance_before": "193.88",
+    "balance_after": "193.78",
+    "evidence": "reports/def-bigbass/completed_spin/trafico_juego_sin_tokens.json",
     "observed_calls": 2,
     "unreadable": 0
   },
@@ -53,8 +53,8 @@
     "low_balance": false,
     "bet": "0.1",
     "win": "0",
-    "balance_before": "191.75",
-    "balance_after": "191.65",
+    "balance_before": "193.88",
+    "balance_after": "193.78",
     "languages": [
       "es"
     ],
@@ -62,29 +62,29 @@
       "EUR"
     ],
     "anomalies": [],
-    "evidence": "reports/entrega-bigbass2/completed_spin/eventos_del_juego.json"
+    "evidence": "reports/def-bigbass/completed_spin/eventos_del_juego.json"
   },
   "motion_scores": [
-    0.0029,
-    0.3315,
-    0.431,
-    0.4346,
-    0.5672,
-    0.6414,
-    0.6523,
-    0.6471,
-    0.4743,
-    0.3621,
-    0.2165,
-    0.1353,
-    0.0198,
-    0.0101,
-    0.01,
-    0.0119
+    0.0037,
+    0.3366,
+    0.4575,
+    0.5561,
+    0.4362,
+    0.6478,
+    0.6232,
+    0.608,
+    0.5046,
+    0.3774,
+    0.2229,
+    0.1232,
+    0.0221,
+    0.0125,
+    0.0126,
+    0.0146
   ],
   "motion_thresholds": {
-    "start": 0.11789592760180995,
-    "still": 0.04894796380090497,
+    "start": 0.08832677552626401,
+    "still": 0.034163387763132005,
     "still_samples": 4,
     "min_active_samples": 3,
     "relative_still": 0.1
@@ -92,39 +92,39 @@
   "stages": [
     {
       "name": "web abierta",
-      "s": 4.8
+      "s": 3.5
     },
     {
       "name": "sesión iniciada",
-      "s": 13.9
+      "s": 12.5
     },
     {
       "name": "saldo inicial leído",
-      "s": 14.0
+      "s": 12.5
     },
     {
       "name": "juego abierto",
-      "s": 21.4
+      "s": 20.5
     },
     {
       "name": "juego listo con apuesta mínima",
-      "s": 30.1
+      "s": 28.0
     },
     {
       "name": "giro observado",
-      "s": 38.1
+      "s": 36.0
     },
     {
       "name": "ronda cerrada",
-      "s": 38.1
+      "s": 36.0
     },
     {
       "name": "marcador estable",
-      "s": 40.6
+      "s": 38.6
     },
     {
       "name": "saldo final de Betsson",
-      "s": 44.2
+      "s": 42.8
     }
   ],
   "profile": {

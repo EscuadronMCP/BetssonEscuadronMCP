@@ -9,7 +9,7 @@
       "EUR"
     ],
     "message": null,
-    "evidence": "reports/entrega-sweet2/insufficient_balance/01_apuesta_minima.jpg",
+    "evidence": "reports/def-sweet/insufficient_balance/01_apuesta_minima.jpg",
     "notice": null,
     "settled": true
   },
@@ -21,7 +21,7 @@
       "EUR"
     ],
     "message": "Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta o reduzca el nivel de la apuesta.",
-    "evidence": "reports/entrega-sweet2/insufficient_balance/02_despues_de_girar.jpg",
+    "evidence": "reports/def-sweet/insufficient_balance/02_despues_de_girar.jpg",
     "notice": null,
     "settled": true
   },
@@ -40,7 +40,7 @@
     "declared_win": null,
     "balance_before": null,
     "balance_after": null,
-    "evidence": "reports/entrega-sweet2/insufficient_balance/trafico_juego_sin_tokens.json",
+    "evidence": "reports/def-sweet/insufficient_balance/trafico_juego_sin_tokens.json",
     "observed_calls": 1,
     "unreadable": 0
   },
@@ -56,11 +56,9 @@
     "languages": [
       "es"
     ],
-    "currencies": [
-      "EUR"
-    ],
+    "currencies": [],
     "anomalies": [],
-    "evidence": "reports/entrega-sweet2/insufficient_balance/eventos_del_juego.json"
+    "evidence": "reports/def-sweet/insufficient_balance/eventos_del_juego.json"
   },
   "motion_scores": [
     0.0,
@@ -68,22 +66,6 @@
     0.0,
     0.0,
     0.0,
-    0.0003,
-    0.0003,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
     0.0,
     0.0,
     0.0,
@@ -91,6 +73,22 @@
     0.0,
     0.0002,
     0.0002,
+    0.0001,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
     0.0,
     0.0,
     0.0,
@@ -106,39 +104,39 @@
   "stages": [
     {
       "name": "web abierta",
-      "s": 7.6
+      "s": 7.7
     },
     {
       "name": "sesión iniciada",
-      "s": 17.2
+      "s": 18.3
     },
     {
       "name": "saldo inicial leído",
-      "s": 17.2
+      "s": 18.3
     },
     {
       "name": "juego abierto",
-      "s": 28.7
+      "s": 33.9
     },
     {
       "name": "juego listo con apuesta mínima",
-      "s": 48.9
+      "s": 60.0
     },
     {
       "name": "giro observado",
-      "s": 61.2
+      "s": 71.8
     },
     {
       "name": "ronda cerrada",
-      "s": 61.2
+      "s": 71.8
     },
     {
       "name": "marcador estable",
-      "s": 63.1
+      "s": 73.7
     },
     {
       "name": "saldo final de Betsson",
-      "s": 67.5
+      "s": 77.6
     }
   ],
   "profile": {
