@@ -7,8 +7,8 @@ gameRoundEnded) y dio un FAIL falso. Ahora se espera al cierre antes de leer.
 from decimal import Decimal
 from typing import Any, cast
 
-from betsson_validator.runner import _wait_round_closed, _Witnesses
 from betsson_validator.scenarios.evidence import GameEventsSummary, NetworkSummary
+from betsson_validator.witnesses import Witnesses, wait_round_closed
 
 
 class _Page:
@@ -46,8 +46,8 @@ class _Network:
 
 def test_waits_until_the_server_settles_the_round() -> None:
     casino = _Casino()
-    witnesses = _Witnesses(network=cast(Any, _Network(settle_after=3)), events=None)
-    assert _wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
+    witnesses = Witnesses(network=cast(Any, _Network(settle_after=3)), events=None)
+    assert wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
     assert casino.page.waits == 3
 
 
@@ -57,8 +57,8 @@ def test_a_rejected_spin_does_not_keep_the_reading_waiting() -> None:
             return NetworkSummary(spin_requested=True, observed_calls=2, evidence=evidence)
 
     casino = _Casino()
-    witnesses = _Witnesses(network=cast(Any, Rejected(0)), events=None)
-    assert _wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
+    witnesses = Witnesses(network=cast(Any, Rejected(0)), events=None)
+    assert wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
     assert casino.page.waits == 0
 
 
@@ -77,10 +77,10 @@ def test_an_open_round_in_events_is_waited_for() -> None:
             )
 
     casino = _Casino()
-    witnesses = _Witnesses(network=None, events=cast(Any, Events()))
-    assert _wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
+    witnesses = Witnesses(network=None, events=cast(Any, Events()))
+    assert wait_round_closed(cast(Any, casino), witnesses, 0, 0) is True
     assert casino.page.waits == 2
 
 
 def test_without_witnesses_there_is_nothing_to_wait_for() -> None:
-    assert _wait_round_closed(cast(Any, _Casino()), _Witnesses(None, None), 0, 0) is None
+    assert wait_round_closed(cast(Any, _Casino()), Witnesses(None, None), 0, 0) is None

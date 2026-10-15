@@ -6,16 +6,11 @@ providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 """
 
 import re
-import time
 from collections.abc import Callable
 from contextlib import suppress
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import urlsplit
-
-from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import Frame
 
 from betsson_validator.browser import BrowserSettings, browser_context, tracing
 from betsson_validator.casino.betsson import GAME_FRAME_SELECTOR, BetssonCasino
@@ -30,8 +25,6 @@ from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game import accessibility
 from betsson_validator.game.events import (
     GameEventRecorder,
-    authorized_events,
-    capture_anomalies,
     payloads,
 )
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
@@ -40,8 +33,6 @@ from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
 from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
 from betsson_validator.providers.registry import (
-    EventsInterpreter,
-    NetworkWitness,
     events_interpreter,
     network_witness,
 )
@@ -50,7 +41,6 @@ from betsson_validator.scenarios.evaluation import (
     evaluate_insufficient_balance,
 )
 from betsson_validator.scenarios.evidence import (
-    GameEventsSummary,
     MotionSummary,
     NetworkSummary,
     RunEvidence,
@@ -66,6 +56,14 @@ from betsson_validator.scenarios.preconditions import (
 )
 from betsson_validator.security import audit_and_quarantine, scrub_text, scrub_trace
 from betsson_validator.timeline import StageClock
+from betsson_validator.witnesses import (
+    ROUND_CLOSE_TIMEOUT_S,
+    Witnesses,
+    events_summary,
+    find_game_frame,
+    frame_origins,
+    wait_round_closed,
+)
 
 Evaluator = Callable[[RunEvidence], tuple[CheckResult, ...]]
 
@@ -188,7 +186,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                         ctx,
                         plan=plan,
                         model=model,
-                        witnesses=_Witnesses(network, interpreter),
+                        witnesses=Witnesses(network, interpreter),
                         files=files,
                         clock=clock,
                     )
@@ -253,14 +251,6 @@ def _protect_evidence(
 
 
 @dataclass(frozen=True)
-class _Witnesses:
-    """Testigos del proveedor disponibles en esta ejecución (pueden no existir)."""
-
-    network: NetworkWitness | None
-    events: EventsInterpreter | None
-
-
-@dataclass(frozen=True)
 class _Ready:
     betsson_before: Money
     header_before: Path
@@ -277,7 +267,7 @@ def _prepare(
     *,
     plan: ScenarioPlan,
     model: ScreenModel,
-    witnesses: _Witnesses,
+    witnesses: Witnesses,
     files: EvidenceRecorder,
     clock: StageClock,
 ) -> _Ready:
@@ -287,9 +277,9 @@ def _prepare(
     clock.mark("saldo inicial leído")
     handle = casino.launch_game(ctx.provider, ctx.game)
     clock.mark("juego abierto")
-    game_frame = _game_frame(casino)
-    if witnesses.network is not None and game_frame is not None:
-        witnesses.network.bind(game_frame)
+    frame = find_game_frame(casino)
+    if witnesses.network is not None and frame is not None:
+        witnesses.network.bind(frame)
     events = witnesses.events
     game = ScreenGame(
         page=casino.page,
@@ -316,7 +306,7 @@ def _prepare(
     require_known_minimum(bet, model.profile.min_bet)
     require_consistent_start(betsson_before, seen.credit)
     plan.precondition(betsson_before, seen.credit, bet)
-    origins = _frame_origins(game_frame) if game_frame is not None else frozenset()
+    origins = frame_origins(frame) if frame is not None else frozenset()
     return _Ready(betsson_before, header_before, game, ready, origins)
 
 
@@ -326,7 +316,7 @@ def _play(
     *,
     plan: ScenarioPlan,
     model: ScreenModel,
-    witnesses: _Witnesses,
+    witnesses: Witnesses,
     files: EvidenceRecorder,
     clock: StageClock,
 ) -> tuple[tuple[CheckResult, ...], DemoFailure | None]:
@@ -342,9 +332,9 @@ def _play(
     events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
     clock.mark("giro observado")
-    if _wait_round_closed(casino, witnesses, mark, events_mark) is False:
+    if wait_round_closed(casino, witnesses, mark, events_mark) is False:
         model.notes.append(
-            f"La ronda no se cerró en {_ROUND_CLOSE_TIMEOUT_S} s según el servidor y los "
+            f"La ronda no se cerró en {ROUND_CLOSE_TIMEOUT_S} s según el servidor y los "
             "eventos del juego: se leyó el estado final igualmente."
         )
     clock.mark("ronda cerrada")
@@ -354,7 +344,7 @@ def _play(
         probes.append(accessibility.probe(game_frame, "despues_de_girar", settled=after.settled))
         files.save_json("accesibilidad", [asdict(item) for item in probes])
     # Los eventos se leen ANTES de salir de la página del juego.
-    events_summary = _events_summary(casino, witnesses.events, ready, events_mark, files)
+    game_events = events_summary(casino, witnesses.events, ready.game_origins, events_mark, files)
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 
@@ -386,7 +376,7 @@ def _play(
             evidence=spin.evidence,
         ),
         network=network,
-        events=events_summary,
+        events=game_events,
         market_language=ctx.market.language,
     )
     summary_data = _describe(evidence)  # siempre lo observado de verdad, sin el fallo inyectado
@@ -414,79 +404,6 @@ def _demo_failure(
         result for result in plan.evaluator(fault.apply(evidence)) if result.status is Status.FAIL
     )
     return DemoFailure(description=fault.description, results=failing)
-
-
-def _events_summary(
-    casino: BetssonCasino,
-    interpreter: EventsInterpreter | None,
-    ready: _Ready,
-    events_mark: int,
-    files: EvidenceRecorder,
-) -> GameEventsSummary | None:
-    """Eventos del juego durante la tirada, solo de sus orígenes, con las anomalías de captura."""
-    if interpreter is None:
-        return None
-    captured = GameEventRecorder.collect(casino.page)[events_mark:]
-    game_events, foreign = authorized_events(captured, ready.game_origins)
-    events_file = files.save_json("eventos_del_juego", captured)
-    summary = interpreter.summarize(payloads(game_events), str(events_file))
-    problems = capture_anomalies(game_events, GameEventRecorder.dropped(casino.page))
-    if foreign:
-        origins = ", ".join(sorted({str(e.get("origin")) for e in foreign}))
-        problems = (*problems, f"{len(foreign)} eventos de un origen no autorizado ({origins})")
-    if problems:
-        summary = replace(summary, anomalies=(*summary.anomalies, *problems))
-    return summary
-
-
-def _game_frame(casino: BetssonCasino) -> Frame | None:
-    """Marco del juego según el navegador (el iframe del lanzador de Betsson)."""
-    try:
-        element = casino.page.locator(GAME_FRAME_SELECTOR).element_handle(timeout=5_000)
-        return element.content_frame() if element else None
-    except PlaywrightError:
-        return None
-
-
-def _frame_origins(frame: Frame) -> frozenset[str]:
-    """Orígenes web del marco y de todos sus descendientes."""
-    origins: set[str] = set()
-    pending = [frame]
-    while pending:
-        current = pending.pop()
-        parts = urlsplit(current.url)
-        if parts.scheme in {"http", "https"}:
-            origins.add(f"{parts.scheme}://{parts.netloc}")
-        pending.extend(current.child_frames)
-    return frozenset(origins)
-
-
-_ROUND_CLOSE_TIMEOUT_S = 30
-
-
-def _wait_round_closed(
-    casino: BetssonCasino, witnesses: _Witnesses, mark: int, events_mark: int
-) -> bool | None:
-    """Espera a que el servidor y los eventos den la ronda por cerrada (cascadas, cobro del
-    premio) antes de la lectura final. Solo orienta CUÁNDO leer: la prueba sigue siendo lo que
-    ve el jugador. None si no hay testigos que lo indiquen; False si se agotó la espera."""
-    if witnesses.network is None and witnesses.events is None:
-        return None
-    deadline = time.monotonic() + _ROUND_CLOSE_TIMEOUT_S
-    while True:
-        open_round = False
-        if witnesses.events is not None:
-            recorded = payloads(GameEventRecorder.collect(casino.page)[events_mark:])
-            summary = witnesses.events.summarize(recorded, "")
-            open_round |= summary.round_started and not summary.round_ended
-        if witnesses.network is not None:
-            network = witnesses.network.summarize(mark, "")
-            open_round |= network.wager_accepted is not None and not network.settled
-        if not open_round:
-            return True
-        if time.monotonic() > deadline:
-            return False
-        casino.page.wait_for_timeout(500)
 
 
 def _describe(evidence: RunEvidence) -> dict[str, object]:
