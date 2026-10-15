@@ -10,6 +10,15 @@ Normas obligatorias para cualquier sesión de Claude Code en este repositorio. T
 - **Documentación oficial:** `docs/hackaton/` (bases, descripción del reto, tutoriales). **Léela antes de tomar decisiones de alcance o arquitectura**; si contradice este archivo, manda la documentación oficial y hay que actualizar este archivo.
 - **Infraestructura:** disponemos de Oracle Cloud para la competición. **No es obligatorio usarla**: solo se usa si, tras investigar, es la mejor opción frente a las alternativas.
 
+### Qué debe producir la aplicación (provisional, a confirmar con `docs/hackaton/`)
+Para cada juego nuevo y cada web de Betsson objetivo, un informe con:
+1. **Lobby:** el juego aparece → captura del lobby con el juego visible.
+2. **Lanzamiento:** el juego carga correctamente → captura del juego cargado.
+3. **Jugada:** se completa una partida → captura del resultado.
+4. **Veredicto:** `PASS` / `FAIL` global y por paso, con el motivo del fallo, la captura y la marca de tiempo.
+
+Todo diseño se evalúa contra estos entregables: si algo no ayuda a producirlos de forma fiable, no es prioritario.
+
 ## 1. Investigar antes de implementar (obligatorio)
 
 Antes de escribir código para cualquier funcionalidad, librería, servicio o decisión de arquitectura:
@@ -20,6 +29,8 @@ Antes de escribir código para cualquier funcionalidad, librería, servicio o de
 4. **Comprueba versiones y APIs reales**: no inventes APIs ni dependas de memoria; verifica en la documentación oficial. Fija versiones exactas de las dependencias.
 
 No implementes "lo primero que funcione" si hay una opción claramente mejor. Si la investigación no es concluyente, pregunta al usuario.
+
+**Proporcionalidad:** la profundidad de la investigación va con el impacto. Elegir stack, arquitectura o un servicio externo exige comparación completa y ADR; un cambio local (un helper, un fix acotado) basta con revisar el código existente y la documentación de la API usada. Nunca te saltes la investigación por completo.
 
 ## 2. Commit y push continuos (seguro contra quedarnos sin tokens)
 
@@ -37,6 +48,11 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
 - Si el rebase da conflictos, resuélvelos respetando el trabajo de los compañeros; si no está claro, pregunta. **Prohibido `git push --force`** y reescribir historia publicada.
 - **Mensajes:** [Conventional Commits](https://www.conventionalcommits.org/) en español: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `security`. Ej.: `feat(lobby): detectar juego nuevo por nombre`.
 - Al terminar una tarea grande, actualiza el `README.md` (cómo instalar, ejecutar y qué hace) para que el estado entregable sea comprensible sin nosotros.
+- **Traspaso de contexto:** `docs/ESTADO.md` es la memoria compartida del equipo. Actualízalo en el mismo commit que cierra cada paso: qué funciona, qué está en curso (y quién), siguiente paso concreto y problemas conocidos. Así cualquier compañero o una sesión nueva sin contexto puede retomar el trabajo si se acaban los tokens a mitad de tarea.
+
+### Trabajo en equipo
+- Antes de empezar una tarea, haz `git pull --rebase` y apúntala en "En curso" de `docs/ESTADO.md` (commit + push inmediato) para que nadie la duplique.
+- Cada persona trabaja en módulos distintos siempre que sea posible; los contratos compartidos (interfaces, formato del veredicto, configuración) se cambian solo avisando al equipo.
 
 ## 3. Seguridad (no negociable)
 
@@ -71,18 +87,19 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
 
 ## 5. Flujo de trabajo de cada sesión
 
-1. Lee este archivo, `README.md`, `docs/hackaton/` y `docs/decisiones/` relevantes. Haz `git pull --rebase origin main`.
+1. Haz `git pull --rebase origin main`. Lee este archivo, `docs/ESTADO.md`, `README.md`, `docs/hackaton/` y los `docs/decisiones/` relevantes.
 2. Entiende la tarea; si es ambigua, pregunta.
 3. **Investiga** (sección 1) y propone el enfoque.
 4. Implementa en pasos pequeños: **código → tests → lint → commit → push** (sección 2).
 5. Revisa tu propio diff buscando fallos de seguridad, violaciones SOLID y código mejorable antes de cada commit.
-6. Al acabar, resume qué se hizo, qué falta y cómo probarlo.
+6. Al acabar, actualiza `docs/ESTADO.md`, haz commit + push y resume al usuario qué se hizo, qué falta y cómo probarlo.
 
 ## Estructura del repositorio
 
 ```
 CLAUDE.md            Normas para Claude Code (este archivo)
 README.md            Descripción, instalación y uso
+docs/ESTADO.md       Estado del proyecto y traspaso entre sesiones
 docs/hackaton/       Documentación oficial del Malackaton y del reto Betsson (PDFs)
 docs/decisiones/     Registro de decisiones de arquitectura (ADR)
 ```
