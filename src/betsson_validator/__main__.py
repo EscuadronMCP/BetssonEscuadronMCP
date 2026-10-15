@@ -13,7 +13,7 @@ from betsson_validator.config.provider import load_provider
 from betsson_validator.domain.checks import Scenario
 from betsson_validator.domain.verdict import Status
 from betsson_validator.perception.ocr import RapidOcrReader
-from betsson_validator.report.writer import write_report
+from betsson_validator.report.writer import render_markdown, write_report
 from betsson_validator.runner import run_scenario
 
 
@@ -34,6 +34,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--out", type=Path, default=None, help="Carpeta del informe.")
     parser.add_argument("--headed", action="store_true", help="Mostrar el navegador.")
+    parser.add_argument(
+        "--summary", type=Path, default=None, help="Añade un resumen Markdown a este archivo."
+    )
     parser.add_argument(
         "--channel", default="chrome", help="Canal del navegador ('chrome' o 'chromium')."
     )
@@ -61,6 +64,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {run.status.value}" + (f" ({run.error})" if run.error else ""), flush=True)
         runs.append(run)
     json_path, html_path = write_report(runs, out_dir)
+    if args.summary:
+        with args.summary.open("a", encoding="utf-8") as summary:
+            summary.write(render_markdown(runs))
     print(f"Informe: {html_path}\nDatos: {json_path}")
     return 0 if all(run.status is Status.PASS for run in runs) else 1
 

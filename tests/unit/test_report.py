@@ -12,7 +12,7 @@ from betsson_validator.domain.verdict import (
     WitnessKind,
     evaluate,
 )
-from betsson_validator.report.writer import write_report
+from betsson_validator.report.writer import render_markdown, write_report
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 
@@ -74,3 +74,11 @@ def test_report_escapes_untrusted_text(tmp_path: Path) -> None:
 def test_report_lists_unevaluated_checks(tmp_path: Path) -> None:
     _, html_path = write_report([run_with(())], tmp_path)
     assert "No se llegó a evaluar" in html_path.read_text(encoding="utf-8")
+
+
+def test_markdown_summary_lists_every_check() -> None:
+
+    markdown = render_markdown([run_with(all_checks_pass()[:-1])])
+    assert markdown.startswith("## Validación de juegos: FAIL")
+    assert markdown.count("| PASS |") == 4
+    assert "No evaluada" in markdown

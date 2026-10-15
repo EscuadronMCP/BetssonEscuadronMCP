@@ -54,6 +54,33 @@ generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))}</p>
 """
 
 
+def render_markdown(runs: Sequence[ScenarioRun]) -> str:
+    """Resumen para la página de la ejecución en GitHub Actions."""
+    lines = [
+        f"## Validación de juegos: {_overall(runs).value}",
+        "",
+        "| Escenario | Mercado | Juego | Comprobación | Resultado | Motivo |",
+        "|---|---|---|---|---|---|",
+    ]
+    for run in runs:
+        title = SCENARIO_TITLES[run.scenario]
+        if run.error:
+            lines.append(
+                f"| {title} | {run.market} | {run.game} | Ejecución | FAIL | {run.error} |"
+            )
+        for result in run.results:
+            reason = result.reason.replace("|", "/")
+            lines.append(
+                f"| {title} | {run.market} | {run.game} | {_describe_check(result.check)} "
+                f"| {result.status.value} | {reason} |"
+            )
+        lines.extend(
+            f"| {title} | {run.market} | {run.game} | {DESCRIPTIONS[c]} | FAIL | No evaluada |"
+            for c in run.missing_checks()
+        )
+    return "\n".join(lines) + "\n"
+
+
 def _render_run(run: ScenarioRun, out_dir: Path) -> str:
     rows = "\n".join(_render_result_row(result, out_dir) for result in run.results)
     missing = "".join(
