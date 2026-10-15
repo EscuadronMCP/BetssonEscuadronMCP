@@ -101,3 +101,24 @@ def test_real_profiles_know_their_minimum_bet() -> None:
     bass = load_profile("pragmaticplay", "big-bass-halloween-splash-1000")
     assert sweet is not None and sweet.min_bet == Decimal("0.20")
     assert bass is not None and bass.min_bet == Decimal("0.10")
+
+
+def test_saving_writes_everything_or_keeps_the_previous_profile(tmp_path: Path) -> None:
+    """Auditoría R03-01: el perfil se publica entero o no se publica."""
+    profile = load_profile("pragmaticplay", "sweet-bonanza-2500")
+    assert profile is not None
+    profile.save(tmp_path)
+    reloaded = load_profile("pragmaticplay", "sweet-bonanza-2500", tmp_path)
+    assert reloaded is not None
+    assert reloaded.credit_label == profile.credit_label
+    assert set(reloaded.templates) == set(profile.templates)
+    assert reloaded.min_bet == profile.min_bet
+
+    broken = load_profile("pragmaticplay", "sweet-bonanza-2500")
+    assert broken is not None
+    broken.credit_label = "OTRA"
+    broken.templates["spin"] = np.zeros((0, 0, 3), dtype=np.uint8)  # imagen imposible de escribir
+    with pytest.raises(Exception):  # noqa: B017
+        broken.save(tmp_path)
+    kept = load_profile("pragmaticplay", "sweet-bonanza-2500", tmp_path)
+    assert kept is not None and kept.credit_label == profile.credit_label

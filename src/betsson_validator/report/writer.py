@@ -56,7 +56,7 @@ def write_report(
         "run_id": info.run_id,
         "requested_scenarios": [scenario.value for scenario in info.requested],
         "partial_scope": info.partial,
-        "status": _overall(runs, info).value,
+        "status": overall_status(runs, info).value,
         "runs": [{**run.model_dump(mode="json"), "status": run.status.value} for run in runs],
     }
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -72,7 +72,7 @@ def _scope(info: RunInfo) -> str:
 
 def render_html(runs: Sequence[ScenarioRun], out_dir: Path, info: RunInfo | None = None) -> str:
     info = info or RunInfo(requested=tuple(run.scenario for run in runs))
-    overall = _overall(runs, info)
+    overall = overall_status(runs, info)
     sections = "\n".join(_render_run(run, out_dir) for run in runs)
     return f"""<!doctype html>
 <html lang="es">
@@ -106,7 +106,7 @@ def render_markdown(
     Con `out_dir`, cada escenario lleva además su frase en lenguaje llano (lo observado).
     """
     info = info or RunInfo(requested=tuple(run.scenario for run in runs))
-    overall = _overall(runs, info)
+    overall = overall_status(runs, info)
     checks = [result for run in runs for result in run.results]
     passed = sum(result.status is Status.PASS for result in checks)
     expected = sum(len(run.results) + len(run.missing_checks()) for run in runs)
@@ -307,7 +307,7 @@ def _describe_check(check_id: str) -> str:
         return check_id
 
 
-def _overall(runs: Sequence[ScenarioRun], info: RunInfo) -> Status:
+def overall_status(runs: Sequence[ScenarioRun], info: RunInfo) -> Status:
     """PASS solo si se ejecutaron todos los escenarios pedidos y todos pasaron."""
     executed = {run.scenario for run in runs}
     if not runs or not set(info.requested) <= executed:

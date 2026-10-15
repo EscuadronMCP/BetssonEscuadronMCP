@@ -353,7 +353,8 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
         if evidence.screen_after.notice
         else ""
     )
-    unchanged = None if before is None or after is None else before == after
+    settled = evidence.screen_after.settled
+    unchanged = None if before is None or after is None or not settled else before == after
     screen_ok = None if unchanged is None else unchanged and message is not None
     screen = _t(
         SCREEN,
@@ -425,11 +426,13 @@ def betsson_balance_unchanged(evidence: RunEvidence) -> CheckResult:
 
 def game_balance_unchanged(evidence: RunEvidence) -> CheckResult:
     before, after = evidence.screen_before.credit, evidence.screen_after.credit
+    settled = evidence.screen_after.settled
     screen = _t(
         SCREEN,
         WitnessKind.VISUAL,
-        None if before is None or after is None else before == after,
-        f"crédito del juego {_fmt(before)} → {_fmt(after)}",
+        None if before is None or after is None or not settled else before == after,
+        f"crédito del juego {_fmt(before)} → {_fmt(after)}"
+        + ("" if settled else " (el marcador no se estabilizó: no vale como prueba)"),
         (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
     server = _server_rejection(evidence.network)
@@ -457,11 +460,12 @@ def _server_rejection(network: NetworkSummary | None) -> Testimony:
     if not network.spin_requested:
         return _t(SERVER, WitnessKind.CORROBORATING, True, "no se envió ninguna tirada", evidence)
     if network.wager_accepted is None:
+        # Sin un rechazo explícito del proveedor, una tirada pedida y no aceptada es desconocida.
         return _t(
             SERVER,
             WitnessKind.CORROBORATING,
-            True,
-            "el servidor rechazó la tirada sin cobrarla",
+            None,
+            "se pidió una tirada y el servidor no confirmó ni su aceptación ni su rechazo",
             evidence,
         )
     return _t(

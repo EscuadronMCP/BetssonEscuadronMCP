@@ -150,12 +150,23 @@ def server_testimony(results: tuple[CheckResult, ...], check: Check) -> str:
     )
 
 
-def test_spin_rejected_by_server_without_charge_is_a_valid_rejection() -> None:
-    """Auditoría R02 (NET-010): un rechazo del servidor sin cobro también es un rechazo."""
-    rejected = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=True, observed_calls=3))
-    results = evaluate_insufficient_balance(rejected)
-    assert statuses(results)[Check.SPIN_REJECTED.value] is Status.PASS
-    assert "rechazó la tirada sin cobrarla" in server_testimony(results, Check.SPIN_REJECTED)
+def test_a_requested_but_unconfirmed_spin_is_unknown_not_a_rejection() -> None:
+    """Auditoría R03-04: sin aceptación ni rechazo explícitos, el servidor no prueba nada."""
+    unconfirmed = replace(
+        REJECTED_SPIN, network=NetworkSummary(spin_requested=True, observed_calls=3)
+    )
+    results = evaluate_insufficient_balance(unconfirmed)
+    assert server_testimony(results, Check.SPIN_REJECTED).startswith("unavailable")
+
+
+def test_insufficient_scenario_cannot_pass_with_unsettled_credit() -> None:
+    """Auditoría R03-02: una lectura no estabilizada no confirma que el crédito no cambió."""
+    unsettled = replace(
+        REJECTED_SPIN, screen_after=replace(REJECTED_SPIN.screen_after, settled=False)
+    )
+    result = statuses(evaluate_insufficient_balance(unsettled))
+    assert result[Check.GAME_BALANCE_UNCHANGED.value] is Status.FAIL
+    assert result[Check.SPIN_REJECTED.value] is Status.FAIL
 
 
 def test_a_capture_that_saw_nothing_cannot_prove_there_was_no_spin() -> None:

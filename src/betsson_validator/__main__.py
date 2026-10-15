@@ -25,7 +25,12 @@ from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import Status
 from betsson_validator.perception.learner import ClaudeScreenLearner, ScreenLearner
 from betsson_validator.perception.ocr import RapidOcrReader
-from betsson_validator.report.writer import RunInfo, render_markdown, write_report
+from betsson_validator.report.writer import (
+    RunInfo,
+    overall_status,
+    render_markdown,
+    write_report,
+)
 from betsson_validator.runner import RunContext, failed_run, run_scenario
 from betsson_validator.scenarios.faults import BETSSON_BALANCE_DRIFT
 from betsson_validator.security import audit_and_quarantine, scrub_files, scrub_text
@@ -137,7 +142,8 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
         with args.summary.open("a", encoding="utf-8") as summary:
             summary.write(scrub_text(render_markdown(runs, info, ctx.out_dir), secrets))
     print(f"Duración: {time.monotonic() - started:.0f} s\nInforme: {html_path}\nDatos: {json_path}")
-    return 0 if all(run.status is Status.PASS for run in runs) else 1
+    # El mismo veredicto global que el informe: un escenario pedido que falta también es FAIL.
+    return 0 if overall_status(runs, info) is Status.PASS else 1
 
 
 def _code_version() -> str:

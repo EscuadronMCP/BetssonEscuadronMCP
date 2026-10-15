@@ -91,9 +91,10 @@ def learn_game(ctx: RunContext) -> LearnResult:
                 except (GameError, LearningError) as error:
                     last_error = str(error)
                     continue
-                profile.templates.update(proven)
-                profile.learned_with = model_name
-                path = profile.save(ctx.profiles_dir)
+                adopted = model.profile  # apply() sustituye el perfil por la copia validada
+                adopted.templates.update(proven)
+                adopted.learned_with = model_name
+                path = adopted.save(ctx.profiles_dir)
                 return LearnResult(str(path), model_name, checks, ctx.learner.cost_usd)
             raise LearningError(f"El perfil aprendido no superó la validación: {last_error}")
     finally:

@@ -4,6 +4,8 @@ Vive en profiles/<proveedor>/<juego>/ (profile.yaml + una imagen por control). S
 `python -m betsson_validator learn` y se versiona: cualquiera puede revisar qué aprendió la IA.
 """
 
+import shutil
+import tempfile
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -43,12 +45,27 @@ class GameProfile:
         return self.templates.get(control)
 
     def save(self, profiles_dir: Path = DEFAULT_PROFILES_DIR) -> Path:
+        """Escribe el perfil completo en una carpeta temporal y solo entonces sustituye al
+        anterior: un fallo a mitad (p. ej. una imagen que no se escribe) no deja activo un
+        perfil incompleto."""
         directory = profiles_dir / self.provider / self.game
-        directory.mkdir(parents=True, exist_ok=True)
+        directory.parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix=f".{self.game}-", dir=directory.parent))
+        try:
+            path = self._write(staging)
+            if directory.exists():
+                shutil.rmtree(directory)
+            staging.replace(directory)
+        finally:
+            shutil.rmtree(staging, ignore_errors=True)
+        return directory / path.name
+
+    def _write(self, directory: Path) -> Path:
         files = {}
         for control, image in self.templates.items():
             name = f"{control}.png"
-            cv2.imwrite(str(directory / name), image)
+            if not cv2.imwrite(str(directory / name), image):
+                raise OSError(f"No se pudo escribir la imagen del control '{control}'.")
             files[control] = name
         data = {
             "provider": self.provider,

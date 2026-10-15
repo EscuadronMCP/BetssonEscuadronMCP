@@ -285,12 +285,15 @@ class ScreenGame:
         deadline = time.monotonic() + timeout_s
         image = self.capture()
         hud, boxes = self.model.read(image)
+        seen_win = hud.win is not None
         settled = False
         while not settled and time.monotonic() < deadline:
             self.page.wait_for_timeout(1000)
             next_image = self.capture()
             next_hud, next_boxes = self.model.read(next_image)
-            settled = same_reading(hud, next_hud)
+            # Un premio que se vio y ya no se lee no es "sin premio": se vuelve a mirar.
+            settled = same_reading(hud, next_hud) and not (seen_win and next_hud.win is None)
+            seen_win = seen_win or next_hud.win is not None
             image, hud, boxes = next_image, next_hud, next_boxes
         return replace(self._observation(name, image, hud, boxes), settled=settled)
 
@@ -498,14 +501,16 @@ def _control_box_problem(box: Box, width: int, height: int) -> str | None:
 
 
 def same_reading(a: HudReading, b: HudReading) -> bool:
-    """Dos lecturas seguidas del marcador coinciden: el crédito igual y el premio sin cambiar.
+    """Dos lecturas seguidas del marcador coinciden: el mismo crédito y el mismo premio.
 
-    Un premio que aparece en una lectura y no en la otra se tolera (algunas etiquetas
-    parpadean); un premio con dos importes distintos significa que el contador sigue subiendo.
+    Un premio que aparece en una lectura y no en la otra NO es estable (auditoría R03-03): puede
+    ser una etiqueta que parpadea o una lectura fallida, y un premio desconocido no es cero.
     """
     if a.credit is None or b.credit is None or a.credit.money != b.credit.money:
         return False
-    return a.win is None or b.win is None or a.win.money == b.win.money
+    if a.win is None or b.win is None:
+        return a.win is None and b.win is None
+    return a.win.money == b.win.money
 
 
 def is_still(previous: Image, current: Image) -> bool:

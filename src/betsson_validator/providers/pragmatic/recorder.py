@@ -39,11 +39,15 @@ class GameServiceRecorder:
             return
         try:
             request_body = response.request.post_data or ""
-            response_body = response.text()
+            response_body = response.text() if response.ok else ""
         except Exception:  # una respuesta ilegible no debe tumbar la prueba, pero se anota
+            response_body = ""
+        call = GameServiceCall.from_bodies(request_body, response_body)
+        if not call.response or "balance" not in call.response:
+            # Error HTTP, cuerpo vacío o sin el esquema del juego: no prueba nada.
             self._unreadable_at.append(len(self._calls))
             return
-        self._calls.append(GameServiceCall.from_bodies(request_body, response_body))
+        self._calls.append(call)
         self._redacted.append({"request": redact(request_body), "response": redact(response_body)})
 
     def mark(self) -> int:

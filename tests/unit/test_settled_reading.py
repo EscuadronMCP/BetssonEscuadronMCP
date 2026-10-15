@@ -31,8 +31,10 @@ def test_same_credit_and_win_is_settled() -> None:
     assert same_reading(hud("64.65", "0.15"), hud("64.65", "0.15"))
 
 
-def test_a_blinking_win_label_does_not_block_the_reading() -> None:
-    assert same_reading(hud("64.65", "0.15"), hud("64.65", None))
+def test_a_prize_that_disappears_is_not_stable() -> None:
+    """Auditoría R03-03: un premio que deja de leerse no es "sin premio"."""
+    assert not same_reading(hud("64.65", "0.15"), hud("64.65", None))
+    assert same_reading(hud("64.65"), hud("64.65"))  # pérdida legítima: nunca hubo premio
 
 
 def test_a_win_counter_still_going_up_is_not_settled() -> None:
@@ -117,3 +119,21 @@ def test_an_unsettled_final_reading_cannot_prove_the_balance() -> None:
     assert check.status is Status.FAIL
     assert "no se estabilizó" in str(check.testimonies)
     assert statuses(evaluate_completed_spin(WINNING_SPIN))[check.check] is Status.PASS
+
+
+def test_blinking_prize_is_observed_again_before_finalizing() -> None:
+    """Auditoría R03-03: crédito fijo y premios 1 → None → 2 → 2 terminan en 2, no en None."""
+    readings = [
+        hud("64.65", "1.00"),
+        hud("64.65", None),
+        hud("64.65", "2.00"),
+        hud("64.65", "2.00"),
+    ]
+    result = observe(readings, 5)
+    assert result.settled
+    assert result.hud.win.money.amount == Decimal("2.00")
+
+
+def test_a_prize_that_never_comes_back_is_not_settled() -> None:
+    result = observe([hud("64.65", "1.00"), hud("64.65", None)], 0.05)
+    assert not result.settled

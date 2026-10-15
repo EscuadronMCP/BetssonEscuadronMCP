@@ -112,3 +112,41 @@ def test_game_service_traffic_is_attributed_to_the_game_frame() -> None:
     assert _foreign_reason(response(blank, server)) is None  # hereda el sitio del juego
     assert _foreign_reason(response(casino, server)) is not None
     assert _foreign_reason(response(other, server)) is not None
+
+
+def test_http_error_is_not_proof_of_a_rejected_wager() -> None:
+    """Auditoría R03-04: un 503 con HTML no es una llamada legible del juego."""
+    from types import SimpleNamespace  # noqa: PLC0415
+    from typing import Any, cast  # noqa: PLC0415
+
+    from betsson_validator.providers.pragmatic.recorder import GameServiceRecorder  # noqa: PLC0415
+
+    class Context:
+        def on(self, _event: str, _handler: object) -> None:
+            return None
+
+    recorder = GameServiceRecorder(cast(Any, Context()))
+    frame = SimpleNamespace(
+        parent_frame=SimpleNamespace(parent_frame=None, url="https://c.es"),
+        url="https://a.proveedor.net/gs2c/playGame.do",
+    )
+
+    def response(ok: bool, body: str) -> Any:
+        request = SimpleNamespace(frame=frame, post_data="action=doSpin&c=0.01&l=20")
+        return cast(
+            Any,
+            SimpleNamespace(
+                url="https://a.proveedor.net/gs2c/ge/v4/gameService",
+                ok=ok,
+                request=request,
+                text=lambda: body,
+            ),
+        )
+
+    recorder._on_response(response(False, "<html>503</html>"))
+    recorder._on_response(response(True, ""))
+    recorder._on_response(response(True, "<html>no es el esquema</html>"))
+    summary = recorder.summarize(0, "")
+    assert summary.observed_calls == 0
+    assert summary.unreadable == 3
+    assert not summary.reliable
