@@ -15,7 +15,7 @@ Todo **de principio a fin y sin intervención humana**: la prueba abre el navega
 
 El juego es una **caja negra**: lo programa el proveedor y se dibuja en un canvas dentro de un iframe, sin elementos que inspeccionar. Pulsar *Spin* no prueba nada: hay que demostrar lo que ve el jugador.
 
-**Testigos independientes** ([decisión 001](docs/decisiones/001-enfoque-testigos-y-perfiles.md)). Cada comprobación la confirman varias fuentes:
+**Testigos independientes** ([decisión 001](docs/decisiones/001-enfoque-testigos-y-perfiles.md)). Cada comprobación la confirman hasta cinco fuentes, de tres capas distintas (pantalla, red y navegador):
 
 | Testigo | Qué aporta | ¿Lo ve el jugador? |
 |---|---|---|
@@ -23,6 +23,7 @@ El juego es una **caja negra**: lo programa el proveedor y se dibuja en un canva
 | Movimiento de los rodillos | Que el giro empezó y terminó | Sí |
 | Cabecera de Betsson | Saldo antes y después | Sí |
 | Servidor del juego (tráfico observado, sin modificar) | Apuesta cobrada, premio y saldo según el proveedor | No |
+| Eventos del juego (`postMessage` juego → casino, [decisión 003](docs/decisiones/003-testigo-eventos-del-juego.md)) | Inicio y fin de ronda, apuesta, premio, saldo, idioma y divisa que el juego comunica a Betsson | No |
 
 La pantalla es obligatoria: sin lectura visual no hay PASS. Si los testigos discrepan, el resultado es **FAIL por discrepancia**, que es justo un fallo de integración.
 
@@ -32,8 +33,8 @@ La pantalla es obligatoria: sin lectura visual no hay PASS. Si los testigos disc
 
 | Concepto | Coste |
 |---|---|
-| Ejecución normal (perfil ya aprendido: todo local) | **0 € de IA** |
-| Incorporar un juego nuevo (`learn`) | ≈ 0,002–0,01 $ |
+| Ejecución normal (perfil ya aprendido: todo local) | **0 € de IA** (no se llama a la IA mientras el juego carga) |
+| Incorporar un juego nuevo (`learn`) | ≈ 0,002–0,01 $ (medido: 0,0019 $ con Haiku; 0,0075 $ si hace falta Sonnet) |
 | Reparación tras un cambio de interfaz | ≈ 0,002 $ |
 | Tirada de prueba (0,20 €, RTP ≈ 94,5 %) | ≈ 0,01 € esperado |
 
