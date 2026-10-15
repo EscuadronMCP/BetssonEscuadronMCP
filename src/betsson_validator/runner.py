@@ -174,8 +174,7 @@ def _play(
 ) -> tuple[CheckResult, ...]:
     page = casino.page
     betsson_before = casino.read_balance()
-    header_before = files.directory / "00_saldo_betsson_antes.png"
-    casino.balance_locator().screenshot(path=str(header_before))
+    header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.png")
 
     handle = casino.launch_game(provider)
     game = PragmaticGame(
@@ -206,8 +205,7 @@ def _play(
     summary = _network_summary(calls[:mark], calls[mark:], str(traffic))
 
     betsson_after = casino.read_balance_after(betsson_before)
-    header_after = files.directory / "99_saldo_betsson_despues.png"
-    casino.balance_locator().screenshot(path=str(header_after))
+    header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.png")
 
     evidence = RunEvidence(
         market_currency=market.currency,

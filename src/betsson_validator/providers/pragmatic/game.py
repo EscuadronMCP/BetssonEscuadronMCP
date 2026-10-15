@@ -62,7 +62,11 @@ class PragmaticGame:
         )
 
     def capture(self) -> Image:
-        png = self._handle.iframe.screenshot(animations="allow")
+        """Lo que ve el jugador en la zona del juego (incluye lo que se superponga encima)."""
+        box = self._handle.iframe.bounding_box()
+        if box is None:
+            raise GameError("El juego no está visible en la página.")
+        png = self._page.screenshot(clip=box, animations="allow")
         image = cv2.imdecode(np.frombuffer(png, dtype=np.uint8), cv2.IMREAD_COLOR)
         if image is None:
             raise GameError("No se pudo capturar la pantalla del juego.")

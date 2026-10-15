@@ -3,6 +3,7 @@
 import re
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urljoin
 
 from playwright.sync_api import FrameLocator, Locator, Page
@@ -25,6 +26,12 @@ _HIDE_LOGIN_FIELDS_CSS = (
 )
 _BALANCE_SETTLE_MS = 2000
 _LOBBY_MAX_SCROLLS = 80
+# Las fichas de juego enlazan a /casino/<categoría>/<juego>; el menú lateral, a /casino/<x>.
+# Se evalúa sobre un localizador de Playwright porque las fichas viven en shadow DOM.
+_COUNT_GAME_TILES_JS = """links => links.filter(a => {
+    const path = new URL(a.href, location.href).pathname;
+    return path.split("/").filter(Boolean).length >= 3;
+}).length"""
 _LOBBY_SCROLL_PX = 1200
 _LOBBY_SCROLL_WAIT_MS = 600
 
@@ -103,6 +110,23 @@ class BetssonCasino:
     def balance_locator(self) -> Locator:
         return self._page.get_by_role("button", name=_BALANCE_BUTTON).first
 
+    def capture_balance(self, path: Path) -> Path:
+        """Recorte de la cabecera alrededor del saldo, tal y como lo ve el jugador."""
+        box = self.balance_locator().bounding_box()
+        if box is None:
+            raise CasinoError("El saldo de Betsson no está visible.")
+        margin = 40
+        self._page.screenshot(
+            path=str(path),
+            clip={
+                "x": max(box["x"] - margin * 4, 0),
+                "y": max(box["y"] - margin, 0),
+                "width": box["width"] + margin * 6,
+                "height": box["height"] + margin * 2,
+            },
+        )
+        return path
+
     def read_balance(self) -> Money:
         """Saldo de Betsson tal y como lo ve el jugador en la cabecera."""
         locator = self.balance_locator()
@@ -145,7 +169,7 @@ class BetssonCasino:
     def _find_in_lobby(self, slug: str, provider_label: str) -> Locator:
         """El listado carga los juegos al bajar: se baja hasta que aparece, como un jugador."""
         game_link = self._page.locator(f"a[href$='/{slug}']").first
-        self._page.locator("a[href*='/casino/']").first.wait_for(timeout=30_000)
+        self._wait_for_game_tiles()
         # La rueda actúa donde está el puntero: hay que ponerlo sobre el listado.
         viewport = self._page.viewport_size or {"width": 1440, "height": 900}
         self._page.mouse.move(viewport["width"] / 2, viewport["height"] * 2 / 3)
@@ -156,6 +180,14 @@ class BetssonCasino:
             self._page.mouse.wheel(0, _LOBBY_SCROLL_PX)
             self._page.wait_for_timeout(_LOBBY_SCROLL_WAIT_MS)
         raise CasinoError(f"El juego '{slug}' no aparece en el lobby de {provider_label}.")
+
+    def _wait_for_game_tiles(self, timeout_s: float = 30) -> None:
+        links = self._page.locator("a[href*='/casino/']")
+        deadline = time.monotonic() + timeout_s
+        while int(links.evaluate_all(_COUNT_GAME_TILES_JS)) == 0:
+            if time.monotonic() > deadline:
+                raise CasinoError("El lobby no mostró ningún juego a tiempo.")
+            self._page.wait_for_timeout(500)
 
     def _start_game_session(self) -> None:
         """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites."""
