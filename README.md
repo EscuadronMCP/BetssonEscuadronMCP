@@ -56,7 +56,7 @@ Comparado con **15–30 minutos de una persona** por juego nuevo, el coste es de
 ## 🧩 Se adapta a cualquier juego y proveedor
 
 - **Nada está "cableado" a un juego.** Cada juego tiene un *perfil* (qué textos tiene su marcador y cómo son sus botones) que una IA aprende en un minuto y que se **comprueba antes de aceptarlo** (por ejemplo, que el crédito leído coincide con el saldo real de Betsson).
-- **Demostrado con dos juegos muy distintos** de Pragmatic Play, sin escribir código: *Sweet Bonanza 2500* y *Big Bass Halloween Splash 1000* (botones, colores y disposición diferentes). Añadir el segundo costó **0,0006 $**.
+- **Demostrado de principio a fin con dos juegos muy distintos** de Pragmatic Play, sin escribir código: *Sweet Bonanza 2500* y *Big Bass Halloween Splash 1000* (botones, colores, disposición y animaciones diferentes). Los dos pasan los dos escenarios; añadir el segundo costó **≈ 0,001 $**.
 - **Si el proveedor mueve un botón o cambia un texto**, el validador lo vuelve a encontrar solo; si cambia por completo, la IA lo reaprende una vez y lo deja anotado en el informe.
 - **Otro proveedor** = un pequeño archivo de configuración (cómo se llama en el filtro del casino) + aprender su juego. **Otro mercado** (otra web de Betsson) = otro archivo de configuración.
 

@@ -22,7 +22,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - [x] **E4. Escenario 2:** saldo insuficiente, PASS real.
 - [x] **E5. Workflow de GitHub Actions:** PASS en el runner propio (15/10).
 - [x] **E6. Perfiles aprendidos:** perfil real de Sweet Bonanza aprendido y validado (0,0019–0,0075 $). PASS de principio a fin en ambos escenarios con los cinco testigos y **cero llamadas a la IA** (15/10, `reports/e2e-v5`).
-- [ ] **E7. Demo de extensibilidad:** `learn` sobre un segundo juego y, si da tiempo, de otro proveedor (bonus).
+- [x] **E7. Extensibilidad:** segundo juego de Pragmatic con interfaz muy distinta (Big Bass Halloween Splash 1000), aprendido por 0,0006–0,0011 $ sin escribir código: **PASS en ambos escenarios** (15/10). Para hacerlo posible se generalizaron el movimiento (umbrales adaptativos al fondo animado y reposo relativo al giro) y la lectura del HUD (etiquetas repetidas). Sweet Bonanza sigue en PASS (regresión). En todas, cero llamadas a la IA.
 
 ## Funciona
 - **Flujo completo automático** (`python -m betsson_validator run`): navegador → cookies → login → saldo → lobby → filtro → juego → sesión de juego → bienvenida → apuesta mínima → giro → informe.
@@ -37,7 +37,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| Workflow de validación en el runner + E7 (segundo juego) | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
+| Repaso final de entrega | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
 
 ## Siguiente paso
 1. Lanzar el workflow de validación en el runner propio y comprobar el informe publicado.
