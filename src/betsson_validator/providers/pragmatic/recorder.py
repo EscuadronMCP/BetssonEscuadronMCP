@@ -5,8 +5,12 @@ from playwright.sync_api import BrowserContext, Response
 from betsson_validator.providers.pragmatic.network import (
     GAME_SERVICE_PATH,
     GameServiceCall,
+    NoSpinObservedError,
+    balance_from_init,
     redact,
+    summarize_round,
 )
+from betsson_validator.scenarios.evidence import NetworkSummary
 
 
 class GameServiceRecorder:
@@ -26,17 +30,28 @@ class GameServiceRecorder:
         self._calls.append(GameServiceCall.from_bodies(request_body, response_body))
         self._redacted.append({"request": redact(request_body), "response": redact(response_body)})
 
-    @property
-    def calls(self) -> list[GameServiceCall]:
-        return list(self._calls)
-
     def mark(self) -> int:
         """Posición actual: permite quedarse solo con las llamadas posteriores a un momento."""
         return len(self._calls)
 
-    def calls_since(self, mark: int) -> list[GameServiceCall]:
-        return self._calls[mark:]
-
     def redacted_log(self) -> list[dict[str, str]]:
         """Tráfico sin tokens de sesión, apto para guardarse como evidencia."""
         return list(self._redacted)
+
+    def summarize(self, mark: int, evidence: str) -> NetworkSummary:
+        """Lo que dijo el servidor sobre la tirada que empezó en `mark`."""
+        before, during = self._calls[:mark], self._calls[mark:]
+        try:
+            spin = summarize_round(during)
+        except NoSpinObservedError:
+            return NetworkSummary(spin_requested=False, evidence=evidence)
+        return NetworkSummary(
+            spin_requested=True,
+            settled=spin.settled,
+            wager_requested=spin.wager_requested,
+            wager_accepted=spin.wager_accepted,
+            declared_win=spin.declared_win,
+            balance_before=balance_from_init(before),
+            balance_after=spin.balance_after,
+            evidence=evidence,
+        )

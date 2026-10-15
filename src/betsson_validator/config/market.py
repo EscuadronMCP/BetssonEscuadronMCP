@@ -40,6 +40,25 @@ class MarketAccounts(BaseModel):
     funded: AccountEnv
     no_balance: AccountEnv
 
+    def secrets(self) -> tuple[str, ...]:
+        """Valores de las credenciales disponibles, para buscarlos en las evidencias."""
+        names = (
+            self.funded.email_env,
+            self.funded.password_env,
+            self.no_balance.email_env,
+            self.no_balance.password_env,
+        )
+        return tuple(value for name in names if (value := os.getenv(name)))
+
+    def ensure_distinct(self) -> None:
+        """Los dos escenarios necesitan cuentas distintas: con la misma, uno gastaría el saldo
+        del otro y el escenario 2 giraría con dinero real."""
+        funded, empty = os.getenv(self.funded.email_env), os.getenv(self.no_balance.email_env)
+        if funded and empty and funded.strip().lower() == empty.strip().lower():
+            raise SameAccountError(
+                f"{self.funded.email_env} y {self.no_balance.email_env} son la misma cuenta."
+            )
+
 
 class MarketUi(BaseModel):
     """Textos visibles de la web del mercado: cambian con el idioma, no con el código."""
@@ -71,6 +90,10 @@ class MarketConfig(BaseModel):
     currency: str = Field(min_length=3, max_length=3)
     accounts: MarketAccounts
     ui: MarketUi
+
+
+class SameAccountError(RuntimeError):
+    pass
 
 
 class MissingCredentialsError(RuntimeError):

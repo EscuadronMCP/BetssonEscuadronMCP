@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from betsson_validator.browser import BrowserSettings
-from betsson_validator.config.market import load_market
+from betsson_validator.config.market import SameAccountError, load_market
 from betsson_validator.config.provider import load_provider
 from betsson_validator.domain.checks import Scenario
 from betsson_validator.domain.run import ScenarioRun
@@ -25,6 +25,8 @@ from betsson_validator.perception.learner import ClaudeScreenLearner, ScreenLear
 from betsson_validator.perception.ocr import RapidOcrReader
 from betsson_validator.report.writer import render_markdown, write_report
 from betsson_validator.runner import RunContext, run_scenario
+from betsson_validator.scenarios.faults import BETSSON_BALANCE_DRIFT
+from betsson_validator.security import audit_and_quarantine, scrub_files
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:
@@ -52,6 +54,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run.add_argument("--scenario", choices=[*[s.value for s in Scenario], "all"], default="all")
     run.add_argument("--summary", type=Path, default=None, help="Añade un resumen Markdown aquí.")
     run.add_argument("--video", action="store_true", help="Grabar vídeo (informe más pesado).")
+    run.add_argument(
+        "--inject-fault",
+        choices=[s.value for s in Scenario],
+        default=None,
+        help="Demostración: provoca a propósito un fallo de saldo en ese escenario.",
+    )
     run.add_argument(
         "--sequential",
         action="store_true",
@@ -82,19 +90,31 @@ def _context(args: argparse.Namespace, out_dir: Path) -> RunContext:
 
 def _run(args: argparse.Namespace, ctx: RunContext) -> int:
     scenarios = list(Scenario) if args.scenario == "all" else [Scenario(args.scenario)]
+    try:
+        ctx.market.accounts.ensure_distinct()
+    except SameAccountError as error:
+        print(f"No se ejecuta: {error}")
+        return 1
     if ctx.learner is None:
         print("Sin ANTHROPIC_API_KEY: se usa el perfil aprendido sin posibilidad de reaprender.")
     for scenario in scenarios:
         print(f"→ {scenario.value} · {ctx.market.id} · {ctx.provider.filter_label} · {ctx.game}")
     started = time.monotonic()
-    runs = _run_all(scenarios, ctx, parallel=not args.sequential)
+    faulty = Scenario(args.inject_fault) if args.inject_fault else None
+    runs = _run_all(scenarios, ctx, parallel=not args.sequential, faulty=faulty)
     for run in runs:
         print(
             f"{run.scenario.value}: {run.status.value}" + (f" ({run.error})" if run.error else "")
         )
+        if run.injected_fault:
+            print(f"  aviso: {run.injected_fault}")
         for note in run.notes:
             print(f"  nota: {note}")
     json_path, html_path = write_report(runs, ctx.out_dir)
+    secrets = ctx.market.accounts.secrets()
+    scrub_files((json_path, html_path), secrets)  # el informe se publica siempre: se limpia
+    for leaked in audit_and_quarantine(ctx.out_dir, secrets):
+        print(f"  evidencia retirada por contener secretos: {leaked}")
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as summary:
             summary.write(render_markdown(runs))
@@ -102,14 +122,21 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
     return 0 if all(run.status is Status.PASS for run in runs) else 1
 
 
-def _run_all(scenarios: list[Scenario], ctx: RunContext, *, parallel: bool) -> list[ScenarioRun]:
+def _run_all(
+    scenarios: list[Scenario], ctx: RunContext, *, parallel: bool, faulty: Scenario | None
+) -> list[ScenarioRun]:
     """Cada escenario usa su propia cuenta, así que pueden ir a la vez: el tiempo total es el del
     más lento. Cada hilo tiene su navegador y su lector de OCR (no se comparten entre hilos)."""
+
+    def context_for(scenario: Scenario, reader: RapidOcrReader | None = None) -> RunContext:
+        fault = BETSSON_BALANCE_DRIFT if scenario is faulty else None
+        return replace(ctx, reader=reader or ctx.reader, fault=fault)
+
     if not parallel or len(scenarios) == 1:
-        return [run_scenario(scenario, ctx) for scenario in scenarios]
+        return [run_scenario(scenario, context_for(scenario)) for scenario in scenarios]
     with ThreadPoolExecutor(max_workers=len(scenarios)) as pool:
         futures = [
-            pool.submit(run_scenario, scenario, replace(ctx, reader=RapidOcrReader()))
+            pool.submit(run_scenario, scenario, context_for(scenario, RapidOcrReader()))
             for scenario in scenarios
         ]
         return [future.result() for future in futures]

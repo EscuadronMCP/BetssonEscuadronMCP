@@ -65,6 +65,10 @@ def render_markdown(runs: Sequence[ScenarioRun]) -> str:
     ]
     for run in runs:
         title = SCENARIO_TITLES[run.scenario]
+        if run.injected_fault:
+            lines.append(
+                f"| {title} | {run.market} | {run.game} | Aviso | — | {run.injected_fault} |"
+            )
         if run.error:
             lines.append(
                 f"| {title} | {run.market} | {run.game} | Ejecución | FAIL | {run.error} |"
@@ -108,6 +112,8 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
         for c in run.missing_checks()
     )
     error = f'<p class="error">Error: {escape(run.error)}</p>' if run.error else ""
+    if run.injected_fault:
+        error = f'<p class="fault">⚠️ {escape(run.injected_fault)}</p>' + error
     if run.notes:
         error += "".join(f'<p class="meta">Nota: {escape(note)}</p>' for note in run.notes)
     if run.quarantined:
@@ -147,7 +153,7 @@ def _render_media(run: ScenarioRun, out_dir: Path) -> str:
     links = []
     for pattern, label in _MEDIA:
         for path in sorted(folder.glob(pattern)):
-            href = escape(str(path.relative_to(out_dir)))
+            href = escape(path.relative_to(out_dir).as_posix())
             links.append(f'<a href="{href}">{escape(label)}</a>')
     return f'<p class="meta">Evidencias: {" · ".join(links)}</p>' if links else ""
 
@@ -169,13 +175,17 @@ def _render_evidence(paths: tuple[str, ...], out_dir: Path) -> str:
     links = []
     for raw in paths:
         path = Path(raw)
-        href = path.relative_to(out_dir) if path.is_relative_to(out_dir) else path
+        if not path.is_file():  # p. ej. retirada por contener un secreto: nunca un enlace roto
+            links.append(f'<span class="missing">{escape(path.name)}: no disponible</span>')
+            continue
+        # Rutas con "/" también en Windows: son URL relativas, no rutas del sistema.
+        href = escape(
+            (path.relative_to(out_dir) if path.is_relative_to(out_dir) else path).as_posix()
+        )
         if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
-            links.append(
-                f'<a href="{escape(str(href))}"><img src="{escape(str(href))}" alt="evidencia"></a>'
-            )
+            links.append(f'<a href="{href}"><img src="{href}" alt="evidencia"></a>')
         else:
-            links.append(f'<a href="{escape(str(href))}">{escape(path.name)}</a>')
+            links.append(f'<a href="{href}">{escape(path.name)}</a>')
     return f'<div class="evidence">{"".join(links)}</div>' if links else ""
 
 
@@ -213,8 +223,10 @@ ul { margin:0; padding-left:18px; }
 .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-weight:600; color:#fff; }
 .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
 .error { color:var(--fail); }
+.fault { border:2px dashed var(--fail); border-radius:8px; padding:8px 12px; font-weight:600; }
 .plain { border:1px solid var(--line); border-radius:8px; padding:4px 14px; margin:12px 0; }
 .evidence img { max-width:220px; margin:4px 4px 0 0; border:1px solid var(--line); }
+.missing { color:var(--muted); font-size:13px; margin-right:8px; }
 @media (max-width:700px) {
   table, thead, tbody, tr, th, td { display:block; } thead { display:none; }
 }

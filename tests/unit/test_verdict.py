@@ -51,3 +51,48 @@ def test_unavailable_witness_does_not_block_pass_but_is_reported() -> None:
 def test_contradicting_screen_readings_fail() -> None:
     result = evaluate("apuesta", (screen(Outcome.CONFIRMS), screen(Outcome.CONTRADICTS)))
     assert result.status is Status.FAIL
+
+
+def test_withdrawn_evidence_turns_a_confirmation_into_unavailable() -> None:
+    from betsson_validator.domain.verdict import withdraw_evidence  # noqa: PLC0415
+
+    seen = Testimony(
+        witness="pantalla",
+        kind=WitnessKind.VISUAL,
+        outcome=Outcome.CONFIRMS,
+        detail="d",
+        evidence=("captura.jpg",),
+    )
+    result = withdraw_evidence(evaluate("saldo", (seen,)), {"captura.jpg"})
+    assert result.status is Status.FAIL
+    assert result.testimonies[0].outcome is Outcome.UNAVAILABLE
+
+
+def test_withdrawn_evidence_never_hides_a_contradiction() -> None:
+    from betsson_validator.domain.verdict import withdraw_evidence  # noqa: PLC0415
+
+    against = Testimony(
+        witness="red",
+        kind=WitnessKind.CORROBORATING,
+        outcome=Outcome.CONTRADICTS,
+        detail="d",
+        evidence=("trafico.json",),
+    )
+    result = withdraw_evidence(
+        evaluate("saldo", (screen(Outcome.CONFIRMS), against)), {"trafico.json"}
+    )
+    assert result.status is Status.FAIL
+    assert result.testimonies[1].outcome is Outcome.CONTRADICTS
+
+
+def test_a_visual_contradiction_is_reported_as_such() -> None:
+    against = Testimony(
+        witness="cabecera",
+        kind=WitnessKind.VISUAL,
+        outcome=Outcome.CONTRADICTS,
+        detail="saldo 0.00 EUR → 0.01 EUR",
+    )
+    result = evaluate("saldo", (against,))
+    assert result.status is Status.FAIL
+    assert "contradice" in result.reason
+    assert "0.01 EUR" in result.reason

@@ -1,38 +1,37 @@
 """Ejecuta un escenario de principio a fin: navegador → login → juego → tirada → informe.
 
-Coordina las piezas sin contener lógica de negocio: la evaluación vive en scenarios/evaluation.
+Coordina las piezas sin contener lógica de negocio: la evaluación vive en scenarios/evaluation,
+las condiciones previas al giro en scenarios/preconditions y los testigos de cada proveedor en
+providers/registry (el ejecutor no conoce a ningún proveedor concreto).
 """
 
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from decimal import Decimal
 from pathlib import Path
 
 from betsson_validator.browser import BrowserSettings, browser_context, tracing
-from betsson_validator.casino.betsson import BetssonCasino
+from betsson_validator.casino.betsson import GAME_FRAME_SELECTOR, BetssonCasino
 from betsson_validator.config.market import AccountEnv, MarketConfig
 from betsson_validator.config.provider import ProviderConfig
 from betsson_validator.domain.checks import Scenario
 from betsson_validator.domain.money import Money
 from betsson_validator.domain.parsing import detect_currency
 from betsson_validator.domain.run import ScenarioRun
-from betsson_validator.domain.verdict import CheckResult
+from betsson_validator.domain.verdict import CheckResult, withdraw_evidence
 from betsson_validator.evidence import EvidenceRecorder
-from betsson_validator.game.events import GameEventRecorder
+from betsson_validator.game.events import GameEventRecorder, payloads
 from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
 from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
-from betsson_validator.providers.pragmatic.events import loading_finished, summarize_events
-from betsson_validator.providers.pragmatic.network import (
-    GameServiceCall,
-    NoSpinObservedError,
-    balance_from_init,
-    summarize_round,
+from betsson_validator.providers.registry import (
+    EventsInterpreter,
+    NetworkWitness,
+    events_interpreter,
+    network_witness,
 )
-from betsson_validator.providers.pragmatic.recorder import GameServiceRecorder
 from betsson_validator.scenarios.evaluation import (
     evaluate_completed_spin,
     evaluate_insufficient_balance,
@@ -44,7 +43,13 @@ from betsson_validator.scenarios.evidence import (
     RunEvidence,
     ScreenSnapshot,
 )
-from betsson_validator.security import audit_and_quarantine, scrub_trace
+from betsson_validator.scenarios.faults import InjectedFault
+from betsson_validator.scenarios.preconditions import (
+    check_bet,
+    require_funds,
+    require_no_funds,
+)
+from betsson_validator.security import audit_and_quarantine, scrub_text, scrub_trace
 
 Evaluator = Callable[[RunEvidence], tuple[CheckResult, ...]]
 
@@ -54,6 +59,8 @@ class ScenarioPlan:
     account: Callable[[MarketConfig], AccountEnv]
     evaluator: Evaluator
     dismiss_message: bool
+    # Comprueba saldo de Betsson, crédito del juego y apuesta antes de girar.
+    precondition: Callable[[Money, Money | None, Money], None]
 
 
 PLANS: dict[Scenario, ScenarioPlan] = {
@@ -61,17 +68,15 @@ PLANS: dict[Scenario, ScenarioPlan] = {
         account=lambda market: market.accounts.funded,
         evaluator=evaluate_completed_spin,
         dismiss_message=False,
+        precondition=require_funds,
     ),
     Scenario.INSUFFICIENT_BALANCE: ScenarioPlan(
         account=lambda market: market.accounts.no_balance,
         evaluator=evaluate_insufficient_balance,
         dismiss_message=True,
+        precondition=require_no_funds,
     ),
 }
-
-
-class SafetyStopError(RuntimeError):
-    """Parada preventiva antes de arriesgar dinero real."""
 
 
 class ProfileMissingError(RuntimeError):
@@ -80,48 +85,21 @@ class ProfileMissingError(RuntimeError):
 
 def _snapshot(observation: ScreenObservation) -> ScreenSnapshot:
     hud = observation.hud
-    seen = next(
-        (
-            currency
-            for reading in (hud.credit, hud.bet)
-            if reading is not None and (currency := detect_currency(reading.source_text))
-        ),
-        None,
-    )
+    readings = [reading for reading in (hud.credit, hud.bet, hud.win) if reading is not None]
+    currencies = {code for r in readings if (code := detect_currency(r.source_text))}
     return ScreenSnapshot(
         credit=hud.credit.money if hud.credit else None,
         bet=hud.bet.money if hud.bet else None,
         win=hud.win.money if hud.win else None,
-        currency_seen=seen,
+        currencies_seen=tuple(sorted(currencies)),
         message=observation.message,
         evidence=observation.evidence,
     )
 
 
-def _network_summary(
-    before: list[GameServiceCall], during: list[GameServiceCall], evidence: str
-) -> NetworkSummary:
-    try:
-        balance_before = balance_from_init(before)
-        spin = summarize_round(during, balance_before or Decimal(0))
-    except NoSpinObservedError:
-        return NetworkSummary(spin_requested=False, evidence=evidence)
-    return NetworkSummary(
-        spin_requested=True,
-        settled=spin.settled,
-        wager=spin.wager,
-        balance_before=balance_before,
-        balance_after=spin.balance_after,
-        payout=spin.payout if balance_before is not None else None,
-        evidence=evidence,
-    )
-
-
 def _sanitize(message: str, secrets: tuple[str, ...]) -> str:
-    for secret in secrets:
-        if secret:
-            message = message.replace(secret, "<SECRETO>")
-    return message.splitlines()[0][:500] if message else "Error desconocido"
+    clean = scrub_text(message, secrets)
+    return clean.splitlines()[0][:500] if clean else "Error desconocido"
 
 
 @dataclass(frozen=True)
@@ -136,6 +114,8 @@ class RunContext:
     out_dir: Path
     learner: ScreenLearner | None = None
     profiles_dir: Path = DEFAULT_PROFILES_DIR
+    # Solo para demostraciones: altera lo observado antes de evaluar (se anuncia en el informe).
+    fault: InjectedFault | None = None
 
 
 def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
@@ -156,16 +136,12 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
             )
         credentials = plan.account(ctx.market).resolve()
         secrets = (credentials.email.get_secret_value(), credentials.password.get_secret_value())
+        interpreter = events_interpreter(ctx.provider.events_witness)
         with browser_context(ctx.settings, evidence_dir) as context:
-            events = (
-                GameEventRecorder(context) if ctx.provider.events_witness == "pragmatic" else None
-            )
+            if interpreter is not None:
+                GameEventRecorder(context, GAME_FRAME_SELECTOR)
             page = context.new_page()
-            network = (
-                GameServiceRecorder(context)
-                if ctx.provider.network_witness == "pragmatic"
-                else None
-            )
+            network = network_witness(ctx.provider.network_witness, context)
             casino = BetssonCasino(page, ctx.market, typing_delay_ms=ctx.settings.slow_typing_ms)
             casino.open()
             casino.login(credentials)
@@ -183,8 +159,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                         ctx,
                         plan=plan,
                         model=model,
-                        network=network,
-                        events=events,
+                        witnesses=_Witnesses(network, interpreter),
                         files=files,
                     )
                 finally:
@@ -193,8 +168,8 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                         model.profile.save(evidence_dir / "perfil_propuesto")
     except Exception as exception:  # el informe debe recoger cualquier fallo, sin secretos
         error = _sanitize(f"{type(exception).__name__}: {exception}", secrets)
-    scrub_trace(evidence_dir / "trace.zip", secrets)
-    quarantined = audit_and_quarantine(evidence_dir, secrets)
+    quarantined = _protect_evidence(evidence_dir, secrets, ctx.reader)
+    removed = {str(evidence_dir / name) for name in quarantined}
     return ScenarioRun(
         scenario=scenario,
         market=ctx.market.id,
@@ -202,27 +177,56 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
         game=ctx.game,
         started_at=started,
         finished_at=datetime.now(UTC),
-        results=results,
+        results=tuple(withdraw_evidence(result, removed) for result in results),
         error=error,
         quarantined=tuple(quarantined),
         notes=tuple(notes),
+        injected_fault=ctx.fault.description if ctx.fault else None,
     )
 
 
-def _play(
+def _protect_evidence(
+    evidence_dir: Path, secrets: tuple[str, ...], reader: TextReader
+) -> list[str]:
+    """Limpia la traza y retira cualquier evidencia con secretos (también si la traza está rota)."""
+    trace = evidence_dir / "trace.zip"
+    try:
+        scrub_trace(trace, secrets)
+    except Exception:  # traza ilegible: no se puede limpiar, así que no se publica
+        trace.unlink(missing_ok=True)
+    return audit_and_quarantine(evidence_dir, secrets, reader)
+
+
+@dataclass(frozen=True)
+class _Witnesses:
+    """Testigos del proveedor disponibles en esta ejecución (pueden no existir)."""
+
+    network: NetworkWitness | None
+    events: EventsInterpreter | None
+
+
+@dataclass(frozen=True)
+class _Ready:
+    betsson_before: Money
+    header_before: Path
+    game: ScreenGame
+    observation: ScreenObservation
+
+
+def _prepare(
     casino: BetssonCasino,
     ctx: RunContext,
     *,
     plan: ScenarioPlan,
     model: ScreenModel,
-    network: GameServiceRecorder | None,
-    events: GameEventRecorder | None,
+    witnesses: _Witnesses,
     files: EvidenceRecorder,
-) -> tuple[CheckResult, ...]:
+) -> _Ready:
+    """Hasta justo antes de girar: saldo, juego cargado, apuesta mínima y condiciones previas."""
     betsson_before = casino.read_balance()
     header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.jpg")
-
     handle = casino.launch_game(ctx.provider, ctx.game)
+    events = witnesses.events
     game = ScreenGame(
         page=casino.page,
         handle=handle,
@@ -231,49 +235,60 @@ def _play(
         message_pattern=re.compile(ctx.market.ui.insufficient_funds_pattern),
         dismiss_labels=ctx.market.ui.dismiss_labels,
         loading_finished=(
-            (lambda: loading_finished(GameEventRecorder.collect(casino.page))) if events else None
+            (lambda: events.loading_finished(payloads(GameEventRecorder.collect(casino.page))))
+            if events
+            else None
         ),
     )
     ready = game.set_minimum_bet(game.wait_until_ready())
-    bet = ready.hud.bet.money if ready.hud.bet else None
-    if bet is None or bet.amount > ctx.provider.max_bet:
-        raise SafetyStopError(
-            f"Apuesta mostrada {bet or 'no leída'}: supera el máximo de seguridad "
-            f"{ctx.provider.max_bet} o no se pudo leer. No se gira."
-        )
+    bet = check_bet(
+        ready.hud.bet.money if ready.hud.bet else None, ctx.provider.max_bet, ctx.market.currency
+    )
+    plan.precondition(betsson_before, ready.hud.credit.money if ready.hud.credit else None, bet)
+    return _Ready(betsson_before, header_before, game, ready)
 
-    mark = network.mark() if network else 0
-    events_mark = len(GameEventRecorder.collect(casino.page)) if events else 0
+
+def _play(
+    casino: BetssonCasino,
+    ctx: RunContext,
+    *,
+    plan: ScenarioPlan,
+    model: ScreenModel,
+    witnesses: _Witnesses,
+    files: EvidenceRecorder,
+) -> tuple[CheckResult, ...]:
+    ready = _prepare(casino, ctx, plan=plan, model=model, witnesses=witnesses, files=files)
+    game = ready.game
+    mark = witnesses.network.mark() if witnesses.network else 0
+    events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
     after = game.observe_settled("despues_de_girar")
     events_summary: GameEventsSummary | None = None
-    if events is not None:  # se leen ANTES de salir de la página del juego
+    if witnesses.events is not None:  # se leen ANTES de salir de la página del juego
         game_events = GameEventRecorder.collect(casino.page)[events_mark:]
         events_file = files.save_json("eventos_del_juego", game_events)
-        events_summary = summarize_events(game_events, str(events_file))
+        events_summary = witnesses.events.summarize(payloads(game_events), str(events_file))
     if plan.dismiss_message and after.message:
         game.dismiss_message()
 
-    summary: NetworkSummary | None = None
-    if network is not None:
-        traffic = files.save_json("trafico_juego_sin_tokens", network.redacted_log())
-        calls = network.calls
-        summary = _network_summary(calls[:mark], calls[mark:], str(traffic))
+    network: NetworkSummary | None = None
+    if witnesses.network is not None:
+        traffic = files.save_json("trafico_juego_sin_tokens", witnesses.network.redacted_log())
+        network = witnesses.network.summarize(mark, str(traffic))
 
+    before_credit, after_credit = ready.observation.hud.credit, after.hud.credit
     credit_changed = (
-        ready.hud.credit is None
-        or after.hud.credit is None
-        or ready.hud.credit.money != after.hud.credit.money
+        before_credit is None or after_credit is None or before_credit.money != after_credit.money
     )
-    betsson_after = casino.read_balance_after(betsson_before, expect_change=credit_changed)
+    betsson_after = casino.read_balance_after(ready.betsson_before, expect_change=credit_changed)
     header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.jpg")
 
     evidence = RunEvidence(
         market_currency=ctx.market.currency,
-        betsson_before=betsson_before,
+        betsson_before=ready.betsson_before,
         betsson_after=betsson_after,
-        betsson_evidence=(str(header_before), str(header_after)),
-        screen_before=_snapshot(ready),
+        betsson_evidence=(str(ready.header_before), str(header_after)),
+        screen_before=_snapshot(ready.observation),
         screen_after=_snapshot(after),
         motion=MotionSummary(
             started=spin.lifecycle.started,
@@ -282,21 +297,24 @@ def _play(
             peak=spin.lifecycle.peak_score,
             evidence=spin.evidence,
         ),
-        network=summary,
+        network=network,
         events=events_summary,
         market_language=ctx.market.language,
     )
-    summary_data = _describe(evidence, betsson_before, betsson_after)
+    summary_data = _describe(evidence)  # siempre lo observado de verdad, sin el fallo inyectado
     summary_data["motion_scores"] = [round(score, 4) for score in spin.scores]
     summary_data["motion_thresholds"] = spin.thresholds.__dict__ if spin.thresholds else None
+    if ctx.fault is not None:
+        summary_data["injected_fault"] = ctx.fault.description
+        evidence = ctx.fault.apply(evidence)
     files.save_json("resumen_observado", summary_data)
     return plan.evaluator(evidence)
 
 
-def _describe(evidence: RunEvidence, before: Money, after: Money) -> dict[str, object]:
+def _describe(evidence: RunEvidence) -> dict[str, object]:
     return {
-        "betsson_before": str(before),
-        "betsson_after": str(after),
+        "betsson_before": str(evidence.betsson_before),
+        "betsson_after": str(evidence.betsson_after),
         "screen_before": evidence.screen_before.__dict__,
         "screen_after": evidence.screen_after.__dict__,
         "motion": evidence.motion.__dict__,

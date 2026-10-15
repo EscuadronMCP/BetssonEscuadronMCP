@@ -136,3 +136,43 @@ def test_loading_finished_only_after_the_game_says_so() -> None:
 
     assert not loading_finished([{"name": "loadingProgress"}, {"name": "gameLoadingStarted"}])
     assert loading_finished([{"name": "gameLoadingStarted"}, {"name": "gameLoadingEnded"}])
+
+
+# --- Regresiones de la auditoría: eventos desordenados, repetidos o malformados ----------------
+
+
+def test_round_ended_before_it_started_is_an_anomaly() -> None:
+    end = next(e for e in WINNING_ROUND if e.get("name") == "gameRoundEnded")
+    reordered = [end, *(e for e in WINNING_ROUND if e is not end)]
+    assert any("sin haber empezado" in a for a in summarize_events(reordered).anomalies)
+
+
+def test_two_rounds_in_one_spin_is_an_anomaly() -> None:
+    summary = summarize_events([*WINNING_ROUND, *WINNING_ROUND])
+    assert any("rondas" in a for a in summary.anomalies)
+
+
+def test_contradictory_bets_in_one_round_are_an_anomaly() -> None:
+    changed = [
+        {**e, "betAmount": 1.0} if e.get("name") == "gameRoundEnded" else e for e in WINNING_ROUND
+    ]
+    assert any("apuestas distintas" in a for a in summarize_events(changed).anomalies)
+
+
+def test_malformed_events_do_not_crash() -> None:
+    weird: list[dict[str, Any]] = [
+        {"event": "updateBalance", "params": {"total": "no es un objeto"}},
+        {"event": "updateBalance", "params": ["lista"]},
+        {"name": "gameRoundStart", "betAmount": float("nan"), "balanceBefore": "Infinity"},
+        {"name": "gameRoundEnded", "winAmount": True, "balanceAfter": None},
+    ]
+    summary = summarize_events(weird)
+    assert summary.bet is None
+    assert summary.balance_before is None
+    assert summary.win is None
+    assert summary.balance_after is None
+    assert summary.currencies == ()
+
+
+def test_real_rounds_have_no_anomalies() -> None:
+    assert summarize_events(WINNING_ROUND).anomalies == ()

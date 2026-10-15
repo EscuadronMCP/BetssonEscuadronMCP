@@ -13,7 +13,8 @@ class ScreenSnapshot:
     credit: Money | None
     bet: Money | None
     win: Money | None
-    currency_seen: str | None
+    # Divisas que muestra el HUD (crédito, apuesta, premio); más de una es una incoherencia.
+    currencies_seen: tuple[str, ...]
     message: str | None
     evidence: str
 
@@ -29,14 +30,19 @@ class MotionSummary:
 
 @dataclass(frozen=True)
 class NetworkSummary:
-    """Lo que dijo el servidor del juego. `spin_requested` es False si no hubo doSpin."""
+    """Lo que dijo el servidor del juego. `spin_requested` es False si no hubo petición de tirada.
+
+    La apuesta pedida por el cliente no prueba nada por sí sola: cuenta la que el servidor
+    acepta en su respuesta (`wager_accepted`) y el premio que declara (`declared_win`).
+    """
 
     spin_requested: bool
     settled: bool = False
-    wager: Decimal | None = None
+    wager_requested: Decimal | None = None
+    wager_accepted: Decimal | None = None
+    declared_win: Decimal | None = None
     balance_before: Decimal | None = None
     balance_after: Decimal | None = None
-    payout: Decimal | None = None
     evidence: str = ""
 
 
@@ -54,6 +60,9 @@ class GameEventsSummary:
     balance_after: Decimal | None = None
     languages: tuple[str, ...] = ()
     currencies: tuple[str, ...] = ()
+    # Incoherencias del propio canal (rondas desordenadas o repetidas, valores contradictorios):
+    # si hay alguna, el testigo contradice en lugar de confirmar.
+    anomalies: tuple[str, ...] = ()
     evidence: str = ""
 
 

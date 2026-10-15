@@ -27,8 +27,13 @@ class Money(BaseModel):
         return f"{self.amount} {self.currency}"
 
 
+def expected_amount_after(before: Decimal, wager: Decimal, payout: Decimal) -> Decimal:
+    """Regla del reto: saldo después = saldo antes - apuesta + premio (misma divisa)."""
+    return before - wager + payout
+
+
 def expected_balance_after(before: Money, wager: Money, payout: Money) -> Money:
-    """Regla del reto: saldo después = saldo antes - apuesta + premio."""
+    """La regla del reto con divisas comprobadas."""
     return before - wager + payout
 
 

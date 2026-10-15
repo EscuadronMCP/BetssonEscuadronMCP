@@ -109,7 +109,13 @@ class ScreenModel:
         hud = read_hud(boxes, self.labels(), self.currency, anchors)
         if hud.win is None and not self.profile.win_label:
             for candidate in self.win_candidates:
-                win = find_amount(boxes, candidate, self.currency, anchors.get("win"))
+                win = find_amount(
+                    boxes,
+                    candidate,
+                    self.currency,
+                    anchors.get("win"),
+                    (self.profile.credit_label, self.profile.bet_label),
+                )
                 if win is not None:
                     return replace(hud, win=win), boxes
         return hud, boxes

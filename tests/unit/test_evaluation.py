@@ -11,6 +11,7 @@ from betsson_validator.scenarios.evaluation import (
     evaluate_insufficient_balance,
 )
 from betsson_validator.scenarios.evidence import (
+    GameEventsSummary,
     MotionSummary,
     NetworkSummary,
     RunEvidence,
@@ -29,7 +30,7 @@ def screen(
         credit=eur(credit),
         bet=eur(bet),
         win=eur(win) if win else None,
-        currency_seen="EUR",
+        currencies_seen=("EUR",),
         message=message,
         evidence="captura.png",
     )
@@ -49,10 +50,11 @@ WINNING_SPIN = RunEvidence(
 SERVER = NetworkSummary(
     spin_requested=True,
     settled=True,
-    wager=Decimal("0.20"),
+    wager_requested=Decimal("0.20"),
+    wager_accepted=Decimal("0.20"),
+    declared_win=Decimal("0.15"),
     balance_before=Decimal("64.70"),
     balance_after=Decimal("64.65"),
-    payout=Decimal("0.15"),
 )
 WINNING_SPIN = replace(WINNING_SPIN, network=SERVER)
 
@@ -84,7 +86,7 @@ def test_losing_spin_without_win_label_reconciles() -> None:
         WINNING_SPIN,
         betsson_after=eur("64.50"),
         screen_after=screen("64.50", "0.20"),
-        network=replace(SERVER, balance_after=Decimal("64.50"), payout=Decimal("0")),
+        network=replace(SERVER, balance_after=Decimal("64.50"), declared_win=Decimal("0")),
     )
     assert set(statuses(evaluate_completed_spin(losing)).values()) == {Status.PASS}
 
@@ -133,3 +135,87 @@ def test_missing_message_fails_scenario_two() -> None:
 def test_spin_sent_to_server_contradicts_rejection() -> None:
     sent = replace(REJECTED_SPIN, network=NetworkSummary(spin_requested=True))
     assert statuses(evaluate_insufficient_balance(sent))[Check.SPIN_REJECTED.value] is Status.FAIL
+
+
+# --- Regresiones de la auditoría del equipo (15/10) ---------------------------------------------
+
+EVENTS = GameEventsSummary(
+    received=True,
+    round_started=True,
+    round_ended=True,
+    bet=Decimal("0.20"),
+    win=Decimal("0.15"),
+    balance_before=Decimal("64.70"),
+    balance_after=Decimal("64.65"),
+    languages=("es",),
+    currencies=("EUR",),
+)
+
+
+def test_header_currency_alone_does_not_pass_without_hud_currency() -> None:
+    blind = replace(
+        WINNING_SPIN,
+        screen_before=replace(WINNING_SPIN.screen_before, currencies_seen=()),
+        screen_after=replace(WINNING_SPIN.screen_after, currencies_seen=()),
+    )
+    assert statuses(evaluate_completed_spin(blind))[Check.CURRENCY_MATCHES.value] is Status.FAIL
+
+
+def test_mixed_currencies_on_screen_fail() -> None:
+    mixed = replace(
+        WINNING_SPIN,
+        screen_after=replace(WINNING_SPIN.screen_after, currencies_seen=("EUR", "USD")),
+    )
+    assert statuses(evaluate_completed_spin(mixed))[Check.CURRENCY_MATCHES.value] is Status.FAIL
+
+
+def test_mixed_currencies_in_game_events_are_a_discrepancy() -> None:
+    mixed = replace(WINNING_SPIN, events=replace(EVENTS, currencies=("EUR", "USD")))
+    assert statuses(evaluate_completed_spin(mixed))[Check.CURRENCY_MATCHES.value] is Status.FAIL
+
+
+def test_mixed_languages_in_game_events_are_a_discrepancy() -> None:
+    mixed = replace(REJECTED_SPIN, events=replace(EVENTS, languages=("en", "es")))
+    result = statuses(evaluate_insufficient_balance(mixed))
+    assert result[Check.INSUFFICIENT_MESSAGE_SHOWN.value] is Status.FAIL
+
+
+def test_incoherent_game_events_contradict() -> None:
+    broken = replace(WINNING_SPIN, events=replace(EVENTS, anomalies=("2 rondas terminadas",)))
+    result = statuses(evaluate_completed_spin(broken))
+    assert result[Check.SPIN_COMPLETED.value] is Status.FAIL
+
+
+def test_server_win_must_match_screen_win() -> None:
+    wrong = replace(WINNING_SPIN, network=replace(SERVER, declared_win=Decimal("0.30")))
+    result = statuses(evaluate_completed_spin(wrong))
+    assert result[Check.GAME_BALANCE_CONSISTENT.value] is Status.FAIL
+    assert result[Check.BETSSON_BALANCE_RECONCILES.value] is Status.FAIL
+
+
+def test_requested_but_not_accepted_wager_is_not_confirmed() -> None:
+    unconfirmed = replace(WINNING_SPIN, network=replace(SERVER, wager_accepted=None))
+    result = {r.check: r for r in evaluate_completed_spin(unconfirmed)}
+    wager = result[Check.WAGER_MATCHES.value]
+    assert "el servidor no confirmó la apuesta" in str(wager.testimonies)
+
+
+def test_accepted_wager_different_from_screen_is_a_discrepancy() -> None:
+    wrong = replace(WINNING_SPIN, network=replace(SERVER, wager_accepted=Decimal("0.40")))
+    assert statuses(evaluate_completed_spin(wrong))[Check.WAGER_MATCHES.value] is Status.FAIL
+
+
+def test_rejection_message_after_a_spin_fails_scenario_one() -> None:
+    rejected = replace(
+        WINNING_SPIN,
+        screen_after=replace(WINNING_SPIN.screen_after, message="Fondos insuficientes"),
+    )
+    assert statuses(evaluate_completed_spin(rejected))[Check.SPIN_COMPLETED.value] is Status.FAIL
+
+
+def test_message_already_visible_before_spinning_does_not_prove_rejection() -> None:
+    stale = replace(
+        REJECTED_SPIN,
+        screen_before=replace(REJECTED_SPIN.screen_before, message="Fondos insuficientes"),
+    )
+    assert statuses(evaluate_insufficient_balance(stale))[Check.SPIN_REJECTED.value] is Status.FAIL

@@ -47,45 +47,54 @@ class GameServiceCall:
 
 @dataclass(frozen=True)
 class SpinRound:
-    """Una tirada completa según el servidor del juego."""
+    """Una tirada completa según el servidor del juego.
 
-    balance_before: Decimal
-    wager: Decimal
-    balance_after: Decimal
-    total_win: Decimal
+    `wager_accepted` sale de la respuesta del servidor (c x l que devuelve); la petición del
+    cliente sola no prueba que la apuesta se aceptara. `declared_win` es el premio total que el
+    servidor declara (tw), independiente de la diferencia de saldos.
+    """
+
+    wager_requested: Decimal | None
+    wager_accepted: Decimal | None
+    declared_win: Decimal | None
+    balance_after: Decimal | None
     settled: bool
     calls: int
-
-    @property
-    def payout(self) -> Decimal:
-        """Premio abonado deducido del saldo: después - (antes - apuesta)."""
-        return self.balance_after - (self.balance_before - self.wager)
 
 
 class NoSpinObservedError(ValueError):
     pass
 
 
-def _decimal(fields: dict[str, str], key: str) -> Decimal:
-    return Decimal(fields[key])
+def _decimal(fields: dict[str, str], key: str) -> Decimal | None:
+    """Importe de un campo; None si falta, no es un número o no es finito (NaN, Infinity)."""
+    try:
+        value = Decimal(fields[key])
+    except (KeyError, ArithmeticError):
+        return None
+    return value if value.is_finite() else None
 
 
-def summarize_round(calls: Sequence[GameServiceCall], balance_before: Decimal) -> SpinRound:
+def _wager(fields: dict[str, str]) -> Decimal | None:
+    coin, lines = _decimal(fields, "c"), _decimal(fields, "l")
+    return None if coin is None or lines is None else coin * lines
+
+
+def summarize_round(calls: Sequence[GameServiceCall]) -> SpinRound:
     """Resume la tirada a partir del primer doSpin y de las llamadas que lo siguen."""
     start = next((i for i, c in enumerate(calls) if c.action == "doSpin"), None)
     if start is None:
         raise NoSpinObservedError("No se observó ninguna petición doSpin.")
     round_calls = calls[start:]
-    first = round_calls[0]
-    wager = _decimal(first.request, "c") * _decimal(first.request, "l")
-    last = round_calls[-1]
-    wins = [_decimal(c.response, "tw") for c in round_calls if "tw" in c.response]
+    first, last = round_calls[0], round_calls[-1]
+    wins = [win for c in round_calls if (win := _decimal(c.response, "tw")) is not None]
+    accepted = _wager(first.response) if "balance" in first.response else None
     return SpinRound(
-        balance_before=balance_before,
-        wager=wager,
+        wager_requested=_wager(first.request),
+        wager_accepted=accepted,
+        declared_win=max(wins) if wins else None,
         balance_after=_decimal(last.response, "balance"),
-        total_win=max(wins, default=Decimal("0")),
-        settled=_is_settled(last),
+        settled=accepted is not None and _is_settled(last),
         calls=len(round_calls),
     )
 

@@ -34,35 +34,34 @@ LOSING_SPIN = GameServiceCall.from_bodies(
 
 def test_real_winning_round_with_tumble_reconciles() -> None:
     calls = [INIT, SPIN_WITH_TUMBLE, TUMBLE_CONTINUATION, COLLECT]
-    spin = summarize_round(calls, balance_from_init(calls[:1]) or Decimal(0))
-    assert spin.wager == Decimal("0.20")
-    assert spin.balance_before == Decimal("64.70")
+    spin = summarize_round(calls)
+    assert balance_from_init(calls[:1]) == Decimal("64.70")
+    assert spin.wager_requested == Decimal("0.20")
+    assert spin.wager_accepted == Decimal("0.20")
     assert spin.balance_after == Decimal("64.65")
-    assert spin.total_win == Decimal("0.15")
-    assert spin.payout == Decimal("0.15")
+    assert spin.declared_win == Decimal("0.15")
     assert spin.settled
     assert spin.calls == 3
 
 
 def test_round_is_not_settled_until_collect() -> None:
-    spin = summarize_round([INIT, SPIN_WITH_TUMBLE, TUMBLE_CONTINUATION], Decimal("64.70"))
+    spin = summarize_round([INIT, SPIN_WITH_TUMBLE, TUMBLE_CONTINUATION])
     assert not spin.settled
 
 
 def test_first_tumble_response_is_not_settled_even_with_na_s() -> None:
-    assert not summarize_round([SPIN_WITH_TUMBLE], Decimal("64.70")).settled
+    assert not summarize_round([SPIN_WITH_TUMBLE]).settled
 
 
 def test_losing_spin_is_settled_immediately() -> None:
-    spin = summarize_round([INIT, LOSING_SPIN], Decimal("64.70"))
+    spin = summarize_round([INIT, LOSING_SPIN])
     assert spin.settled
-    assert spin.payout == Decimal("0.00")
-    assert spin.total_win == Decimal("0.00")
+    assert spin.declared_win == Decimal("0.00")
 
 
 def test_no_spin_is_reported() -> None:
     with pytest.raises(NoSpinObservedError):
-        summarize_round([INIT], Decimal("64.70"))
+        summarize_round([INIT])
 
 
 def test_redact_hides_session_tokens() -> None:
@@ -72,3 +71,22 @@ def test_redact_hides_session_tokens() -> None:
     assert "1d10" not in clean
     assert "62a9" not in clean
     assert "action=doInit" in clean
+
+
+def test_rejected_spin_request_is_not_an_accepted_wager() -> None:
+    error = GameServiceCall.from_bodies("action=doSpin&c=0.01&l=20", "frozen=Internal+server+error")
+    spin = summarize_round([INIT, error])
+    assert spin.wager_requested == Decimal("0.20")
+    assert spin.wager_accepted is None
+    assert spin.balance_after is None
+    assert not spin.settled
+
+
+def test_malformed_amounts_are_ignored_not_crashing() -> None:
+    weird = GameServiceCall.from_bodies(
+        "action=doSpin&c=NaN&l=20", "balance=Infinity&c=0.01&l=20&tw=abc&na=s"
+    )
+    spin = summarize_round([weird])
+    assert spin.wager_requested is None
+    assert spin.balance_after is None
+    assert spin.declared_win is None

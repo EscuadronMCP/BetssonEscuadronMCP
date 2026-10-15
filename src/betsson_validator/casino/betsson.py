@@ -22,7 +22,7 @@ _LOGIN_OK = 201
 _LOGIN_THROTTLED = 400
 _LOGIN_RETRY_WAIT_MS = 60_000
 _BALANCE_BUTTON = re.compile(r"^\s*\d[\d.\s]*,\d{2}\s*€\s*$")
-_GAME_IFRAME = "iframe[src*='Gamelauncher']"
+GAME_FRAME_SELECTOR = "iframe[src*='Gamelauncher']"
 # Difumina los campos de login para que las credenciales no salgan en el vídeo.
 _HIDE_LOGIN_FIELDS_CSS = (
     "input[name=email], input[name=password] "
@@ -201,11 +201,11 @@ class BetssonCasino:
         self._filter_by_provider(provider.filter_label)
         self._find_in_lobby(game, provider.filter_label).click()
         self._start_game_session()
-        iframe = self._page.locator(_GAME_IFRAME)
+        iframe = self._page.locator(GAME_FRAME_SELECTOR)
         iframe.wait_for(timeout=provider.game_load_timeout_s * 1000)
         return GameHandle(
             iframe=iframe,
-            frame=self._page.frame_locator(_GAME_IFRAME),
+            frame=self._page.frame_locator(GAME_FRAME_SELECTOR),
             url=self._page.url,
         )
 
@@ -287,7 +287,7 @@ class BetssonCasino:
         El lanzador redirige al dominio del proveedor: el juego es el propio iframe (no un hijo).
         Mientras falta la sesión de juego, el iframe sigue en el dominio de Betsson.
         """
-        iframe = self._page.locator(_GAME_IFRAME)
+        iframe = self._page.locator(GAME_FRAME_SELECTOR)
         if not iframe.count():
             return False
         handle = iframe.first.element_handle(timeout=_CLICK_TIMEOUT_MS)

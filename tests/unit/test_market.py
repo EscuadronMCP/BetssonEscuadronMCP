@@ -32,3 +32,16 @@ def test_credentials_are_never_printed(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "jugador@example.com" not in repr(credentials)
     assert "secreta" not in str(credentials)
     assert credentials.password.get_secret_value() == "clave-secreta"
+
+
+def test_both_scenarios_cannot_share_an_account(monkeypatch: pytest.MonkeyPatch) -> None:
+    from betsson_validator.config.market import SameAccountError  # noqa: PLC0415
+
+    market = load_market("es")
+    monkeypatch.setenv(market.accounts.funded.email_env, "Cuenta@Example.com")
+    monkeypatch.setenv(market.accounts.no_balance.email_env, "cuenta@example.com ")
+    with pytest.raises(SameAccountError):
+        market.accounts.ensure_distinct()
+    monkeypatch.setenv(market.accounts.no_balance.email_env, "otra@example.com")
+    market.accounts.ensure_distinct()
+    assert "otra@example.com" in market.accounts.secrets()

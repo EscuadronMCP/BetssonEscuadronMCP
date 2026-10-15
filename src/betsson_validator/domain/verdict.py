@@ -59,12 +59,14 @@ def evaluate(check: str, testimonies: tuple[Testimony, ...]) -> CheckResult:
     def result(status: Status, reason: str) -> CheckResult:
         return CheckResult(check=check, status=status, reason=reason, testimonies=testimonies)
 
-    if not any(t.outcome is Outcome.CONFIRMS for t in visual):
-        return result(Status.FAIL, "La pantalla no confirma el hecho: sin lectura visual válida.")
-
     visual_contradictions = [t for t in visual if t.outcome is Outcome.CONTRADICTS]
     if visual_contradictions:
-        return result(Status.FAIL, _describe("La pantalla se contradice", visual_contradictions))
+        return result(
+            Status.FAIL, _describe("Lo que ve el jugador lo contradice:", visual_contradictions)
+        )
+
+    if not any(t.outcome is Outcome.CONFIRMS for t in visual):
+        return result(Status.FAIL, "La pantalla no confirma el hecho: sin lectura visual válida.")
 
     contradictions = [t for t in corroborating if t.outcome is Outcome.CONTRADICTS]
     if contradictions:
@@ -80,6 +82,26 @@ def evaluate(check: str, testimonies: tuple[Testimony, ...]) -> CheckResult:
             f"{', '.join(missing)}.",
         )
     return result(Status.PASS, "Confirmado en pantalla y por todos los testigos.")
+
+
+def withdraw_evidence(result: CheckResult, removed: set[str]) -> CheckResult:
+    """Un testimonio que confirmaba con una evidencia retirada por seguridad deja de probar nada.
+
+    Solo se degradan confirmaciones: una contradicción nunca se oculta.
+    """
+
+    def degrade(t: Testimony) -> Testimony:
+        if t.outcome is not Outcome.CONFIRMS or not removed.intersection(t.evidence):
+            return t
+        return t.model_copy(
+            update={
+                "outcome": Outcome.UNAVAILABLE,
+                "detail": f"{t.detail} (evidencia retirada por seguridad)",
+            }
+        )
+
+    testimonies = tuple(degrade(t) for t in result.testimonies)
+    return result if testimonies == result.testimonies else evaluate(result.check, testimonies)
 
 
 def _describe(prefix: str, testimonies: list[Testimony]) -> str:

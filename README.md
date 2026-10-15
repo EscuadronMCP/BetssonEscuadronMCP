@@ -4,7 +4,7 @@
 
 Proyecto del equipo EscuadronMCP para el reto de **Betsson** en el **Malackathon 2026** (Universidad de Málaga): *Intelligent Game Validation*.
 
-> **Estado actual:** [`docs/ESTADO.md`](docs/ESTADO.md) · **Guía de la demo:** [`docs/DEMO.md`](docs/DEMO.md) · **Cómo es la web por dentro:** [`docs/betsson-es-flujo.md`](docs/betsson-es-flujo.md)
+> **Estado actual:** [`docs/ESTADO.md`](docs/ESTADO.md) · **Cómo es la web por dentro:** [`docs/betsson-es-flujo.md`](docs/betsson-es-flujo.md) · **Para los mentores:** [`mentores/`](mentores/)
 
 ---
 

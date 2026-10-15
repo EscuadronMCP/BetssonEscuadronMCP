@@ -32,17 +32,19 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - **Seguridad:** credenciales difuminadas en el vídeo, traza ligera y limpiada, escáner que retira evidencias con secretos, salvaguardas de dinero (`max_bet` y un único giro).
 - **Rendimiento (15/10):** ambos escenarios en paralelo en ≈ 65–71 s (antes ≈ 3 min), informe < 1 MB (antes ≈ 73 MB), cero llamadas a la IA en ejecuciones normales. **PASS en GitHub Actions** (runner propio) el 15/10.
 - **Informe** HTML/JSON con PASS/FAIL por comprobación, testigos, capturas y enlaces a vídeo, traza, eventos y tráfico; resumen Markdown en GitHub Actions.
-- Documentación: [`betsson-es-flujo.md`](betsson-es-flujo.md) (cómo es la web por dentro) e [`investigacion-equipo.md`](investigacion-equipo.md).
+- **Fallo intencionado para demostraciones** (`run --inject-fault <escenario>`, también en Actions con `inject_fault`): suma 0,01 € al saldo final de Betsson leído antes de evaluar; el informe lo anuncia y marca FAIL por discrepancia.
+- **Auditoría del equipo corregida (15/10)** con tests de regresión: condiciones previas antes de girar (la cuenta "sin saldo" con fondos no gira), apuesta aceptada por el servidor y premio declarado (`tw`), eventos atribuidos al marco del juego (también dentro de shadow DOM) y marcados como incoherentes si se repiten o desordenan, OCR sin importes de otra etiqueta ni lecturas dudosas, divisa obligatoria en el HUD, valores mezclados = FAIL, un PASS duplicado no oculta un FAIL, secretos escapados en JSON/HTML y en URLs de errores, OCR de capturas, informe final auditado, enlaces POSIX (Windows) y testigos por proveedor en un registro (`providers/registry.py`).
+- Documentación: [`betsson-es-flujo.md`](betsson-es-flujo.md) (cómo es la web por dentro) y la carpeta [`mentores/`](../mentores/) (informe del proyecto en PDF e informe generado por el programa).
 
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| — | — | — |
+| Carpeta `mentores/` (PDF del proyecto e informe del programa con un fallo intencionado) | Claude (sesión de dani) | 15/10 17:20 |
 
 ## Siguiente paso
 1. **Entrega en Campus Virtual antes de las 20:00** (enlace al repositorio y, si se pide, informe de ejemplo).
 2. Decidir la **visibilidad del repositorio** para el jurado (hoy es privado en la organización `EscuadronMCP`): invitar al jurado o hacerlo público (contiene los PDF del reto).
-3. Ensayar la demo con [`DEMO.md`](DEMO.md); runner en línea y nadie usando la cuenta con saldo.
+3. Runner en línea y nadie usando la cuenta con saldo durante la demostración.
 
 ## Última verificación (15/10, 16:46)
 - GitHub Actions (runner propio): **ambos escenarios PASS en 89 s**, informe publicado como artefacto, sin llamadas a la IA.

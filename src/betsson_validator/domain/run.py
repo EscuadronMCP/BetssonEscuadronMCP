@@ -23,19 +23,18 @@ class ScenarioRun(BaseModel):
     quarantined: tuple[str, ...] = ()
     # Hechos relevantes de la ejecución (p. ej. el perfil se reaprendió con IA).
     notes: tuple[str, ...] = ()
+    # Fallo introducido a propósito para una demostración (nunca en una validación real).
+    injected_fault: str | None = None
 
     @property
     def status(self) -> Status:
-        """PASS solo si no hubo error y todas las comprobaciones del escenario pasaron."""
-        if self.error is not None:
+        """PASS solo si no hubo error, se evaluaron todas las comprobaciones del escenario y
+        ninguna falló (un resultado repetido en PASS no puede ocultar uno en FAIL)."""
+        if self.error is not None or self.missing_checks():
             return Status.FAIL
-        by_check = {result.check: result for result in self.results}
-        required = SCENARIO_CHECKS[self.scenario]
-        if any(check.value not in by_check for check in required):
+        if any(result.status is not Status.PASS for result in self.results):
             return Status.FAIL
-        if all(by_check[check.value].status is Status.PASS for check in required):
-            return Status.PASS
-        return Status.FAIL
+        return Status.PASS
 
     def missing_checks(self) -> tuple[Check, ...]:
         evaluated = {result.check for result in self.results}

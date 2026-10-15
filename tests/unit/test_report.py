@@ -100,3 +100,41 @@ def test_report_starts_with_a_plain_language_summary(tmp_path: Path) -> None:
     html = html_path.read_text(encoding="utf-8")
     assert "4 de 5 comprobaciones superadas" in html
     assert "testigos independientes" in html
+
+
+def test_a_duplicated_pass_cannot_hide_a_fail() -> None:
+    failed = evaluate(
+        Check.WAGER_MATCHES.value,
+        (
+            Testimony(
+                witness="pantalla",
+                kind=WitnessKind.VISUAL,
+                outcome=Outcome.CONTRADICTS,
+                detail="mal",
+            ),
+        ),
+    )
+    passed = confirmed(Check.WAGER_MATCHES)
+    assert run_with((*all_checks_pass(), failed)).status is Status.FAIL
+    assert run_with((failed, *all_checks_pass())).status is Status.FAIL
+    assert run_with((*all_checks_pass(), passed)).status is Status.PASS
+
+
+def test_evidence_links_use_posix_urls_and_flag_missing_files(tmp_path: Path) -> None:
+    folder = tmp_path / "completed_spin"
+    folder.mkdir()
+    (folder / "01_juego.jpg").write_bytes(b"jpg")
+    kept, removed = folder / "01_juego.jpg", folder / "02_retirada.jpg"
+    screen = Testimony(
+        witness="pantalla",
+        kind=WitnessKind.VISUAL,
+        outcome=Outcome.CONFIRMS,
+        detail="ok",
+        evidence=(str(kept), str(removed)),
+    )
+    result = evaluate(Check.SPIN_COMPLETED.value, (screen,))
+    _, html_path = write_report([run_with((result,))], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert 'src="completed_spin/01_juego.jpg"' in html
+    assert "02_retirada.jpg: no disponible" in html
+    assert "\\\\" not in html

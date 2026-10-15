@@ -3,6 +3,10 @@
 Se busca la etiqueta que ve el jugador ("CRÉDITO", "APUESTA"…) y el importe que la acompaña,
 ya sea en la misma caja de texto o en la caja más cercana a su derecha en la misma línea.
 Así no hace falta calibrar regiones fijas por juego: basta con las etiquetas del proveedor.
+
+Para no atribuir a una etiqueta el importe de otra: la etiqueta debe ser una palabra completa,
+la búsqueda a la derecha se detiene en la siguiente etiqueta del HUD o si el hueco es grande,
+y se descartan lecturas con poca confianza del OCR.
 """
 
 import re
@@ -14,9 +18,14 @@ from betsson_validator.domain.money import Money
 from betsson_validator.domain.parsing import AmountParseError, detect_currency, parse_amount
 from betsson_validator.perception.ocr import TextBox
 
-# Importe con dos decimales y cualquier separador ("193,74", "193.74", "1.234,56", "1,234.56").
-_AMOUNT = re.compile(r"\d[\d.,\s]*[.,]\d{2}(?!\d)")
+# Importe con dos decimales, signo opcional y cualquier separador ("193,74", "193.74",
+# "1.234,56", "1,234.56", "1 234,56"). Los miles van en grupos de tres: "10 0,15" son dos
+# textos ("10" y "0,15"), no "100,15".
+_AMOUNT = re.compile(r"(?<![\d.,])-?\s?(?:\d{1,3}(?:[.,\s]\d{3})+|\d+)[.,]\d{2}(?!\d)")
+_MINUS_SIGNS = str.maketrans({"\u2212": "-", "\u2013": "-"})
 _PARAGRAPH_LINE_GAP = 2.2  # distancia máxima entre líneas de un mismo párrafo, en alturas
+_MAX_LABEL_GAP = 8.0  # hueco máximo entre etiqueta e importe, en alturas de texto
+MIN_OCR_SCORE = 0.5  # por debajo, el OCR no está seguro de lo que lee: no sirve como testigo
 
 
 @dataclass(frozen=True)
@@ -49,11 +58,16 @@ def _normalize(text: str) -> str:
 
 
 def _starts_with_label(text: str, label: str) -> bool:
-    return _normalize(text).startswith(_normalize(label))
+    """El texto empieza por la etiqueta como palabra completa ("APUESTAS" no es "APUESTA")."""
+    normalized, wanted = _normalize(text), _normalize(label)
+    if not normalized.startswith(wanted):
+        return False
+    rest = normalized[len(wanted) :]
+    return not rest or not rest[0].isalnum() or not wanted[-1].isalnum()
 
 
 def _amount_in(text: str, default_currency: str) -> Money | None:
-    match = _AMOUNT.search(text)
+    match = _AMOUNT.search(text.translate(_MINUS_SIGNS))
     if not match:
         return None
     try:
@@ -67,38 +81,53 @@ def _same_line(a: TextBox, b: TextBox) -> bool:
     return abs(a.center_y - b.center_y) <= max(a.height, b.height) * 0.6
 
 
+def _value_to_the_right(
+    boxes: Sequence[TextBox], box: TextBox, stop_labels: Sequence[str], default_currency: str
+) -> tuple[Money, TextBox] | None:
+    """Primer importe a la derecha de la etiqueta, sin cruzar otra etiqueta ni un hueco grande."""
+    neighbours = sorted(
+        (b for b in boxes if b is not box and _same_line(b, box) and b.x > box.x),
+        key=lambda b: b.x,
+    )
+    right_edge = box.x + box.width
+    for neighbour in neighbours:
+        if neighbour.x - right_edge > _MAX_LABEL_GAP * box.height:
+            return None
+        if any(_starts_with_label(neighbour.text, other) for other in stop_labels if other.strip()):
+            return None
+        money = _amount_in(neighbour.text, default_currency)
+        if money is not None:
+            return money, neighbour
+        right_edge = neighbour.x + neighbour.width
+    return None
+
+
 def find_amounts(
-    boxes: Sequence[TextBox], label: str, default_currency: str
+    boxes: Sequence[TextBox],
+    label: str,
+    default_currency: str,
+    stop_labels: Sequence[str] = (),
 ) -> list[AmountReading]:
-    """Todas las lecturas "etiqueta + importe" de la pantalla (puede haber etiquetas repetidas)."""
+    """Todas las lecturas "etiqueta + importe" de la pantalla (puede haber etiquetas repetidas).
+
+    `stop_labels` son las demás etiquetas del HUD: su importe nunca se atribuye a esta.
+    """
     if not label.strip():
         return []  # una etiqueta vacía coincidiría con cualquier texto
     readings: list[AmountReading] = []
     for box in boxes:
-        if not _starts_with_label(box.text, label):
+        if box.score < MIN_OCR_SCORE or not _starts_with_label(box.text, label):
             continue
-        rest = box.text[len(label) :] if len(box.text) > len(label) else ""
-        money = _amount_in(rest, default_currency)
+        money = _amount_in(box.text[len(label) :], default_currency)
         if money is not None:
             readings.append(AmountReading(money, box.text, box.score, box.center_x, box.center_y))
             continue
-        neighbours = sorted(
-            (b for b in boxes if b is not box and _same_line(b, box) and b.x > box.x),
-            key=lambda b: b.x,
-        )
-        for neighbour in neighbours:
-            money = _amount_in(neighbour.text, default_currency)
-            if money is not None:
-                readings.append(
-                    AmountReading(
-                        money,
-                        f"{box.text} {neighbour.text}",
-                        min(box.score, neighbour.score),
-                        box.center_x,
-                        box.center_y,
-                    )
-                )
-                break
+        found = _value_to_the_right(boxes, box, stop_labels, default_currency)
+        if found is not None and found[1].score >= MIN_OCR_SCORE:
+            money, value = found
+            score = min(box.score, value.score)
+            text = f"{box.text} {value.text}"
+            readings.append(AmountReading(money, text, score, box.center_x, box.center_y))
     return readings
 
 
@@ -107,9 +136,10 @@ def find_amount(
     label: str,
     default_currency: str,
     near: tuple[float, float] | None = None,
+    stop_labels: Sequence[str] = (),
 ) -> AmountReading | None:
     """La lectura de esa etiqueta; si se repite, la más cercana a `near` (posición aprendida)."""
-    readings = find_amounts(boxes, label, default_currency)
+    readings = find_amounts(boxes, label, default_currency, stop_labels)
     if not readings:
         return None
     if near is None:
@@ -125,10 +155,16 @@ def read_hud(
 ) -> HudReading:
     """Lee el HUD; `anchors` (px) desempata etiquetas repetidas con la posición aprendida."""
     near = anchors or {}
+    every = (labels.credit, labels.bet, labels.win)
+
+    def read(name: str, label: str) -> AmountReading | None:
+        others = tuple(other for other in every if other != label)
+        return find_amount(boxes, label, default_currency, near.get(name), others)
+
     return HudReading(
-        credit=find_amount(boxes, labels.credit, default_currency, near.get("credit")),
-        bet=find_amount(boxes, labels.bet, default_currency, near.get("bet")),
-        win=find_amount(boxes, labels.win, default_currency, near.get("win")),
+        credit=read("credit", labels.credit),
+        bet=read("bet", labels.bet),
+        win=read("win", labels.win),
         texts=tuple(box.text for box in boxes),
     )
 

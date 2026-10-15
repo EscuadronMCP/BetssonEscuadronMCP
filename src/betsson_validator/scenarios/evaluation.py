@@ -11,7 +11,7 @@ from collections.abc import Callable
 from decimal import Decimal
 
 from betsson_validator.domain.checks import Check
-from betsson_validator.domain.money import Money
+from betsson_validator.domain.money import Money, expected_amount_after
 from betsson_validator.domain.verdict import (
     CheckResult,
     Outcome,
@@ -55,6 +55,14 @@ def _events(
     events = evidence.events
     if events is None or not events.received:
         return _t(EVENTS, WitnessKind.CORROBORATING, None, "no se recibieron eventos del juego")
+    if events.anomalies:
+        return _t(
+            EVENTS,
+            WitnessKind.CORROBORATING,
+            False,
+            f"eventos incoherentes: {'; '.join(events.anomalies)}",
+            (events.evidence,) if events.evidence else (),
+        )
     ok, detail = judge(events)
     evidence_files = (events.evidence,) if events.evidence else ()
     return _t(EVENTS, WitnessKind.CORROBORATING, ok, detail, evidence_files)
@@ -64,23 +72,37 @@ def _same(a: Decimal | None, b: Decimal | None) -> bool | None:
     return None if a is None or b is None else a == b
 
 
+def _all(*verdicts: bool | None) -> bool | None:
+    """Une varias comparaciones: falla si alguna falla; sin datos si ninguna se pudo hacer."""
+    known = [v for v in verdicts if v is not None]
+    return None if not known else all(known)
+
+
+def _only(values: tuple[str, ...], expected: str) -> bool | None:
+    """Todos los valores comunicados son el esperado (uno distinto mezclado es un fallo)."""
+    return None if not values else set(values) == {expected}
+
+
 # --- Comprobaciones compartidas ---------------------------------------------------------------
 
 
 def currency_matches(evidence: RunEvidence) -> CheckResult:
     expected = evidence.market_currency
-    seen = evidence.screen_before.currency_seen
+    seen = tuple(
+        sorted({*evidence.screen_before.currencies_seen, *evidence.screen_after.currencies_seen})
+    )
     screen = _t(
         SCREEN,
         WitnessKind.VISUAL,
-        None if seen is None else seen == expected,
-        f"divisa leída en el HUD: {seen or 'no leída'}; esperada {expected}",
-        (evidence.screen_before.evidence,),
+        _only(seen, expected),
+        f"divisa leída en el HUD del juego: {', '.join(seen) or 'no leída'}; esperada {expected}",
+        (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
+    # La cabecera es de Betsson, no del juego: corrobora, pero no sustituye a lo que muestra el HUD.
     header_currency = evidence.betsson_before.currency if evidence.betsson_before else None
     header = _t(
         HEADER,
-        WitnessKind.VISUAL,
+        WitnessKind.CORROBORATING,
         None if header_currency is None else header_currency == expected,
         f"divisa del saldo de Betsson: {header_currency or 'no leída'}",
         evidence.betsson_evidence,
@@ -88,7 +110,7 @@ def currency_matches(evidence: RunEvidence) -> CheckResult:
     events = _events(
         evidence,
         lambda e: (
-            (expected in e.currencies) if e.currencies else None,
+            _only(e.currencies, expected),
             f"divisa comunicada por el juego: {', '.join(e.currencies) or 'ninguna'}",
         ),
     )
@@ -106,6 +128,7 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
         detail = "el giro empezó pero no terminó dentro del tiempo límite"
     else:
         detail = "el juego no reaccionó al botón de girar"
+    message = evidence.screen_after.message
     testimonies = [
         _t(
             MOTION,
@@ -113,7 +136,16 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
             motion.completed,
             detail,
             (*motion.evidence, evidence.screen_after.evidence),
-        )
+        ),
+        _t(
+            SCREEN,
+            WitnessKind.VISUAL,
+            message is None,
+            "sin mensajes de rechazo tras la tirada"
+            if message is None
+            else f"el juego mostró «{message}»",
+            (evidence.screen_after.evidence,),
+        ),
     ]
     network = evidence.network
     if network is None:
@@ -155,18 +187,20 @@ def wager_matches(evidence: RunEvidence) -> CheckResult:
         (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
     network = evidence.network
-    server_ok = (
-        None
-        if network is None or network.wager is None or shown is None
-        else network.wager == shown.amount
-    )
-    server = _t(
-        SERVER,
-        WitnessKind.CORROBORATING,
-        server_ok,
-        "apuesta cobrada por el servidor (moneda x líneas): "
-        f"{_fmt(network.wager if network else None)}",
-    )
+    if network is None or network.wager_accepted is None or shown is None:
+        server = _t(SERVER, WitnessKind.CORROBORATING, None, "el servidor no confirmó la apuesta")
+    else:
+        server = _t(
+            SERVER,
+            WitnessKind.CORROBORATING,
+            _all(
+                network.wager_accepted == shown.amount,
+                _same(network.wager_requested, shown.amount),
+            ),
+            f"apuesta pedida {_fmt(network.wager_requested)} y aceptada por el servidor "
+            f"{_fmt(network.wager_accepted)} (moneda x líneas)",
+            (network.evidence,) if network.evidence else (),
+        )
     events = _events(
         evidence,
         lambda e: (
@@ -187,7 +221,7 @@ def game_balance_consistent(evidence: RunEvidence) -> CheckResult:
     if before is None or after is None or bet is None:
         screen_ok, detail = None, "no se pudo leer el crédito o la apuesta"
     else:
-        expected = before.amount - bet.amount + win
+        expected = expected_amount_after(before.amount, bet.amount, win)
         screen_ok = after.amount == expected
         detail = (
             f"crédito {before} - apuesta {bet.amount} + premio {win} = {expected}; leído {after}"
@@ -199,27 +233,39 @@ def game_balance_consistent(evidence: RunEvidence) -> CheckResult:
         detail,
         (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
-    network = evidence.network
-    server_ok = (
-        None
-        if network is None or network.balance_after is None or after is None
-        else network.balance_after == after.amount
-    )
-    server = _t(
-        SERVER,
-        WitnessKind.CORROBORATING,
-        server_ok,
-        "saldo final según el servidor del juego: "
-        f"{_fmt(network.balance_after if network else None)}",
-    )
+    server = _server_round(evidence, after.amount if after else None, win)
     events = _events(
         evidence,
         lambda e: (
-            _same(e.balance_after, after.amount if after else None),
-            f"saldo final comunicado por el juego: {_fmt(e.balance_after)}",
+            _all(_same(e.balance_after, after.amount if after else None), _same(e.win, win)),
+            f"saldo final {_fmt(e.balance_after)} y premio {_fmt(e.win)} comunicados por el juego",
         ),
     )
     return evaluate(Check.GAME_BALANCE_CONSISTENT.value, (screen, server, events))
+
+
+def _server_round(evidence: RunEvidence, credit_after: Decimal | None, win: Decimal) -> Testimony:
+    """El servidor: su saldo final, su premio declarado (tw) y su propia cuenta deben cuadrar."""
+    network = evidence.network
+    if network is None or network.balance_after is None:
+        return _t(SERVER, WitnessKind.CORROBORATING, None, "tráfico no disponible")
+    before, wager, declared = network.balance_before, network.wager_accepted, network.declared_win
+    internal = (
+        None
+        if before is None or wager is None or declared is None
+        else expected_amount_after(before, wager, declared) == network.balance_after
+    )
+    return _t(
+        SERVER,
+        WitnessKind.CORROBORATING,
+        _all(
+            _same(network.balance_after, credit_after), _same(network.declared_win, win), internal
+        ),
+        f"saldo {_fmt(network.balance_before)} → {_fmt(network.balance_after)}, apuesta "
+        f"aceptada {_fmt(network.wager_accepted)} y premio declarado {_fmt(network.declared_win)} "
+        "según el servidor del juego",
+        (network.evidence,) if network.evidence else (),
+    )
 
 
 def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
@@ -232,7 +278,7 @@ def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
     if before is None or after is None or bet is None:
         header_ok, detail = None, "no se pudo leer el saldo de Betsson o la apuesta"
     else:
-        expected = before.amount - bet.amount + win
+        expected = expected_amount_after(before.amount, bet.amount, win)
         header_ok = after.amount == expected
         detail = (
             f"saldo {before} - apuesta {bet.amount} + premio {win} = {expected}; "
@@ -249,22 +295,24 @@ def betsson_balance_reconciles(evidence: RunEvidence) -> CheckResult:
         (evidence.screen_after.evidence,),
     )
     network = evidence.network
-    if network is None or network.wager is None or network.payout is None or before is None:
+    wager = network.wager_accepted if network else None
+    declared = network.declared_win if network else None
+    if wager is None or declared is None or before is None:
         server = _t(SERVER, WitnessKind.CORROBORATING, None, "tráfico no disponible")
     else:
-        expected_server = before.amount - network.wager + network.payout
+        expected_server = expected_amount_after(before.amount, wager, declared)
         server = _t(
             SERVER,
             WitnessKind.CORROBORATING,
             after is not None and after.amount == expected_server,
-            f"apuesta {network.wager} y premio {network.payout} según el servidor "
+            f"apuesta aceptada {wager} y premio declarado {declared} por el servidor "
             f"→ {expected_server}",
         )
 
     def judge_events(e: GameEventsSummary) -> tuple[bool | None, str]:
         if e.bet is None or e.win is None or before is None or after is None:
             return None, "el juego no comunicó apuesta y premio"
-        expected_events = before.amount - e.bet + e.win
+        expected_events = expected_amount_after(before.amount, e.bet, e.win)
         return (
             after.amount == expected_events,
             f"apuesta {e.bet} y premio {e.win} según el juego → {expected_events}",
@@ -290,15 +338,18 @@ def evaluate_completed_spin(evidence: RunEvidence) -> tuple[CheckResult, ...]:
 def spin_rejected(evidence: RunEvidence) -> CheckResult:
     before, after = evidence.screen_before.credit, evidence.screen_after.credit
     message = evidence.screen_after.message
+    # El mensaje debe aparecer como respuesta al giro: si ya estaba antes, no prueba el rechazo.
+    already_shown = evidence.screen_before.message is not None
     unchanged = None if before is None or after is None else before == after
     screen_ok = None if unchanged is None else unchanged and message is not None
     screen = _t(
         SCREEN,
         WitnessKind.VISUAL,
-        screen_ok,
-        f"mensaje de rechazo {'visible' if message else 'no visible'}; "
+        False if already_shown else screen_ok,
+        f"mensaje de rechazo {'visible' if message else 'no visible'}"
+        f"{' (ya estaba antes de girar)' if already_shown else ''}; "
         f"crédito {_fmt(before)} → {_fmt(after)}",
-        (evidence.screen_after.evidence,),
+        (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )
     motion = _t(
         MOTION,
@@ -348,7 +399,7 @@ def insufficient_message_shown(evidence: RunEvidence) -> CheckResult:
     events = _events(
         evidence,
         lambda e: (
-            (language in e.languages) if e.languages else None,
+            _only(e.languages, language),
             f"idioma del juego: {', '.join(e.languages) or 'no comunicado'}; esperado {language}",
         ),
     )

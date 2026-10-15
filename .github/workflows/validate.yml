@@ -10,6 +10,11 @@ on:
         type: choice
         default: all
         options: [all, completed_spin, insufficient_balance]
+      inject_fault:
+        description: "Demostración: provocar a propósito un fallo de saldo en este escenario"
+        type: choice
+        default: none
+        options: [none, completed_spin, insufficient_balance]
 
 permissions:
   contents: read
@@ -46,10 +51,14 @@ jobs:
       - name: Preparar navegador
         run: uv run playwright install ffmpeg
       - name: Ejecutar escenarios
+        env:
+          SCENARIO: ${{ inputs.scenario || 'all' }}
+          FAULT: ${{ inputs.inject_fault != 'none' && inputs.inject_fault || '' }}
         run: >
           uv run python -m betsson_validator run
           --market "${{ matrix.market }}"
-          --scenario "${{ inputs.scenario || 'all' }}"
+          --scenario "$SCENARIO"
+          ${FAULT:+--inject-fault "$FAULT"}
           --out "reports/${{ matrix.market }}"
           --summary "$GITHUB_STEP_SUMMARY"
       - name: Publicar informe y evidencias

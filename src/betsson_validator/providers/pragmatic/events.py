@@ -28,26 +28,51 @@ def loading_finished(events: Sequence[dict[str, Any]]) -> bool:
 
 
 def _decimal(value: Any) -> Decimal | None:  # noqa: ANN401 - valor JSON arbitrario
+    """Importe de un campo JSON; None si no es un número finito (NaN e Infinity no valen)."""
     if isinstance(value, bool) or value is None:
         return None
     try:
-        return Decimal(str(value))
+        number = Decimal(str(value))
     except ArithmeticError:
         return None
+    return number if number.is_finite() else None
+
+
+def _currency(params: Any) -> str | None:  # noqa: ANN401 - valor JSON arbitrario
+    if not isinstance(params, dict):
+        return None
+    total = params.get("total")
+    symbol = params.get("currency") or (total.get("currency") if isinstance(total, dict) else None)
+    return detect_currency(str(symbol)) if symbol else None
+
+
+def _indexes(names: list[str], wanted: set[str]) -> list[int]:
+    return [i for i, name in enumerate(names) if name in wanted]
+
+
+def _anomalies(events: Sequence[dict[str, Any]], names: list[str]) -> list[str]:
+    """Incoherencias del canal que impiden fiarse de él como testigo."""
+    found: list[str] = []
+    starts, ends = _indexes(names, _ROUND_START), _indexes(names, _ROUND_END)
+    if len(ends) > 1:
+        found.append(f"{len(ends)} rondas terminadas en una sola tirada")
+    if ends and (not starts or ends[-1] < starts[0]):
+        found.append("la ronda terminó sin haber empezado")
+    bets = {
+        bet for i in (*starts, *ends) if (bet := _decimal(events[i].get("betAmount"))) is not None
+    }
+    if len(bets) > 1:
+        found.append(f"apuestas distintas en la misma ronda: {sorted(bets)}")
+    return found
 
 
 def summarize_events(events: Sequence[dict[str, Any]], evidence: str = "") -> GameEventsSummary:
     names = [str(e.get("name", "")) for e in events]
-    started = next((e for e in events if e.get("name") in _ROUND_START), None)
-    ended = next((e for e in reversed(events) if e.get("name") in _ROUND_END), None)
+    starts, ends = _indexes(names, _ROUND_START), _indexes(names, _ROUND_END)
+    started = events[starts[0]] if starts else None
+    ended = events[ends[-1]] if ends else None
     languages = {str(e["lang"]).lower() for e in events if e.get("lang")}
-    currencies = set()
-    for event in events:
-        params = event.get("params")
-        if isinstance(params, dict):
-            symbol = params.get("currency") or (params.get("total") or {}).get("currency")
-            if symbol and (code := detect_currency(str(symbol))):
-                currencies.add(code)
+    currencies = {code for e in events if (code := _currency(e.get("params")))}
     return GameEventsSummary(
         received=bool(events),
         round_started=started is not None,
@@ -59,5 +84,6 @@ def summarize_events(events: Sequence[dict[str, Any]], evidence: str = "") -> Ga
         balance_after=_decimal(ended.get("balanceAfter")) if ended else None,
         languages=tuple(sorted(languages)),
         currencies=tuple(sorted(currencies)),
+        anomalies=tuple(_anomalies(events, names)),
         evidence=evidence,
     )

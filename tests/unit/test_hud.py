@@ -82,3 +82,40 @@ def test_playngo_hud_format() -> None:
     assert hud.credit is not None and hud.credit.money.amount == Decimal("193.74")
     assert hud.credit.money.currency == "EUR"
     assert hud.bet is not None and hud.bet.money.amount == Decimal("1.50")
+
+
+# --- Regresiones de la auditoría: importes atribuidos a otra etiqueta, signo y confianza -------
+
+
+def test_amount_of_another_label_is_never_taken() -> None:
+    boxes = [box("CRÉDITO", 100, 450), box("APUESTA", 180, 450), box("0,20 €", 250, 450)]
+    hud = read_hud(boxes, LABELS, "EUR")
+    assert hud.credit is None
+    assert hud.bet is not None and hud.bet.money.amount == Decimal("0.20")
+
+
+def test_far_away_amount_on_the_same_line_is_not_the_label_value() -> None:
+    boxes = [box("CRÉDITO", 0, 450), box("64,70 €", 900, 450)]
+    assert read_hud(boxes, LABELS, "EUR").credit is None
+
+
+def test_low_confidence_readings_are_discarded() -> None:
+    hud = read_hud([box("CRÉDITO 64,70 €", 0, 0, score=0.3)], LABELS, "EUR")
+    assert hud.credit is None
+
+
+def test_negative_amounts_keep_their_sign() -> None:
+    for text in ("GANANCIA -0,20 €", "GANANCIA \u22120,20 €"):
+        hud = read_hud([box(text, 0, 0)], LABELS, "EUR")
+        assert hud.win is not None and hud.win.money.amount == Decimal("-0.20")
+
+
+def test_separate_numbers_are_not_merged_into_one_amount() -> None:
+    hud = read_hud([box("CRÉDITO 2 0,20 €", 0, 0)], LABELS, "EUR")
+    assert hud.credit is not None and hud.credit.money.amount == Decimal("0.20")
+
+
+def test_label_must_be_a_whole_word() -> None:
+    labels = HudLabels(credit="CRÉDITO", bet="APUESTA", win="GANA")
+    hud = read_hud([box("GANANCIA 5,00 €", 0, 0)], labels, "EUR")
+    assert hud.win is None

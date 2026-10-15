@@ -6,7 +6,6 @@ HUD, aspecto de los controles) se aprende y vive en profiles/ (ver profiles.py).
 
 from decimal import Decimal
 from pathlib import Path
-from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,11 +25,12 @@ class ProviderConfig(BaseModel):
     max_bet: Decimal = Field(
         default=Decimal("0.50"), description="Salvaguarda: no se gira si la apuesta es mayor"
     )
-    network_witness: Literal["pragmatic"] | None = Field(
-        default=None, description="Testigo de red disponible para este proveedor, si lo hay"
+    network_witness: str | None = Field(
+        default=None, description="Testigo de red registrado en providers/registry.py, si lo hay"
     )
-    events_witness: Literal["pragmatic"] | None = Field(
-        default=None, description="Intérprete de los eventos postMessage del juego, si lo hay"
+    events_witness: str | None = Field(
+        default=None,
+        description="Intérprete de eventos postMessage registrado en providers/registry.py",
     )
 
 
