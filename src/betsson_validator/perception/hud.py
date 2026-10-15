@@ -23,6 +23,8 @@ from betsson_validator.perception.ocr import TextBox
 # textos ("10" y "0,15"), no "100,15".
 _AMOUNT = re.compile(r"(?<![\d.,])-?\s?(?:\d{1,3}(?:[.,\s]\d{3})+|\d+)[.,]\d{2}(?!\d)")
 _MINUS_SIGNS = str.maketrans({"\u2212": "-", "\u2013": "-"})
+# El OCR confunde a veces un 0 aislado con O o D ("APUESTA D,10 €", visto en Big Bass).
+_OCR_ZERO = re.compile(r"(?<![A-Za-z\d])[ODo](?=[.,]\d{2}(?!\d))")
 _PARAGRAPH_LINE_GAP = 2.2  # distancia máxima entre líneas de un mismo párrafo, en alturas
 _MAX_LABEL_GAP = 8.0  # hueco máximo entre etiqueta e importe, en alturas de texto
 MIN_OCR_SCORE = 0.5  # por debajo, el OCR no está seguro de lo que lee: no sirve como testigo
@@ -63,11 +65,18 @@ def _starts_with_label(text: str, label: str) -> bool:
     if not normalized.startswith(wanted):
         return False
     rest = normalized[len(wanted) :]
-    return not rest or not rest[0].isalnum() or not wanted[-1].isalnum()
+    # Una letra pegada cambia la palabra ("APUESTAS"); un dígito pegado es el importe que el
+    # OCR juntó sin espacio ("CRÉDITO192,25€", visto en Big Bass).
+    return not rest or not rest[0].isalpha() or not wanted[-1].isalnum()
+
+
+def _clean(text: str) -> str:
+    """Signos menos tipográficos como "-" y un 0 leído como O o D."""
+    return _OCR_ZERO.sub("0", text.translate(_MINUS_SIGNS))
 
 
 def _amount_in(text: str, default_currency: str) -> Money | None:
-    match = _AMOUNT.search(text.translate(_MINUS_SIGNS))
+    match = _AMOUNT.search(_clean(text))
     if not match:
         return None
     try:
@@ -80,10 +89,11 @@ def _amount_in(text: str, default_currency: str) -> Money | None:
 def _own_amount(rest: str, stop_labels: Sequence[str], default_currency: str) -> Money | None:
     """Importe que sigue a la etiqueta dentro de la misma caja, salvo que antes aparezca otra
     etiqueta del HUD ("CRÉDITO APUESTA 0,20 €": ese importe es de la apuesta)."""
-    match = _AMOUNT.search(rest.translate(_MINUS_SIGNS))
+    cleaned = _clean(rest)
+    match = _AMOUNT.search(cleaned)
     if match is None:
         return None
-    before = _normalize(rest[: match.start()])
+    before = _normalize(cleaned[: match.start()])
     if any(_normalize(other) in before for other in stop_labels if other.strip()):
         return None
     return _amount_in(rest, default_currency)

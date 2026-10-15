@@ -125,3 +125,12 @@ def test_one_box_with_two_labels_gives_the_amount_to_the_second() -> None:
     """Auditoría R02 (OCR-002/003): "CRÉDITO APUESTA 0,20 €" en una sola caja."""
     hud = read_hud([box("CRÉDITO APUESTA 0,20 €", 0, 0)], LABELS, "EUR")
     assert hud.credit is None
+
+
+def test_ocr_glitches_seen_in_big_bass_are_read() -> None:
+    """Real (15/10): «CRÉDITO192,25€» sin espacio y «APUESTA D,10 €» con una D por un 0."""
+    boxes = [box("CRÉDITO192,25€", 146, 449), box("APUESTA D,10 €", 145, 468)]
+    hud = read_hud(boxes, LABELS, "EUR")
+    assert hud.credit is not None and hud.credit.money.amount == Decimal("192.25")
+    assert hud.bet is not None and hud.bet.money.amount == Decimal("0.10")
+    assert read_hud([box("APUESTAS 0,20 €", 0, 0)], LABELS, "EUR").bet is None
