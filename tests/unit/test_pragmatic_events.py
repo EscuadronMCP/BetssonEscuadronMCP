@@ -148,7 +148,8 @@ def test_round_ended_before_it_started_is_an_anomaly() -> None:
 
 
 def test_two_rounds_in_one_spin_is_an_anomaly() -> None:
-    summary = summarize_events([*WINNING_ROUND, *WINNING_ROUND])
+    second = [{**e, "balanceAfter": 1.0} for e in WINNING_ROUND]  # otra ronda, otro saldo
+    summary = summarize_events([*WINNING_ROUND, *second])
     assert any("rondas" in a for a in summary.anomalies)
 
 
@@ -216,3 +217,11 @@ def test_events_from_an_unauthorized_origin_do_not_count() -> None:
     assert kept == [game]
     assert foreign == [other]
     assert authorized_events([other], frozenset()) == ([other], [])
+
+
+def test_a_duplicated_end_message_is_not_another_round() -> None:
+    end = next(e for e in WINNING_ROUND if e.get("name") == "gameRoundEnded")
+    duplicated = [*WINNING_ROUND, dict(end)]
+    assert summarize_events(duplicated).anomalies == ()
+    other_round = [*WINNING_ROUND, {**end, "balanceAfter": 1.0}]
+    assert any("rondas" in a for a in summarize_events(other_round).anomalies)

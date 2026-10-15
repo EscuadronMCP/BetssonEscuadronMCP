@@ -102,3 +102,47 @@ def test_transient_animation_does_not_pay_for_ai() -> None:
     point, _ = game._locate_patiently("spin")
     assert point == pytest.approx(((663 + 32) / 896, (429 + 28) / 504), abs=0.02)
     assert CountingLearner.calls == 0
+
+
+def test_spin_is_clicked_exactly_once_even_if_the_game_does_not_react() -> None:
+    """Nunca se repite una tirada: sin reacción del juego se informa, no se reintenta."""
+    spin = crop(REAL_SCREEN, (663, 429, 64, 57))
+    profile = GameProfile("p", "g", "CRÉDITO", "APUESTA", "", templates={"spin": spin})
+    model = ScreenModel(profile, cast(Any, None), "EUR", None)
+
+    class Page:
+        clicks = 0
+
+        def wait_for_timeout(self, _ms: float) -> None:
+            return None
+
+        @property
+        def mouse(self) -> Any:
+            page = self
+
+            class Mouse:
+                def click(self, _x: float, _y: float) -> None:
+                    page.clicks += 1
+
+            return Mouse()
+
+    class Handle:
+        class iframe:  # noqa: N801 - imita el atributo del manejador real
+            @staticmethod
+            def bounding_box() -> dict[str, float]:
+                return {"x": 0, "y": 0, "width": 896, "height": 504}
+
+    page = Page()
+    game = _ScriptedGame(
+        page=cast(Any, page),
+        handle=cast(Any, Handle()),
+        model=model,
+        evidence=cast(Any, None),
+        message_pattern=re.compile("x"),
+        dismiss_labels=(),
+        timings=GameTimings(spin_start_timeout_s=0.05, settle_after_spin_ms=0, idle_samples=1),
+    )
+    game.frames = [REAL_SCREEN]  # la pantalla nunca cambia: el juego no reacciona
+    observation = game.spin_and_watch()
+    assert page.clicks == 1
+    assert not observation.lifecycle.started

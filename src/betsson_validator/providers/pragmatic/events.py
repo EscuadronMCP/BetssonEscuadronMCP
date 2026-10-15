@@ -9,6 +9,7 @@ Formato comprobado en betsson.es el 15/10 (Sweet Bonanza 2500):
 - Saldo insuficiente: name "balanceTooLow" y ninguna ronda iniciada.
 """
 
+import json
 from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
@@ -54,8 +55,10 @@ def _anomalies(events: Sequence[dict[str, Any]], names: list[str]) -> list[str]:
     """Incoherencias del canal que impiden fiarse de él como testigo."""
     found: list[str] = []
     starts, ends = _indexes(names, _ROUND_START), _indexes(names, _ROUND_END)
-    if len(ends) > 1:
-        found.append(f"{len(ends)} rondas terminadas en una sola tirada")
+    # Un mismo mensaje repetido no es otra ronda: se cuentan los fines distintos.
+    distinct_ends = {json.dumps(events[i], sort_keys=True, default=str) for i in ends}
+    if len(distinct_ends) > 1:
+        found.append(f"{len(distinct_ends)} rondas terminadas en una sola tirada")
     if ends and (not starts or ends[-1] < starts[0]):
         found.append("la ronda terminó sin haber empezado")
     bets = {
