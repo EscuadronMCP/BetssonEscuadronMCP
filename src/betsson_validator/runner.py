@@ -53,6 +53,7 @@ from betsson_validator.scenarios.preconditions import (
     require_no_funds,
 )
 from betsson_validator.security import audit_and_quarantine, scrub_text, scrub_trace
+from betsson_validator.timeline import StageClock
 
 Evaluator = Callable[[RunEvidence], tuple[CheckResult, ...]]
 
@@ -153,8 +154,11 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
             page = context.new_page()
             network = network_witness(ctx.provider.network_witness, context)
             casino = BetssonCasino(page, ctx.market, typing_delay_ms=ctx.settings.slow_typing_ms)
+            clock = StageClock()
             casino.open()
+            clock.mark("web abierta")
             casino.login(credentials)
+            clock.mark("sesión iniciada")
             model = ScreenModel(
                 profile=profile,
                 reader=ctx.reader,
@@ -171,6 +175,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                         model=model,
                         witnesses=_Witnesses(network, interpreter),
                         files=files,
+                        clock=clock,
                     )
                 except Exception:
                     _save_failure_screen(casino, files)
@@ -255,11 +260,14 @@ def _prepare(
     model: ScreenModel,
     witnesses: _Witnesses,
     files: EvidenceRecorder,
+    clock: StageClock,
 ) -> _Ready:
     """Hasta justo antes de girar: saldo, juego cargado, apuesta mínima y condiciones previas."""
     betsson_before = casino.read_balance()
     header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.jpg")
+    clock.mark("saldo inicial leído")
     handle = casino.launch_game(ctx.provider, ctx.game)
+    clock.mark("juego abierto")
     events = witnesses.events
     game = ScreenGame(
         page=casino.page,
@@ -280,6 +288,7 @@ def _prepare(
         ),
     )
     ready = game.set_minimum_bet(game.wait_until_ready())
+    clock.mark("juego listo con apuesta mínima")
     seen = _snapshot(ready)
     bet = check_bet(seen.bet, ctx.provider.max_bet, ctx.market.currency, seen.currencies_seen)
     plan.precondition(betsson_before, seen.credit, bet)
@@ -294,15 +303,20 @@ def _play(
     model: ScreenModel,
     witnesses: _Witnesses,
     files: EvidenceRecorder,
+    clock: StageClock,
 ) -> tuple[CheckResult, ...]:
-    ready = _prepare(casino, ctx, plan=plan, model=model, witnesses=witnesses, files=files)
+    ready = _prepare(
+        casino, ctx, plan=plan, model=model, witnesses=witnesses, files=files, clock=clock
+    )
     game = ready.game
     game_frame = casino.page.frame_locator(GAME_FRAME_SELECTOR)
     probes = [accessibility.probe(game_frame, "antes_de_girar")] if ctx.ax_probe else []
     mark = witnesses.network.mark() if witnesses.network else 0
     events_mark = len(GameEventRecorder.collect(casino.page)) if witnesses.events else 0
     spin = game.spin_and_watch()
+    clock.mark("giro observado")
     after = game.observe_settled("despues_de_girar")
+    clock.mark("marcador estable")
     if ctx.ax_probe:  # con el mensaje del juego aún visible en el escenario 2
         probes.append(accessibility.probe(game_frame, "despues_de_girar"))
         files.save_json("accesibilidad", [asdict(item) for item in probes])
@@ -329,6 +343,7 @@ def _play(
         before_credit is None or after_credit is None or before_credit.money != after_credit.money
     )
     betsson_after = casino.read_balance_after(ready.betsson_before, expect_change=credit_changed)
+    clock.mark("saldo final de Betsson")
     header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.jpg")
 
     evidence = RunEvidence(
@@ -352,6 +367,7 @@ def _play(
     summary_data = _describe(evidence)  # siempre lo observado de verdad, sin el fallo inyectado
     summary_data["motion_scores"] = [round(score, 4) for score in spin.scores]
     summary_data["motion_thresholds"] = spin.thresholds.__dict__ if spin.thresholds else None
+    summary_data["stages"] = clock.stages
     if ctx.fault is not None:
         summary_data["injected_fault"] = ctx.fault.description
         evidence = ctx.fault.apply(evidence)

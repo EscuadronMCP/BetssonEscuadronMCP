@@ -328,3 +328,70 @@ def gallery(folder: Path, out_dir: Path) -> str:
             f"<figcaption>{escape(caption)}</figcaption></figure>"
         )
     return f'<div class="gallery">{"".join(figures)}</div>' if figures else ""
+
+
+# --- Cronología y resumen en lenguaje llano -----------------------------------------------------
+
+
+def stages_timeline(observed: Observed) -> str:
+    """Barra de tiempos: cuánto duró cada etapa, de abrir la web al saldo final."""
+    stages = [
+        (str(stage.get("name", "")), float(stage["s"]))
+        for stage in observed.get("stages") or []
+        if isinstance(stage, dict) and isinstance(stage.get("s"), int | float)
+    ]
+    if not stages:
+        return ""
+    total = stages[-1][1] or 1.0
+    previous = 0.0
+    segments, items = [], []
+    for name, end in stages:
+        length = max(end - previous, 0.0)
+        segments.append(
+            f'<span class="seg" style="width:{100 * length / total:.2f}%" '
+            f'title="{escape(name)}: {length:.1f} s"></span>'
+        )
+        items.append(
+            f"<li><b>{escape(name)}</b> <span class='muted'>{length:.1f} s "
+            f"(acumulado {end:.1f} s)</span></li>"
+        )
+        previous = end
+    return (
+        f'<div class="stages">{"".join(segments)}</div><ol class="timeline">{"".join(items)}</ol>'
+    )
+
+
+def narrative(observed: Observed, scenario: Scenario, game: str) -> str:
+    """Lo que pasó, en una frase, para quien no conoce el proyecto."""
+    get = observed.get
+    code = currency(get("betsson_before")) or "EUR"
+    bet = amount(get("screen_before", "bet"))
+    credit_before, credit_after = (
+        amount(get("screen_before", "credit")),
+        amount(get("screen_after", "credit")),
+    )
+    betsson_before, betsson_after = amount(get("betsson_before")), amount(get("betsson_after"))
+    if scenario is Scenario.INSUFFICIENT_BALANCE:
+        message = get("screen_after", "message")
+        shown = f"mostró «{message}»" if message else "no mostró ningún mensaje"
+        unchanged = credit_before == credit_after and betsson_before == betsson_after
+        return (
+            f"Con {money(credit_before, code)} de crédito y una apuesta de {money(bet, code)}, "
+            f"se pulsó girar en {game}: el juego {shown}. "
+            f"{'Ningún saldo cambió.' if unchanged else 'Algún saldo cambió.'}"
+        )
+    win = amount(get("screen_after", "win")) or Decimal("0")
+    spun = bool(get("motion", "completed"))
+    result = f"pagó {money(win, code)}" if win else "no hubo premio"
+    rule = (
+        betsson_before is not None
+        and bet is not None
+        and betsson_after == betsson_before - bet + win
+    )
+    return (
+        f"Se apostaron {money(bet, code)} en {game}. "
+        f"{'El juego giró y ' + result if spun else 'El juego no llegó a girar'}. "
+        f"El crédito del juego pasó de {money(credit_before, code)} a {money(credit_after, code)} "
+        f"y el saldo de Betsson de {money(betsson_before, code)} a {money(betsson_after, code)}: "
+        f"{'cuadra con la regla del reto.' if rule else 'NO cuadra con la regla del reto.'}"
+    )

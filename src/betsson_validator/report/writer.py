@@ -17,7 +17,9 @@ from betsson_validator.report.sections import (
     events_timeline,
     gallery,
     motion_section,
+    narrative,
     observed_values,
+    stages_timeline,
     witness_grid,
 )
 
@@ -176,11 +178,17 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
             observed_values(observed, run.scenario) if observed else "",
         ),
         ("Movimiento de los rodillos", motion_section(observed) if observed else ""),
+        ("Cronología de la ejecución", stages_timeline(observed) if observed else ""),
     ]
     body = "".join(
         f'<div class="panel"><h3>{escape(title)}</h3>{content}</div>'
         for title, content in panels
         if content
+    )
+    story = (
+        f'<p class="story">{escape(narrative(observed, run.scenario, run.game))}</p>'
+        if observed
+        else ""
     )
     timeline = events_timeline(observed) if observed else ""
     if timeline:
@@ -194,6 +202,7 @@ def _render_run(run: ScenarioRun, out_dir: Path) -> str:
 <span>Proveedor <b>{escape(run.provider)}</b></span><span>Juego <b>{escape(run.game)}</b></span>
 <span>Duración <b>{duration:.0f} s</b></span>
 <span>{escape(run.started_at.strftime("%Y-%m-%d %H:%M:%S UTC"))}</span></p>
+{story}
 {error}
 {body}
 <div class="panel"><h3>Detalle de cada comprobación</h3>
@@ -356,6 +365,12 @@ th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px sol
 .missing { color:var(--muted); font-size:13px; margin-right:8px; }
 ul { margin:0; padding-left:18px; }
 a { color:var(--accent); }
+.story { font-size:16px; background:var(--card); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:0 12px 12px 0; padding:10px 14px; }
+.stages { display:flex; height:22px; border-radius:6px; overflow:hidden; gap:2px;
+  background:var(--card); }
+.stages .seg { background:var(--accent); opacity:.8; min-width:2px; }
+.stages .seg:nth-child(even) { opacity:.45; }
 .message { margin:12px 0 0; padding:12px 16px; border-left:4px solid var(--accent);
   background:var(--na-bg); border-radius:0 10px 10px 0; font-size:17px; }
 .message small { display:block; color:var(--muted); font-size:12px; margin-top:6px; }

@@ -92,3 +92,21 @@ def test_missing_or_broken_files_do_not_break_the_report(tmp_path: Path) -> None
     assert load_observed(tmp_path) is None
     (tmp_path / "resumen_observado.json").write_text("{roto", encoding="utf-8")
     assert load_observed(tmp_path) is None
+
+
+def test_stage_timeline_and_plain_story_are_written(tmp_path: Path) -> None:
+    from betsson_validator.report.sections import narrative, stages_timeline  # noqa: PLC0415
+
+    data = {
+        **OBSERVED,
+        "motion": {"completed": True},
+        "stages": [{"name": "sesión iniciada", "s": 9.5}, {"name": "giro observado", "s": 50.0}],
+    }
+    write(tmp_path, data)
+    observed = load_observed(tmp_path)
+    assert observed is not None
+    timeline = stages_timeline(observed)
+    assert "sesión iniciada" in timeline and "40.5 s" in timeline
+    story = narrative(observed, Scenario.COMPLETED_SPIN, "sweet-bonanza-2500")
+    assert "Se apostaron 0,20 €" in story
+    assert "cuadra con la regla del reto" in story
