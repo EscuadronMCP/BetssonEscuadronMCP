@@ -65,7 +65,19 @@ class ScreenAnalysis(BaseModel):
 
 
 class ScreenLearner(Protocol):
+    @property
+    def cost_usd(self) -> float:
+        """Coste acumulado de las llamadas a la IA (para el informe y el control de gasto)."""
+        ...
+
     def analyze(self, image: Image, *, model: str | None = None) -> ScreenAnalysis: ...
+
+
+# Precio por millón de tokens (entrada, salida) en USD, tarifas de la API a 15/10/2026.
+PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
+    "claude-haiku-5-5": (0.10, 0.50),
+    "claude-sonnet-5-5": (2.00, 10.00),
+}
 
 
 _PROMPT = """Esta imagen es una captura ({width}x{height} px) de un juego de tragaperras online \
@@ -85,6 +97,12 @@ class ClaudeScreenLearner:
 
         self._client = anthropic.Anthropic()
         self._model = model
+        self._cost_usd = 0.0
+        self.calls: list[dict[str, object]] = []
+
+    @property
+    def cost_usd(self) -> float:
+        return self._cost_usd
 
     def analyze(self, image: Image, *, model: str | None = None) -> ScreenAnalysis:
         ok, png = cv2.imencode(".png", image)
@@ -111,6 +129,20 @@ class ClaudeScreenLearner:
                 }
             ],
             output_format=ScreenAnalysis,
+        )
+        used = model or self._model
+        price_in, price_out = PRICES_PER_MTOK.get(used, (0.0, 0.0))
+        cost = (
+            response.usage.input_tokens * price_in + response.usage.output_tokens * price_out
+        ) / 1_000_000
+        self._cost_usd += cost
+        self.calls.append(
+            {
+                "model": used,
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+                "cost_usd": round(cost, 6),
+            }
         )
         if response.stop_reason == "refusal" or response.parsed_output is None:
             raise LearnerError(f"La IA no devolvió un análisis válido ({response.stop_reason}).")

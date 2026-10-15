@@ -34,6 +34,10 @@ class FakeLearner:
         self.analysis = analysis
         self.calls = 0
 
+    @property
+    def cost_usd(self) -> float:
+        return 0.0001 * self.calls
+
     def analyze(self, image: np.ndarray, *, model: str | None = None) -> ScreenAnalysis:
         self.calls += 1
         return self.analysis
@@ -129,3 +133,9 @@ def test_profile_round_trip(tmp_path: Path) -> None:
     assert loaded.reels_area == (0.25, 0.1, 0.9, 0.87)
     assert loaded.template("spin") is not None
     assert load_profile("pragmaticplay", "otro-juego", tmp_path) is None
+
+
+def test_win_label_falls_back_to_market_candidates(reader: RapidOcrReader) -> None:
+    model = ScreenModel(profile(win_label=""), reader, "EUR", None, win_candidates=("GANANCIA",))
+    hud, _ = model.read(load("sweet_bonanza_after_spin.png"))
+    assert hud.win is not None and hud.win.money.amount == Decimal("0.15")

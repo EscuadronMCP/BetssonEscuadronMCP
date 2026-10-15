@@ -97,6 +97,7 @@ def _learn(ctx: RunContext) -> int:
         print(f"No se pudo aprender el juego: {error}")
         return 1
     print(f"Perfil guardado en {result.profile_path} (modelo {result.model}).")
+    print(f"Coste de IA del aprendizaje: {result.ai_cost_usd:.4f} $")
     for check in result.checks:
         print(f"  ✓ {check}")
     return 0

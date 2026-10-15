@@ -9,7 +9,7 @@ Regla de seguridad: un giro nunca se repite. Si no se confirma, se informa, no s
 
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import cv2
 import numpy as np
@@ -18,7 +18,13 @@ from playwright.sync_api import Page
 
 from betsson_validator.casino.betsson import GameHandle
 from betsson_validator.evidence import EvidenceRecorder
-from betsson_validator.perception.hud import HudLabels, HudReading, find_message, read_hud
+from betsson_validator.perception.hud import (
+    HudLabels,
+    HudReading,
+    find_amount,
+    find_message,
+    read_hud,
+)
 from betsson_validator.perception.learner import Box, ScreenAnalysis, ScreenLearner
 from betsson_validator.perception.motion import (
     SpinLifecycle,
@@ -72,6 +78,9 @@ class ScreenModel:
     reader: TextReader
     currency: str
     learner: ScreenLearner | None = None
+    # Etiquetas de premio habituales en el idioma del mercado: el premio solo aparece cuando hay
+    # ganancia, así que no siempre se puede aprender de la pantalla de juego.
+    win_candidates: tuple[str, ...] = ()
     notes: list[str] = field(default_factory=list)
     _learned: bool = False
 
@@ -82,7 +91,13 @@ class ScreenModel:
 
     def read(self, image: Image) -> tuple[HudReading, list[TextBox]]:
         boxes = self.reader.read(image)
-        return read_hud(boxes, self.labels(), self.currency), boxes
+        hud = read_hud(boxes, self.labels(), self.currency)
+        if hud.win is None and not self.profile.win_label:
+            for candidate in self.win_candidates:
+                win = find_amount(boxes, candidate, self.currency)
+                if win is not None:
+                    return replace(hud, win=win), boxes
+        return hud, boxes
 
     def read_or_learn(self, image: Image) -> tuple[HudReading, list[TextBox]]:
         """Si las etiquetas del perfil ya no aparecen (texto cambiado), las reaprende."""
@@ -119,7 +134,9 @@ class ScreenModel:
         self._learned = True
         analysis = self.learner.analyze(image)
         self.apply(analysis, image)
-        self.notes.append(f"Perfil reaprendido con IA de visión: {reason}.")
+        self.notes.append(
+            f"Perfil reaprendido con IA de visión ({self.learner.cost_usd:.4f} $): {reason}."
+        )
         return analysis
 
     def apply(self, analysis: ScreenAnalysis, image: Image) -> None:

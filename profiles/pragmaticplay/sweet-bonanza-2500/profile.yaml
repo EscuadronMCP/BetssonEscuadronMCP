@@ -1,0 +1,17 @@
+provider: pragmaticplay
+game: sweet-bonanza-2500
+labels:
+  credit: CRÉDITO
+  bet: APUESTA
+  win: ''
+controls:
+  spin: spin.png
+  bet_down: bet_down.png
+  bet_up: bet_up.png
+reels_area:
+- 0.25
+- 0.10317460317460317
+- 0.9017857142857143
+- 0.8650793650793651
+learned_with: claude-sonnet-5-5
+learned_at: '2026-10-15T12:00:27+00:00'

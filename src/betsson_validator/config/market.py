@@ -59,6 +59,7 @@ class MarketUi(BaseModel):
     session_loss_limit_fallback: str
     insufficient_funds_pattern: str
     dismiss_labels: tuple[str, ...]
+    win_label_candidates: tuple[str, ...]
 
 
 class MarketConfig(BaseModel):

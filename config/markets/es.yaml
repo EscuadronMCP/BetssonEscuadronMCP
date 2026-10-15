@@ -29,3 +29,5 @@ ui:
   insufficient_funds_pattern: "(?i)fondos\\s+insuficientes|saldo\\s+insuficiente|no\\s+(tienes|dispones\\s+de)\\s+(suficiente\\s+)?saldo"
   # Botones con los que el jugador cierra un mensaje del juego.
   dismiss_labels: [ACEPTAR, OK, CERRAR]
+  # Etiquetas habituales del premio en el HUD (el premio solo se ve cuando hay ganancia).
+  win_label_candidates: [GANANCIA, GANANCIAS, PREMIO, GANA, GANADO]

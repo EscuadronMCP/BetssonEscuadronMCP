@@ -19,6 +19,7 @@ from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game.player import GameError, Image, ScreenGame, ScreenModel
 from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
 from betsson_validator.perception.motion import motion_score
+from betsson_validator.perception.templates import crop
 from betsson_validator.profiles import GameProfile
 from betsson_validator.runner import RunContext
 from betsson_validator.security import audit_and_quarantine, scrub_trace
@@ -29,6 +30,8 @@ _STILL_SAMPLES = 3
 _MIN_LOADING_S = 15
 _MAX_LOADING_S = 45
 _BET_PRESSES = 3
+_SCREEN_CHANGED = 0.3  # fracción de píxeles: la pantalla de bienvenida desapareció
+_TEMPLATE_PADDING = 4
 
 
 class LearningError(RuntimeError):
@@ -40,6 +43,7 @@ class LearnResult:
     profile_path: str
     model: str
     checks: tuple[str, ...]
+    ai_cost_usd: float
 
 
 def learn_game(ctx: RunContext) -> LearnResult:
@@ -59,9 +63,17 @@ def learn_game(ctx: RunContext) -> LearnResult:
             balance = casino.read_balance()
             handle = casino.launch_game(ctx.provider, ctx.game)
             last_error = "sin intentos"
+            # Controles que ya demostraron funcionar al pulsarlos: se conservan entre intentos.
+            proven: dict[str, Image] = {}
             for model_name in (DEFAULT_MODEL, FALLBACK_MODEL):
                 profile = GameProfile(ctx.provider.id, ctx.game, "", "", "")
-                model = ScreenModel(profile, ctx.reader, ctx.market.currency, ctx.learner)
+                model = ScreenModel(
+                    profile,
+                    ctx.reader,
+                    ctx.market.currency,
+                    ctx.learner,
+                    win_candidates=ctx.market.ui.win_label_candidates,
+                )
                 game = ScreenGame(
                     page=casino.page,
                     handle=handle,
@@ -71,13 +83,14 @@ def learn_game(ctx: RunContext) -> LearnResult:
                     dismiss_labels=ctx.market.ui.dismiss_labels,
                 )
                 try:
-                    checks = _learn_and_validate(game, model, model_name, balance.amount)
+                    checks = _learn_and_validate(game, model, model_name, balance.amount, proven)
                 except (GameError, LearningError) as error:
                     last_error = str(error)
                     continue
+                profile.templates.update(proven)
                 profile.learned_with = model_name
                 path = profile.save(ctx.profiles_dir)
-                return LearnResult(str(path), model_name, checks)
+                return LearnResult(str(path), model_name, checks, ctx.learner.cost_usd)
             raise LearningError(f"El perfil aprendido no superó la validación: {last_error}")
     finally:
         scrub_trace(evidence_dir / "trace.zip", secrets)
@@ -85,7 +98,11 @@ def learn_game(ctx: RunContext) -> LearnResult:
 
 
 def _learn_and_validate(
-    game: ScreenGame, model: ScreenModel, model_name: str, betsson_balance: Decimal
+    game: ScreenGame,
+    model: ScreenModel,
+    model_name: str,
+    betsson_balance: Decimal,
+    proven: dict[str, Image],
 ) -> tuple[str, ...]:
     if model.learner is None:
         raise LearningError("No hay IA de visión configurada.")
@@ -103,6 +120,9 @@ def _learn_and_validate(
         game.click(((x + w / 2) / width, (y + h / 2) / height))
         model.profile.templates.pop("spin", None)  # era el de continuar, no el de girar
         game.page.wait_for_timeout(3000)
+        if motion_score(image, game.capture()) > _SCREEN_CHANGED:
+            pad = _TEMPLATE_PADDING
+            proven["continue"] = crop(image, (x - pad, y - pad, w + 2 * pad, h + 2 * pad))
         image = _wait_until_loaded(game)
         analysis = _analyze(game, model, image, model_name, "pantalla_de_juego")
 
