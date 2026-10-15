@@ -24,6 +24,7 @@ from betsson_validator.game.player import (
     control_template,
     is_still,
 )
+from betsson_validator.locks import account_lock
 from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
 from betsson_validator.perception.motion import motion_score
 from betsson_validator.profiles import GameProfile
@@ -58,7 +59,10 @@ def learn_game(ctx: RunContext) -> LearnResult:
     credentials = ctx.market.accounts.funded.resolve()
     secrets = (credentials.email.get_secret_value(), credentials.password.get_secret_value())
     try:
-        with browser_context(ctx.settings, evidence_dir) as context:
+        with (
+            account_lock(credentials.email.get_secret_value()),
+            browser_context(ctx.settings, evidence_dir) as context,
+        ):
             casino = BetssonCasino(
                 context.new_page(), ctx.market, typing_delay_ms=ctx.settings.slow_typing_ms
             )

@@ -35,13 +35,51 @@ def test_the_lock_file_does_not_reveal_the_account(tmp_path: Path) -> None:
         assert "jugador" not in lock.read_text(encoding="utf-8")
 
 
-def test_an_abandoned_lock_is_recovered(tmp_path: Path) -> None:
+def test_a_lock_whose_owner_died_is_recovered(tmp_path: Path) -> None:
     with account_lock(ACCOUNT, tmp_path):
         (lock,) = tmp_path.iterdir()
-        old = time.time() - 3600
-        lock.write_text(f"{os.getpid()} {old:.0f}", encoding="utf-8")
-    with account_lock(ACCOUNT, tmp_path):  # el anterior ya no estaba; y uno viejo se recupera
+        lock.write_text("999999 otro-token", encoding="utf-8")  # PID que no existe
+    assert list(tmp_path.iterdir()) == [lock]  # no se libera un cerrojo ajeno
+    with account_lock(ACCOUNT, tmp_path):
+        pass
+
+
+def test_lock_does_not_expire_while_owner_is_alive(tmp_path: Path) -> None:
+    """Auditoría R03-07: la antigüedad no basta; el propietario sigue vivo."""
+    with account_lock(ACCOUNT, tmp_path):
         (lock,) = tmp_path.iterdir()
-        lock.write_text(f"{os.getpid()} {old:.0f}", encoding="utf-8")
-        with account_lock(ACCOUNT, tmp_path):
+        os.utime(lock, (time.time() - 3 * 3600, time.time() - 3 * 3600))
+        with pytest.raises(AccountBusyError), account_lock(ACCOUNT, tmp_path):
             pass
+
+
+def test_an_unreadable_lock_is_never_taken_as_abandoned(tmp_path: Path) -> None:
+    """Auditoría R03-06: un cerrojo vacío o a medio escribir no se considera abandonado."""
+    with account_lock(ACCOUNT, tmp_path):
+        (lock,) = tmp_path.iterdir()
+    lock.write_text("", encoding="utf-8")
+    with pytest.raises(AccountBusyError), account_lock(ACCOUNT, tmp_path):
+        pass
+
+
+def test_another_process_cannot_take_a_held_lock(tmp_path: Path) -> None:
+    """Procesos distintos: el hijo no puede entrar mientras el padre tiene la cuenta."""
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    script = (
+        "import sys; from pathlib import Path; "
+        "from betsson_validator.locks import account_lock, AccountBusyError\n"
+        "try:\n"
+        f"    with account_lock({ACCOUNT!r}, Path({str(tmp_path)!r})): print('dentro')\n"
+        "except AccountBusyError: print('ocupada')\n"
+    )
+    with account_lock(ACCOUNT, tmp_path):
+        held = subprocess.run(  # noqa: S603
+            [sys.executable, "-c", script], capture_output=True, text=True, check=True
+        )
+    free = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script], capture_output=True, text=True, check=True
+    )
+    assert held.stdout.strip() == "ocupada"
+    assert free.stdout.strip() == "dentro"
