@@ -28,6 +28,7 @@ _HIDE_LOGIN_FIELDS_CSS = (
 _BALANCE_SETTLE_MS = 2000
 _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
+_FILTER_PANEL_SETTLE_MS = 3000
 _LOBBY_MAX_SCROLLS = 80
 _SESSION_TIMEOUT_S = 45
 _SESSION_QUIET_S = 6
@@ -170,6 +171,13 @@ class BetssonCasino:
             self._url("/casino"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
         )
         self._page.get_by_role("button", name=self._ui.filters_button).click()
+        # La web recuerda los filtros de la cuenta: se limpian para que pulsar el chip lo active.
+        clear = self._page.get_by_role("button", name=self._ui.clear_filters_button, exact=True)
+        try:
+            clear.first.wait_for(timeout=_FILTER_PANEL_SETTLE_MS)
+            clear.first.click(timeout=_CLICK_TIMEOUT_MS)
+        except PlaywrightTimeoutError:
+            pass  # no había filtros activos
         self._page.get_by_text(provider.filter_label, exact=True).first.click()
         self._page.get_by_role("button", name=self._ui.results_button).first.click()
         self._find_in_lobby(game, provider.filter_label).click()

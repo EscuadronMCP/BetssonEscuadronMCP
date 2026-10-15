@@ -50,6 +50,7 @@ class MarketUi(BaseModel):
     passkey_dismiss: str
     filters_button: str
     results_button: str
+    clear_filters_button: str
     session_warning_text: str
     session_limits_text: str
     session_duration: str

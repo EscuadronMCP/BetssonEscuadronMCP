@@ -9,6 +9,7 @@ Si el modelo barato no lo consigue, se repite una vez con el de respaldo.
 
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -16,7 +17,7 @@ from betsson_validator.browser import browser_context
 from betsson_validator.casino.betsson import BetssonCasino
 from betsson_validator.evidence import EvidenceRecorder
 from betsson_validator.game.player import GameError, Image, ScreenGame, ScreenModel
-from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL
+from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
 from betsson_validator.perception.motion import motion_score
 from betsson_validator.profiles import GameProfile
 from betsson_validator.runner import RunContext
@@ -27,6 +28,7 @@ _STILL_SCORE = 0.01
 _STILL_SAMPLES = 3
 _MIN_LOADING_S = 15
 _MAX_LOADING_S = 45
+_BET_PRESSES = 3
 
 
 class LearningError(RuntimeError):
@@ -88,17 +90,21 @@ def _learn_and_validate(
     if model.learner is None:
         raise LearningError("No hay IA de visión configurada.")
     image = _wait_until_loaded(game)
-    analysis = model.learner.analyze(image, model=model_name)
-    model.apply(analysis, image)
-    if analysis.is_intro_screen and analysis.continue_button is not None:
-        point = model.locate("continue", image)
-        if point is None:
-            raise LearningError("No se reencuentra el botón de continuar propuesto.")
-        game.click(point)
+    analysis = _analyze(game, model, image, model_name, "pantalla_inicial")
+    # Sin etiquetas de crédito ni apuesta no puede ser la pantalla de juego, diga lo que diga el
+    # modelo: es la de bienvenida y su botón principal solo sirve para continuar.
+    no_hud = analysis.credit_label is None and analysis.bet_label is None
+    if analysis.is_intro_screen or no_hud:
+        box = analysis.continue_button or analysis.spin_button
+        if box is None:
+            raise LearningError("Pantalla de bienvenida sin botón para continuar.")
+        x, y, w, h = box.as_tuple()
+        height, width = image.shape[:2]
+        game.click(((x + w / 2) / width, (y + h / 2) / height))
+        model.profile.templates.pop("spin", None)  # era el de continuar, no el de girar
         game.page.wait_for_timeout(3000)
         image = _wait_until_loaded(game)
-        analysis = model.learner.analyze(image, model=model_name)
-        model.apply(analysis, image)
+        analysis = _analyze(game, model, image, model_name, "pantalla_de_juego")
 
     hud, _ = model.read(image)
     if hud.credit is None or hud.bet is None:
@@ -114,17 +120,45 @@ def _learn_and_validate(
         f"crédito {hud.credit.money} = saldo de Betsson",
         f"apuesta leída {hud.bet.money}",
     ]
-    for control in ("spin", "bet_down"):
+    for control in ("spin", "bet_down", "bet_up"):
         if model.locate(control, image) is None:
             raise LearningError(f"No se reencuentra el control '{control}' propuesto.")
-    before = hud.bet.money.amount
-    game.click(model.locate_or_learn("bet_down", image))
-    game.page.wait_for_timeout(800)
-    after_hud, _ = model.read(game.capture())
-    if after_hud.bet is None or after_hud.bet.money.amount >= before:
-        raise LearningError("Pulsar el botón aprendido de bajar apuesta no bajó la apuesta.")
-    checks.append(f"bajar apuesta: {before} → {after_hud.bet.money.amount}")
+    # Cada botón de apuesta se valida por su efecto: "+" la sube y "-" la baja. Así funciona
+    # aunque la apuesta ya esté en el mínimo y la deja como estaba.
+    start = hud.bet.money.amount
+    raised = _press_until(game, model, "bet_up", lambda amount: amount > start)
+    checks.append(f"subir apuesta: {start} → {raised}")
+    lowered = _press_until(game, model, "bet_down", lambda amount: amount < raised)
+    checks.append(f"bajar apuesta: {raised} → {lowered}")
     return tuple(checks)
+
+
+def _press_until(
+    game: ScreenGame, model: ScreenModel, control: str, done: Callable[[Decimal], bool]
+) -> Decimal:
+    """Pulsa un control hasta 3 veces (algunos juegos abren antes un panel) y lee el efecto."""
+    for press in range(1, _BET_PRESSES + 1):
+        game.click(model.locate_or_learn(control, game.capture()))
+        game.page.wait_for_timeout(800)
+        after = game.capture()
+        game.evidence.save_image(f"{control}_{press}", after)
+        hud, _ = model.read(after)
+        if hud.bet is not None and done(hud.bet.money.amount):
+            return hud.bet.money.amount
+    raise LearningError(f"Pulsar el control aprendido '{control}' no cambió la apuesta.")
+
+
+def _analyze(
+    game: ScreenGame, model: ScreenModel, image: Image, model_name: str, name: str
+) -> ScreenAnalysis:
+    """Analiza con la IA, aplica el resultado y guarda captura + respuesta como evidencia."""
+    if model.learner is None:
+        raise LearningError("No hay IA de visión configurada.")
+    game.evidence.save_image(name, image)
+    analysis = model.learner.analyze(image, model=model_name)
+    game.evidence.save_json(f"{name}_{model_name}", analysis.model_dump())
+    model.apply(analysis, image)
+    return analysis
 
 
 def _wait_until_loaded(game: ScreenGame) -> Image:

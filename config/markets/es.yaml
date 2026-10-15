@@ -17,6 +17,7 @@ ui:
   passkey_dismiss: Cancelar
   filters_button: Filtros
   results_button: Resultados
+  clear_filters_button: Limpiar
   session_warning_text: finalizaste tu sesión
   session_limits_text: Tiempo de juego
   session_duration: 5 Horas

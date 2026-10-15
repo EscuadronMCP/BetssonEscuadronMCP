@@ -44,6 +44,9 @@ class ScreenAnalysis(BaseModel):
     bet_decrease_button: Box | None = Field(
         description="Botón que reduce la apuesta (normalmente '-'); null si no se ve."
     )
+    bet_increase_button: Box | None = Field(
+        description="Botón que aumenta la apuesta (normalmente '+'); null si no se ve."
+    )
     reels_area: Box | None = Field(
         description="Zona donde giran los rodillos o símbolos del juego; null si no se ve."
     )

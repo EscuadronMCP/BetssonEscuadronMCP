@@ -16,7 +16,7 @@ import yaml
 Image = npt.NDArray[np.uint8]
 
 DEFAULT_PROFILES_DIR = Path(__file__).resolve().parents[2] / "profiles"
-CONTROLS = ("continue", "spin", "bet_down")
+CONTROLS = ("continue", "spin", "bet_down", "bet_up")
 
 
 @dataclass

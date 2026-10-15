@@ -127,6 +127,7 @@ class ScreenModel:
             "continue": analysis.continue_button,
             "spin": analysis.spin_button,
             "bet_down": analysis.bet_decrease_button,
+            "bet_up": analysis.bet_increase_button,
         }
         for control, box in controls.items():
             if box is not None:
