@@ -44,6 +44,7 @@ REAL_ANALYSIS = ScreenAnalysis(
     continue_button=None,
     spin_button=Box(x=651, y=415, width=92, height=82),
     bet_decrease_button=Box(x=608, y=440, width=34, height=34),
+    bet_increase_button=Box(x=746, y=440, width=34, height=34),
     reels_area=Box(x=224, y=50, width=584, height=388),
     credit_label="CRÉDITO",
     bet_label="APUESTA",
