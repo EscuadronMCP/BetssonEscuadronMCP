@@ -96,12 +96,12 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
 ## Estructura del repositorio
 
 ```
-CLAUDE.md            Normas para Claude Code (este archivo)
-.claude/settings.json Permisos compartidos: git sin prompts, sin force push, sin leer .env
-README.md            Descripción, instalación y uso
-docs/ESTADO.md       Estado del proyecto y traspaso entre sesiones
-docs/hackaton/       Documentación oficial del Malackaton y del reto Betsson (PDFs)
-docs/decisiones/     Registro de decisiones de arquitectura (ADR)
+CLAUDE.md              Normas para Claude Code (este archivo)
+.claude/settings.json  Permisos compartidos: git sin prompts, sin force push, sin leer .env
+README.md              Descripción, instalación y uso
+docs/ESTADO.md         Estado del proyecto y traspaso entre sesiones
+docs/hackaton/         Documentación oficial del Malackaton y del reto Betsson (PDFs)
+docs/decisiones/       Registro de decisiones de arquitectura (ADR)
 ```
 
 Actualiza esta sección y la de **Comandos** en cuanto se elija el stack.
