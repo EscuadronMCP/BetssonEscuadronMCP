@@ -22,6 +22,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - [ ] **E7. Demo de extensibilidad:** incorporar un segundo proveedor (bonus).
 
 ## Funciona
+- **Investigación del equipo:** resumida y contrastada en [`investigacion-equipo.md`](investigacion-equipo.md).
 - **Exploración de betsson.es (15/10):** flujo completo hasta cargar un juego de Pragmatic Play en Real Play documentado en [`betsson-es-flujo.md`](betsson-es-flujo.md) (cookies, login, saldo, filtro de proveedor, sesión de juego obligatoria, iframe del juego).
 - Repositorio, normas del equipo (`CLAUDE.md`) y estructura de documentación.
 - `.claude/settings.json`: Claude Code hace commit/pull/push a `main` sin pedir permiso; `push --force` y leer `.env` bloqueados.
