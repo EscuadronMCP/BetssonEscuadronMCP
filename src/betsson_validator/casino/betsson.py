@@ -4,7 +4,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import FrameLocator, Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -19,7 +19,8 @@ _WAF_COOKIE = "aws-waf-token"
 _AUTH_ENDPOINT = "/api/v2/authentication-transaction"
 _LOGIN_OK = 201
 _BALANCE_BUTTON = re.compile(r"^\s*\d[\d.\s]*,\d{2}\s*€\s*$")
-_GAME_IFRAME = "iframe[src*='Gamelauncher']"
+_GAME_LAUNCHER = "Gamelauncher"
+_GAME_IFRAME = f"iframe[src*='{_GAME_LAUNCHER}']"
 # Difumina los campos de login para que las credenciales no salgan en el vídeo.
 _HIDE_LOGIN_FIELDS_CSS = (
     "input[name=email], input[name=password] "
@@ -30,8 +31,7 @@ _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
 _FILTER_PANEL_SETTLE_MS = 3000
 _LOBBY_MAX_SCROLLS = 80
-_SESSION_TIMEOUT_S = 45
-_SESSION_QUIET_S = 6
+_SESSION_TIMEOUT_S = 90
 _CLICK_TIMEOUT_MS = 5000
 _DIALOG_CLOSE_TIMEOUT_MS = 15_000
 # Las fichas de juego enlazan a /casino/<categoría>/<juego>; el menú lateral, a /casino/<x>.
@@ -72,6 +72,12 @@ class BetssonCasino:
         return urljoin(str(self._market.base_url), path)
 
     def open(self) -> None:
+        # El aviso de cookies puede aparecer tarde (red lenta): se acepta cuando aparezca.
+        self._page.add_locator_handler(
+            self._page.locator(_COOKIE_ACCEPT),
+            lambda button: button.dispatch_event("click"),
+            no_wait_after=True,
+        )
         self._page.goto(
             self._url("/"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
         )
@@ -230,18 +236,28 @@ class BetssonCasino:
         if field.count() and field.first.is_visible():
             field.first.fill(self._ui.session_loss_limit_fallback, timeout=_CLICK_TIMEOUT_MS)
 
+    def _provider_game_loaded(self) -> bool:
+        """El iframe de Betsson ya contiene el juego del proveedor (otro dominio)."""
+        casino_host = urlparse(str(self._market.base_url)).hostname or ""
+        for frame in self._page.frames:
+            parent = frame.parent_frame
+            host = urlparse(frame.url).hostname or ""
+            if parent is not None and _GAME_LAUNCHER in parent.url and host != casino_host:
+                return True
+        return False
+
     def _start_game_session(self) -> None:
         """Sesión de juego obligatoria en España: aviso opcional y diálogo de límites.
 
         Los avisos se detectan por su texto visible (no siempre son role=dialog). La sesión se da
-        por abierta cuando ningún aviso aparece durante unos segundos seguidos.
+        por abierta cuando el contenido del juego del proveedor ha cargado dentro del iframe de
+        Betsson: con la red lenta los avisos llegan tarde y "unos segundos sin avisos" no basta.
         """
         page = self._page
         warning = page.get_by_text(self._ui.session_warning_text)
         limits = page.get_by_text(self._ui.session_limits_text)
         start = page.get_by_role("button", name=self._ui.login_button, exact=True)
         deadline = time.monotonic() + _SESSION_TIMEOUT_S
-        quiet_since = time.monotonic()
         duration = page.get_by_role("button", name=self._ui.session_duration, exact=True)
         while time.monotonic() < deadline:
             if limits.first.is_visible() and duration.first.is_visible():
@@ -249,12 +265,10 @@ class BetssonCasino:
                 self._set_loss_limit()
                 start.last.click(timeout=_CLICK_TIMEOUT_MS)
                 limits.first.wait_for(state="hidden", timeout=_DIALOG_CLOSE_TIMEOUT_MS)
-                quiet_since = time.monotonic()
             elif warning.first.is_visible() and start.last.is_visible():
                 start.last.click(timeout=_CLICK_TIMEOUT_MS)
                 warning.first.wait_for(state="hidden", timeout=_DIALOG_CLOSE_TIMEOUT_MS)
-                quiet_since = time.monotonic()
-            elif time.monotonic() - quiet_since > _SESSION_QUIET_S:
+            elif self._provider_game_loaded():
                 return
             page.wait_for_timeout(500)
         raise CasinoError("No se pudo abrir la sesión de juego obligatoria.")

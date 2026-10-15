@@ -41,6 +41,7 @@ Point = tuple[float, float]
 
 _TEMPLATE_INNER = 0.7  # fracción central del control que se guarda como plantilla
 _STILL_SCORE = 0.01
+_BLANK_SCREEN_STD = 15.0  # desviación de grises por debajo de la cual la pantalla está vacía
 
 
 class GameError(RuntimeError):
@@ -53,6 +54,7 @@ class GameTimings:
     # Sin señal de fin de carga, no se llama a la IA antes de esto: una carga lenta deja la
     # pantalla quieta y parecería un cambio de interfaz (llamada inútil).
     learn_after_s: float = 45
+    learn_grace_after_loading_s: float = 10
     spin_timeout_s: float = 45
     capture_interval_ms: int = 150
     settle_after_spin_ms: int = 1500
@@ -193,6 +195,7 @@ class ScreenGame:
     timings: GameTimings = field(default_factory=GameTimings)
     # Señal del propio juego de que terminó de cargar (eventos postMessage), si el proveedor la da.
     loading_finished: Callable[[], bool] | None = None
+    _loaded_at: float | None = field(default=None, init=False)
 
     # --- Captura y lectura ---------------------------------------------------------------
 
@@ -264,7 +267,7 @@ class ScreenGame:
             point = self.model.locate("continue", image)
             if point is not None:
                 self.click(point)
-            elif self._may_learn(start) and still >= 3:  # noqa: PLR2004
+            elif self._may_learn(start, image) and still >= 3:  # noqa: PLR2004
                 analysis = self.model.learn(image, "no se veía el crédito ni la apuesta")
                 if analysis is not None and analysis.continue_button is not None:
                     self.click(self.model.locate("continue", image) or (0.5, 0.5))
@@ -272,11 +275,22 @@ class ScreenGame:
         path = self.evidence.save_image("juego_no_listo", self.capture())
         raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")
 
-    def _may_learn(self, start: float) -> bool:
-        """Solo se paga a la IA cuando el juego ya cargó y aun así no se reconoce la pantalla."""
-        if self.loading_finished is not None:
-            return self.loading_finished()
-        return time.monotonic() - start > self.timings.learn_after_s
+    def _may_learn(self, start: float, image: Image) -> bool:
+        """Solo se paga a la IA cuando el juego ya cargó y aun así no se reconoce la pantalla.
+
+        El juego avisa del fin de carga un poco antes de pintar su pantalla, así que se deja un
+        margen; y una pantalla casi vacía (negra o de un color) no tiene nada que aprender.
+        """
+        if float(np.std(image)) < _BLANK_SCREEN_STD:
+            return False
+        now = time.monotonic()
+        if self.loading_finished is None:
+            return now - start > self.timings.learn_after_s
+        if self._loaded_at is None:
+            if not self.loading_finished():
+                return False
+            self._loaded_at = now
+        return now - self._loaded_at > self.timings.learn_grace_after_loading_s
 
     def set_minimum_bet(self) -> ScreenObservation:
         """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez.

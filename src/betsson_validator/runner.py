@@ -174,6 +174,7 @@ def run_scenario(scenario: Scenario, ctx: RunContext) -> ScenarioRun:
                 reader=ctx.reader,
                 currency=ctx.market.currency,
                 learner=ctx.learner,
+                win_candidates=ctx.market.ui.win_label_candidates,
             )
             with tracing(context, evidence_dir / "trace.zip"):
                 try:
