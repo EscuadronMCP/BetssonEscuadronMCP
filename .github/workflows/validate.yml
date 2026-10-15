@@ -40,6 +40,9 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
+      # Google Chrome ya viene en el runner; Playwright necesita su ffmpeg para grabar vídeo.
+      - name: Preparar navegador
+        run: uv run playwright install ffmpeg
       - name: Ejecutar escenarios
         run: >
           uv run python -m betsson_validator
