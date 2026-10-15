@@ -15,6 +15,7 @@ from betsson_validator.domain.parsing import AmountParseError, detect_currency, 
 from betsson_validator.perception.ocr import TextBox
 
 _AMOUNT = re.compile(r"\d[\d.\s]*,\d{2}")
+_PARAGRAPH_LINE_GAP = 2.2  # distancia máxima entre líneas de un mismo párrafo, en alturas
 
 
 @dataclass(frozen=True)
@@ -99,10 +100,26 @@ def read_hud(boxes: Sequence[TextBox], labels: HudLabels, default_currency: str)
 
 
 def find_message(boxes: Sequence[TextBox], pattern: re.Pattern[str]) -> str | None:
-    """Busca un mensaje (p. ej. saldo insuficiente) en el texto visible, línea a línea y unido."""
+    """Busca un mensaje (p. ej. saldo insuficiente) y devuelve el párrafo completo que lo contiene.
+
+    El OCR parte un párrafo en líneas: tras encontrar la línea que coincide se añaden las que
+    siguen justo debajo y alineadas con ella, para que el informe muestre el mensaje entero.
+    """
     for box in boxes:
         if pattern.search(box.text):
-            return box.text
+            return _paragraph(boxes, box)
     joined = " ".join(box.text for box in sorted(boxes, key=lambda b: (b.y, b.x)))
     match = pattern.search(joined)
     return match.group(0) if match else None
+
+
+def _paragraph(boxes: Sequence[TextBox], first: TextBox) -> str:
+    lines = [first]
+    current = first
+    for box in sorted(boxes, key=lambda b: b.y):
+        below = 0 < box.y - current.y <= current.height * _PARAGRAPH_LINE_GAP
+        aligned = abs(box.center_x - first.center_x) <= first.width / 2
+        if below and aligned:
+            lines.append(box)
+            current = box
+    return " ".join(line.text.strip() for line in lines)

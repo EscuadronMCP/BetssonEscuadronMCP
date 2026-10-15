@@ -44,7 +44,11 @@ def test_after_spin_screen_reconciles(reader: RapidOcrReader) -> None:
 def test_insufficient_funds_message_is_read_in_spanish(reader: RapidOcrReader) -> None:
     boxes = reader.read(load("sweet_bonanza_insufficient_funds.png"))
     pattern = re.compile(r"(?i)fondos\s+insuficientes|saldo\s+insuficiente")
-    assert find_message(boxes, pattern) is not None
+    message = find_message(boxes, pattern)
+    assert message == (
+        "Fondos insuficientes para realizar esta apuesta. Haga un depósito en su cuenta "
+        "o reduzca el nivel de la apuesta."
+    )
     hud = read_hud(boxes, LABELS, "EUR")
     assert hud.credit is not None and hud.credit.money.amount == Decimal("0.00")
     assert hud.bet is not None and hud.bet.money.amount == Decimal("0.20")
