@@ -37,12 +37,17 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| Repaso final de entrega | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
+| — | — | — |
 
 ## Siguiente paso
-1. Lanzar el workflow de validación en el runner propio y comprobar el informe publicado.
-2. E7: `learn --game <otro juego>` y ejecución para demostrar la extensibilidad.
-3. Preparar la demo de 7 minutos.
+1. **Entrega en Campus Virtual antes de las 20:00** (enlace al repositorio y, si se pide, informe de ejemplo).
+2. Decidir la **visibilidad del repositorio** para el jurado (hoy es privado en la organización `EscuadronMCP`): invitar al jurado o hacerlo público (contiene los PDF del reto).
+3. Ensayar la demo con [`DEMO.md`](DEMO.md); runner en línea y nadie usando la cuenta con saldo.
+
+## Última verificación (15/10, 16:46)
+- GitHub Actions (runner propio): **ambos escenarios PASS en 89 s**, informe publicado como artefacto, sin llamadas a la IA.
+- Local: Sweet Bonanza 2500 y Big Bass Halloween Splash 1000, **ambos escenarios PASS**; 0 fugas de secretos; informes < 1 MB.
+- CI: formato, lint, tipos y 120 tests en verde.
 
 ## Problemas conocidos
 - **betsson.es bloquea las IP de fuera de España** ("no disponible en este país"), así que los runners de GitHub no sirven. Se resuelve con un runner propio: este Mac, etiqueta `betsson-es`, variable `VALIDATION_RUNS_ON`. En producción sería Oracle Cloud Madrid, en x86 porque Chrome no tiene build ARM64 para Linux. Si el Mac pierde la red, el runner se cae: relanzarlo con `cd ~/actions-runner-betsson && nohup ./run.sh &`.
