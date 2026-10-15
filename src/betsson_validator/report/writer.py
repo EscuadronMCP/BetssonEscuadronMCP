@@ -383,7 +383,7 @@ th, td { text-align:left; vertical-align:top; padding:8px; border-bottom:1px sol
 .equation.ko b { color:var(--fail); }
 .equation small { color:var(--muted); width:100%; order:9; font-size:12px; }
 .panel.demo { border:2px dashed var(--fail); }
-.panel.demo .cell { display:inline-block; padding:4px 10px; }
+.panel.demo p.cell { display:inline-block; padding:4px 10px; }
 .reasons li { margin:4px 0; }
 .gallery { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; }
 .gallery figure { margin:0; }
