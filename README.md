@@ -40,6 +40,20 @@ La pantalla es obligatoria: sin lectura visual no hay PASS. Si los testigos disc
 
 Frente a 15–30 minutos de QA manual por juego nuevo. Sin clave de API el producto sigue funcionando con los perfiles ya aprendidos.
 
+## Más allá de lo pedido
+
+Lo que añade valor sobre los requisitos del reto, con su evidencia:
+
+| Aportación | Por qué importa a Betsson | Dónde verlo |
+|---|---|---|
+| **Cinco testigos de tres capas** (pantalla, red, navegador) con regla de discrepancia | Detecta fallos de integración: el jugador ve una cosa y el sistema registra otra. Un clic nunca basta para un PASS | [decisiones 001](docs/decisiones/001-enfoque-testigos-y-perfiles.md) y [003](docs/decisiones/003-testigo-eventos-del-juego.md); columna "Testigos" del informe |
+| **Canal `postMessage` juego → casino** como testigo | Valida la integración con los datos que el proveedor comunica a Betsson (ronda, apuesta, premio, saldo, idioma, divisa) | `eventos_del_juego.json` en cada escenario |
+| **Pantalla readaptable** con perfiles aprendidos por IA | Sigue funcionando si el proveedor mueve un botón o cambia un texto; incorporar un juego cuesta ≈ 0,002 $ | [decisión 002](docs/decisiones/002-perfiles-aprendidos-y-coste.md), `tests/unit/test_screen_model.py` |
+| **Coste de IA casi nulo y medido** | Las ejecuciones normales no llaman a la IA; cada llamada registra tokens y coste; nunca se llama mientras el juego carga | Notas del informe; salida de `learn` |
+| **Seguridad de evidencias** | Credenciales difuminadas en el vídeo, traza ligera y limpiada, escáner que retira cualquier archivo con secretos | `src/betsson_validator/security.py` |
+| **Salvaguardas de dinero real** | Apuesta mínima comprobada en pantalla, tope `max_bet`, un giro nunca se repite y botones ambiguos ("+" frente a "−") rechazados | `game/player.py`, `tests/unit/test_learned_profile.py` |
+| **Idioma del mensaje verificado** | El mensaje de saldo insuficiente se lee completo y su idioma se contrasta con el que comunica el juego | Escenario 2 del informe |
+
 ## Uso
 
 Requisitos: [uv](https://docs.astral.sh/uv/) (instala Python 3.13 por sí solo) y Google Chrome.
