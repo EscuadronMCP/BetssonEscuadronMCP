@@ -215,7 +215,7 @@ BETSSON_E2E=1 uv run pytest -m e2e            # de extremo a extremo contra bets
 ```
 
 ### GitHub Actions
-- **CI** (`.github/workflows/ci.yml`): formato, lint, tipos y tests en cada push.
+- **CI** (`.github/workflows/ci.yml`): formato, lint, tipos y tests en cada push, en Linux y también en Windows.
 - **Validación** (`.github/workflows/validate.yml`): ejecuta los escenarios por mercado y publica el informe como artefacto y como resumen. Se lanza a mano porque juega con dinero real.
   - betsson.es **solo responde desde España**, así que se ejecuta en un **runner propio con IP española**, elegido con la variable `VALIDATION_RUNS_ON` (hoy `["self-hosted","betsson-es"]`). En producción sería una máquina x86 en Oracle Cloud Madrid.
 
