@@ -94,6 +94,7 @@ def _snapshot(observation: ScreenObservation) -> ScreenSnapshot:
         currencies_seen=tuple(sorted(currencies)),
         message=observation.message,
         evidence=observation.evidence,
+        notice=observation.notice,
     )
 
 
@@ -233,6 +234,11 @@ def _prepare(
         model=model,
         evidence=files,
         message_pattern=re.compile(ctx.market.ui.insufficient_funds_pattern),
+        notice_pattern=(
+            re.compile(ctx.market.ui.game_notice_pattern)
+            if ctx.market.ui.game_notice_pattern
+            else None
+        ),
         dismiss_labels=ctx.market.ui.dismiss_labels,
         loading_finished=(
             (lambda: events.loading_finished(payloads(GameEventRecorder.collect(casino.page))))

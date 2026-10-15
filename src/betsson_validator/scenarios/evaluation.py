@@ -128,7 +128,7 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
         detail = "el giro empezó pero no terminó dentro del tiempo límite"
     else:
         detail = "el juego no reaccionó al botón de girar"
-    message = evidence.screen_after.message
+    shown = evidence.screen_after.message or evidence.screen_after.notice
     testimonies = [
         _t(
             MOTION,
@@ -140,10 +140,10 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
         _t(
             SCREEN,
             WitnessKind.VISUAL,
-            message is None,
-            "sin mensajes de rechazo tras la tirada"
-            if message is None
-            else f"el juego mostró «{message}»",
+            shown is None,
+            "sin mensajes de rechazo ni avisos tras la tirada"
+            if shown is None
+            else f"el juego mostró «{shown}»",
             (evidence.screen_after.evidence,),
         ),
     ]
@@ -340,6 +340,11 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
     message = evidence.screen_after.message
     # El mensaje debe aparecer como respuesta al giro: si ya estaba antes, no prueba el rechazo.
     already_shown = evidence.screen_before.message is not None
+    notice = (
+        f"; aviso del juego «{evidence.screen_after.notice}»"
+        if evidence.screen_after.notice
+        else ""
+    )
     unchanged = None if before is None or after is None else before == after
     screen_ok = None if unchanged is None else unchanged and message is not None
     screen = _t(
@@ -347,7 +352,7 @@ def spin_rejected(evidence: RunEvidence) -> CheckResult:
         WitnessKind.VISUAL,
         False if already_shown else screen_ok,
         f"mensaje de rechazo {'visible' if message else 'no visible'}"
-        f"{' (ya estaba antes de girar)' if already_shown else ''}; "
+        f"{' (ya estaba antes de girar)' if already_shown else ''}{notice}; "
         f"crédito {_fmt(before)} → {_fmt(after)}",
         (evidence.screen_before.evidence, evidence.screen_after.evidence),
     )

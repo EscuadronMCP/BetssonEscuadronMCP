@@ -219,3 +219,26 @@ def test_message_already_visible_before_spinning_does_not_prove_rejection() -> N
         screen_before=replace(REJECTED_SPIN.screen_before, message="Fondos insuficientes"),
     )
     assert statuses(evaluate_insufficient_balance(stale))[Check.SPIN_REJECTED.value] is Status.FAIL
+
+
+def test_a_game_notice_explains_why_the_spin_did_not_happen() -> None:
+    """15/10: Pragmatic mostró «Sesión expirada» al girar; el motivo debe citarlo."""
+    expired = replace(
+        WINNING_SPIN,
+        screen_after=replace(WINNING_SPIN.screen_after, notice="Sesión expirada"),
+        motion=MotionSummary(started=False, completed=False, samples=12, peak=0.01),
+    )
+    result = {r.check: r for r in evaluate_completed_spin(expired)}
+    check = result[Check.SPIN_COMPLETED.value]
+    assert check.status is Status.FAIL
+    assert "Sesión expirada" in str(check.testimonies)
+
+
+def test_a_game_notice_is_never_taken_as_the_insufficient_funds_message() -> None:
+    expired = replace(
+        REJECTED_SPIN,
+        screen_after=replace(REJECTED_SPIN.screen_after, message=None, notice="Sesión expirada"),
+    )
+    result = statuses(evaluate_insufficient_balance(expired))
+    assert result[Check.SPIN_REJECTED.value] is Status.FAIL
+    assert result[Check.INSUFFICIENT_MESSAGE_SHOWN.value] is Status.FAIL

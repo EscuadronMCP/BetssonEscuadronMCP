@@ -116,16 +116,20 @@ Los tokens se pueden acabar en cualquier momento. **El repositorio remoto debe t
 ```
 CLAUDE.md              Normas para Claude Code (este archivo)
 .claude/settings.json  Permisos compartidos: git sin prompts, sin force push, sin leer .env
-README.md              Descripción, instalación y uso
+README.md              Descripción, instalación y uso (único README del repositorio)
 docs/ESTADO.md         Estado del proyecto y traspaso entre sesiones
 docs/hackaton/         Documentación oficial del Malackaton y del reto Betsson (PDFs)
 docs/decisiones/       Registro de decisiones de arquitectura (ADR)
 docs/betsson-es-flujo.md  Cómo es betsson.es por dentro (comprobado en vivo)
+docs/informe-proyecto.html  Fuente del PDF del informe del proyecto
+mentores/              Informe del proyecto (PDF) e informe real del programa con un fallo intencionado
 config/                Mercados y proveedores (YAML)
 profiles/              Perfiles aprendidos por juego
 src/betsson_validator/ Código (ver README.md, sección Estructura)
 tests/                 Tests y capturas reales usadas como datos de prueba
 ```
+
+El repositorio se entrega al jurado: nada de documentos internos (guiones de presentación, estrategia, notas personales) ni más README que el de la raíz.
 
 ## Comandos
 

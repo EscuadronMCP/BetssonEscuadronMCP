@@ -17,6 +17,8 @@ class ScreenSnapshot:
     currencies_seen: tuple[str, ...]
     message: str | None
     evidence: str
+    # Otro aviso visible del juego (sesión expirada, error de conexión…), si lo hubo.
+    notice: str | None = None
 
 
 @dataclass(frozen=True)

@@ -79,6 +79,8 @@ class MarketUi(BaseModel):
     session_loss_input_placeholder: str
     session_loss_limit_fallback: str
     insufficient_funds_pattern: str
+    # Otros avisos del juego que explican un fallo (sesión expirada, error de conexión…).
+    game_notice_pattern: str = ""
     dismiss_labels: tuple[str, ...]
     win_label_candidates: tuple[str, ...]
 

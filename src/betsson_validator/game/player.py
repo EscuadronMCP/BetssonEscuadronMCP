@@ -71,6 +71,8 @@ class ScreenObservation:
     hud: HudReading
     evidence: str
     message: str | None
+    # Cualquier otro aviso del juego (p. ej. "Sesión expirada"): explica un fallo, nunca lo oculta.
+    notice: str | None = None
 
 
 @dataclass(frozen=True)
@@ -209,6 +211,7 @@ class ScreenGame:
     timings: GameTimings = field(default_factory=GameTimings)
     # Señal del propio juego de que terminó de cargar (eventos postMessage), si el proveedor la da.
     loading_finished: Callable[[], bool] | None = None
+    notice_pattern: re.Pattern[str] | None = None
     _loaded_at: float | None = field(default=None, init=False)
 
     # --- Captura y lectura ---------------------------------------------------------------
@@ -260,7 +263,8 @@ class ScreenGame:
         """Lectura de pantalla; solo se guarda como evidencia si sostiene una comprobación."""
         path = str(self.evidence.save_image(name, image)) if save else ""
         message = find_message(boxes, self.message_pattern)
-        return ScreenObservation(hud=hud, evidence=path, message=message)
+        notice = find_message(boxes, self.notice_pattern) if self.notice_pattern else None
+        return ScreenObservation(hud=hud, evidence=path, message=message, notice=notice)
 
     # --- Controles -----------------------------------------------------------------------
 

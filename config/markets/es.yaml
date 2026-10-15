@@ -31,6 +31,8 @@ ui:
   session_loss_limit_fallback: "1"
   # Mensaje de saldo insuficiente en el idioma del mercado (cualquier proveedor).
   insufficient_funds_pattern: "(?i)fondos\\s+insuficientes|saldo\\s+insuficiente|no\\s+(tienes|dispones\\s+de)\\s+(suficiente\\s+)?saldo"
+  # Otros avisos del juego que explican un fallo (se citan en el motivo del informe).
+  game_notice_pattern: "(?i)sesi[oó]n\\s+(expirada|caducada|finalizada|cerrada)|error\\s+de\\s+conexi[oó]n|conexi[oó]n\\s+perdida|se\\s+ha\\s+producido\\s+un\\s+error"
   # Botones con los que el jugador cierra un mensaje del juego.
   dismiss_labels: [ACEPTAR, OK, CERRAR]
   # Etiquetas habituales del premio en el HUD (el premio solo se ve cuando hay ganancia).
