@@ -1,0 +1,18 @@
+provider: pragmaticplay
+game: big-bass-halloween-splash-1000
+labels:
+  credit: CRÉDITO
+  bet: APUESTA
+  win: ''
+controls:
+  spin: spin.png
+  bet_down: bet_down.png
+  bet_up: bet_up.png
+  continue: continue.png
+reels_area:
+- 0.1640625
+- 0.21626984126984128
+- 0.8404017857142857
+- 0.8968253968253969
+learned_with: claude-haiku-5-5
+learned_at: '2026-10-15T13:48:09+00:00'
