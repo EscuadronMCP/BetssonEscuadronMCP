@@ -23,7 +23,11 @@ from betsson_validator.config.provider import load_provider
 from betsson_validator.domain.checks import Scenario
 from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import Status
-from betsson_validator.perception.learner import ClaudeScreenLearner, ScreenLearner
+from betsson_validator.perception.learner import (
+    DEFAULT_BUDGET_USD,
+    ClaudeScreenLearner,
+    ScreenLearner,
+)
 from betsson_validator.perception.ocr import RapidOcrReader
 from betsson_validator.report.writer import (
     RunInfo,
@@ -89,7 +93,9 @@ def _context(args: argparse.Namespace, out_dir: Path) -> RunContext:
     provider = load_provider(args.provider)
     market = load_market(args.market)
     learner: ScreenLearner | None = (
-        ClaudeScreenLearner() if os.getenv("ANTHROPIC_API_KEY") else None
+        ClaudeScreenLearner(budget_usd=float(os.getenv("AI_BUDGET_USD", str(DEFAULT_BUDGET_USD))))
+        if os.getenv("ANTHROPIC_API_KEY")
+        else None
     )
     return RunContext(
         market=market,

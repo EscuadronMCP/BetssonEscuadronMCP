@@ -78,7 +78,7 @@ En **Actions → «Validación de juegos» → Run workflow**, elige el escenari
 ### Antes de ejecutar, ten en cuenta
 - **Una sola ejecución a la vez con las mismas cuentas.** Dos sesiones simultáneas se pisan: la web cierra una («Sesión expirada», «¡Acceda a su cuenta!») o la otra gasta saldo durante la tirada, y el validador lo marca como discrepancia. En un mismo ordenador lo impide un cerrojo. Entre ordenadores hay que coordinarse: si al abrir el juego el crédito ya no coincide con el saldo de Betsson leído al entrar, el validador no gira y explica que otra sesión está usando la cuenta.
 - El escenario 1 **apuesta 0,20 € reales** (la apuesta mínima, comprobada en pantalla).
-- Sin `ANTHROPIC_API_KEY` funciona igual con los perfiles ya aprendidos; solo pierde la reparación automática de un perfil.
+- Sin `ANTHROPIC_API_KEY` funciona igual con los perfiles ya aprendidos; solo pierde la reparación automática de un perfil. Con clave, el gasto de IA tiene un tope por ejecución (`AI_BUDGET_USD`, 0,05 $ por defecto).
 
 ### Qué muestra el informe
 - **Panel de resumen:** resultado global, comprobaciones superadas, duración, uso de IA y versión del código (SHA).
@@ -211,6 +211,7 @@ Se ejecuta **desde el repositorio** con `uv` (instrucciones de la sección 1). N
 uv run ruff format . && uv run ruff check .   # formato y lint
 uv run mypy src tests                         # tipado estricto
 uv run pytest -m "not e2e"                    # tests (capturas y tráfico reales, cambios de interfaz simulados)
+BETSSON_E2E=1 uv run pytest -m e2e            # de extremo a extremo contra betsson.es (dinero real, IP española)
 ```
 
 ### GitHub Actions

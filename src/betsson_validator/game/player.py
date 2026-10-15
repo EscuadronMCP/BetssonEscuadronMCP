@@ -26,7 +26,7 @@ from betsson_validator.perception.hud import (
     find_message,
     read_hud,
 )
-from betsson_validator.perception.learner import Box, ScreenAnalysis, ScreenLearner
+from betsson_validator.perception.learner import Box, LearnerError, ScreenAnalysis, ScreenLearner
 from betsson_validator.perception.motion import (
     MotionThresholds,
     SpinLifecycle,
@@ -185,7 +185,11 @@ class ScreenModel:
         if self.learner is None or self._learned:
             return None
         self._learned = True
-        analysis = self.learner.analyze(image)
+        try:
+            analysis = self.learner.analyze(image)
+        except LearnerError as error:  # sin IA disponible el perfil activo sigue intacto
+            self.notes.append(f"No se pudo reaprender con IA ({error}): {reason}.")
+            return None
         problems = self.apply(analysis, image)
         cost = f"{self.learner.cost_usd:.4f} $"
         if problems:

@@ -25,7 +25,12 @@ from betsson_validator.game.player import (
     is_still,
 )
 from betsson_validator.locks import account_lock
-from betsson_validator.perception.learner import DEFAULT_MODEL, FALLBACK_MODEL, ScreenAnalysis
+from betsson_validator.perception.learner import (
+    DEFAULT_MODEL,
+    FALLBACK_MODEL,
+    LearnerError,
+    ScreenAnalysis,
+)
 from betsson_validator.perception.motion import motion_score
 from betsson_validator.profiles import GameProfile
 from betsson_validator.runner import RunContext
@@ -92,7 +97,7 @@ def learn_game(ctx: RunContext) -> LearnResult:
                 )
                 try:
                     checks = _learn_and_validate(game, model, model_name, balance.amount, proven)
-                except (GameError, LearningError) as error:
+                except (GameError, LearningError, LearnerError) as error:
                     last_error = str(error)
                     continue
                 adopted = model.profile  # apply() sustituye el perfil por la copia validada

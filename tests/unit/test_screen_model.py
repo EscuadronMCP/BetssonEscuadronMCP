@@ -209,3 +209,23 @@ def test_a_rejected_relearn_keeps_the_profile_and_is_reported(reader: RapidOcrRe
     assert model.learn(ready, "prueba") is None
     assert model.profile.templates["spin"] is original
     assert "rechazada" in model.notes[-1]
+
+
+def test_ai_budget_stops_paid_calls_and_keeps_the_profile(reader: RapidOcrReader) -> None:
+    """Con el presupuesto de IA agotado no se llama a la API y el perfil activo no cambia."""
+    from betsson_validator.perception.learner import (  # noqa: PLC0415
+        ClaudeScreenLearner,
+        LearnerError,
+    )
+
+    learner = object.__new__(ClaudeScreenLearner)
+    learner._budget_usd, learner._cost_usd = 0.05, 0.05
+    with pytest.raises(LearnerError, match="Presupuesto de IA agotado"):
+        learner.analyze(load("sweet_bonanza_ready.png"))
+
+    ready = load("sweet_bonanza_ready.png")
+    original = crop(ready, SPIN_BOX)
+    model = ScreenModel(profile(templates={"spin": original}), reader, "EUR", learner)
+    assert model.learn(ready, "prueba") is None
+    assert model.profile.templates["spin"] is original
+    assert "No se pudo reaprender con IA" in model.notes[-1]

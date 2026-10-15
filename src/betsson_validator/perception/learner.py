@@ -89,12 +89,16 @@ class LearnerError(RuntimeError):
     pass
 
 
+DEFAULT_BUDGET_USD = 0.05  # tope por ejecución: un juego nuevo cuesta ≈ 0,001-0,008 $
+
+
 class ClaudeScreenLearner:
-    def __init__(self, model: str = DEFAULT_MODEL) -> None:
+    def __init__(self, model: str = DEFAULT_MODEL, budget_usd: float = DEFAULT_BUDGET_USD) -> None:
         import anthropic  # noqa: PLC0415 - solo se carga si de verdad hay que aprender
 
         self._client = anthropic.Anthropic()
         self._model = model
+        self._budget_usd = budget_usd
         self._cost_usd = 0.0
         self._lock = threading.Lock()  # los escenarios corren en paralelo y comparten el aprendiz
 
@@ -103,6 +107,10 @@ class ClaudeScreenLearner:
         return self._cost_usd
 
     def analyze(self, image: Image, *, model: str | None = None) -> ScreenAnalysis:
+        if self._cost_usd >= self._budget_usd:
+            raise LearnerError(
+                f"Presupuesto de IA agotado ({self._cost_usd:.4f} $ de {self._budget_usd:.4f} $)."
+            )
         ok, png = cv2.imencode(".png", image)
         if not ok:
             raise LearnerError("No se pudo codificar la captura.")
