@@ -423,6 +423,11 @@ class ScreenGame:
         """
         image = self.capture()
         current = ready.hud.bet.money.amount if ready.hud.bet else None
+        minimum = self.model.profile.min_bet
+        if current is not None and minimum is not None and current <= minimum:
+            # Ya está en el mínimo conocido: con el "-" desactivado, buscarlo solo puede
+            # encontrar otra cosa (15/10, Big Bass: abrió el panel de tirada automática).
+            return self.observe("apuesta_minima")
         unchanged = 0
         spin = self.model.locate("spin", image)
         for _ in range(self.timings.max_bet_presses):
