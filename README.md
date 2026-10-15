@@ -36,6 +36,15 @@ Estructura de código objetivo: ver la [decisión 001](docs/decisiones/001-enfoq
 
 ## Uso
 
-_Pendiente: se completará con la instalación, la ejecución local y el workflow de GitHub Actions en cuanto exista el esqueleto del proyecto._
+Requisitos: [uv](https://docs.astral.sh/uv/) (instala Python 3.13 por sí solo).
+
+```bash
+uv sync                                   # instalar dependencias (Python 3.13, versiones del uv.lock)
+uv run ruff format . && uv run ruff check .   # formato y lint
+uv run mypy src tests                     # tipado estricto
+uv run pytest -m "not e2e"                # tests unitarios (sin credenciales)
+```
+
+_La ejecución de los escenarios contra betsson.es se documentará aquí al completar las etapas E1 y E2._
 
 Las credenciales nunca se suben al repositorio: van en `.env` (copiando `.env.example`) y, en GitHub Actions, en los Secrets del repositorio.

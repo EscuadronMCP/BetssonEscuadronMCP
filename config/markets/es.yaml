@@ -1,0 +1,13 @@
+# betsson.es — único mercado del reto (español, EUR).
+# Solo nombres de variables de entorno: los valores van en .env o en GitHub Secrets.
+id: es
+base_url: https://www.betsson.es
+language: es
+currency: EUR
+accounts:
+  funded:
+    username_env: BETSSON_ES_FUNDED_USERNAME
+    password_env: BETSSON_ES_FUNDED_PASSWORD
+  no_balance:
+    username_env: BETSSON_ES_NO_BALANCE_USERNAME
+    password_env: BETSSON_ES_NO_BALANCE_PASSWORD

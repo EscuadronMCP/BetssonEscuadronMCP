@@ -120,4 +120,11 @@ Actualiza esta sección y la de **Comandos** en cuanto se elija el stack.
 
 ## Comandos
 
-_Pendiente de definir al elegir el stack (instalar, ejecutar, test, lint)._
+```bash
+uv sync                                   # instalar dependencias (Python 3.13, versiones del uv.lock)
+uv run ruff format . && uv run ruff check .   # formato y lint
+uv run mypy src tests                     # tipado estricto
+uv run pytest -m "not e2e"                # tests unitarios (sin credenciales)
+```
+
+Antes de cada commit deben pasar los cuatro. CI (`.github/workflows/ci.yml`) los ejecuta en cada push a `main`.

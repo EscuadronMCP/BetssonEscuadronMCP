@@ -12,7 +12,7 @@ Memoria compartida del equipo: **por dónde vamos y hacia dónde**. Se actualiza
 
 Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En curso" quién está con cuál.
 
-- [ ] **E0. Esqueleto:** proyecto Python, Playwright, pytest, linter, tipado, configuración de mercado y un workflow básico de CI. No necesita credenciales.
+- [x] **E0. Esqueleto:** proyecto Python, Playwright, pytest, linter, tipado, configuración de mercado y un workflow básico de CI. No necesita credenciales.
 - [ ] **E1. Web de Betsson:** login, Casino, filtro PragmaticPlay, lanzar un juego en Real Play, leer el saldo de Betsson. Necesita las cuentas de prueba.
 - [ ] **E2. Escenario 1 de principio a fin** con el testigo de pantalla leído por IA de visión. **Primer entregable completo.**
 - [ ] **E3. Resto de testigos (D):** saldo de Betsson, historial de transacciones y red del juego; regla del veredicto con discrepancias.
@@ -25,15 +25,16 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - Repositorio, normas del equipo (`CLAUDE.md`) y estructura de documentación.
 - `.claude/settings.json`: Claude Code hace commit/pull/push a `main` sin pedir permiso; `push --force` y leer `.env` bloqueados.
 - Documentación oficial en `docs/hackaton/` y requisitos del reto resumidos en `CLAUDE.md`.
+- **E0:** proyecto Python 3.13 con uv; configuración del mercado (`config/markets/es.yaml`); regla del veredicto (`domain/verdict.py`) y conciliación de saldos (`domain/money.py`) con tests; ruff, mypy estricto y CI.
 - `.env.example` con las variables de las cuentas de prueba de betsson.es (el `.env` real es local).
 
 ## En curso
 | Tarea | Responsable | Desde |
 |-------|-------------|-------|
-| E0. Esqueleto del proyecto | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
+| E1. Web de Betsson (exploración sin credenciales) | Claude (sesión de xXErDaniXx06) | 2026-10-15 |
 
 ## Siguiente paso
-1. E0: esqueleto del proyecto (se puede hacer ya, sin credenciales).
+1. E1: explorar betsson.es sin login (Casino, filtro PragmaticPlay, lanzamiento) para preparar la automatización.
 2. Recibir las cuentas de prueba de Betsson y rellenar `.env`.
 3. Preguntar a los mentores: captcha o verificación en dos pasos en el login, bloqueo de IP de GitHub Actions, tráfico de red como testigo, número de tiradas permitidas, preparación de la cuenta sin saldo, y si el historial muestra cada tirada.
 
