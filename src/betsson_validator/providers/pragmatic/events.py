@@ -19,6 +19,12 @@ from betsson_validator.scenarios.evidence import GameEventsSummary
 _ROUND_START = {"gameRoundStart", "gameRoundStarted"}
 _ROUND_END = {"gameRoundEnded"}
 _LOW_BALANCE = {"balanceTooLow"}
+_LOADING_ENDED = "gameLoadingEnded"
+
+
+def loading_finished(events: Sequence[dict[str, Any]]) -> bool:
+    """El juego anunció que terminó de cargar (antes de eso no tiene sentido mirar su HUD)."""
+    return any(event.get("name") == _LOADING_ENDED for event in events)
 
 
 def _decimal(value: Any) -> Decimal | None:  # noqa: ANN401 - valor JSON arbitrario

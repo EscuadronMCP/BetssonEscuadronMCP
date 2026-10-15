@@ -25,7 +25,7 @@ from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObserva
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader
 from betsson_validator.profiles import DEFAULT_PROFILES_DIR, load_profile
-from betsson_validator.providers.pragmatic.events import summarize_events
+from betsson_validator.providers.pragmatic.events import loading_finished, summarize_events
 from betsson_validator.providers.pragmatic.network import (
     GameServiceCall,
     NoSpinObservedError,
@@ -229,6 +229,9 @@ def _play(
         evidence=files,
         message_pattern=re.compile(ctx.market.ui.insufficient_funds_pattern),
         dismiss_labels=ctx.market.ui.dismiss_labels,
+        loading_finished=(
+            (lambda: loading_finished(GameEventRecorder.collect(casino.page))) if events else None
+        ),
     )
     game.wait_until_ready()
     ready = game.set_minimum_bet()

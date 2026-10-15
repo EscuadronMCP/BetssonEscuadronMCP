@@ -6,7 +6,7 @@ from typing import Any
 
 from betsson_validator.domain.checks import Check
 from betsson_validator.domain.verdict import Outcome, Status
-from betsson_validator.providers.pragmatic.events import summarize_events
+from betsson_validator.providers.pragmatic.events import loading_finished, summarize_events
 from betsson_validator.scenarios.evaluation import (
     EVENTS,
     evaluate_completed_spin,
@@ -130,3 +130,9 @@ def test_wrong_language_is_reported() -> None:
         r.check: r for r in evaluate_insufficient_balance(replace(REJECTED_SPIN, events=english))
     }
     assert results[Check.INSUFFICIENT_MESSAGE_SHOWN.value].status is Status.FAIL
+
+
+def test_loading_finished_only_after_the_game_says_so() -> None:
+
+    assert not loading_finished([{"name": "loadingProgress"}, {"name": "gameLoadingStarted"}])
+    assert loading_finished([{"name": "gameLoadingStarted"}, {"name": "gameLoadingEnded"}])

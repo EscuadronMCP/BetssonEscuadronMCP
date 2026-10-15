@@ -9,6 +9,7 @@ Regla de seguridad: un giro nunca se repite. Si no se confirma, se informa, no s
 
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 
 import cv2
@@ -49,7 +50,9 @@ class GameError(RuntimeError):
 @dataclass(frozen=True)
 class GameTimings:
     ready_timeout_s: float = 150
-    learn_after_s: float = 20  # no se llama a la IA mientras el juego aún está cargando
+    # Sin señal de fin de carga, no se llama a la IA antes de esto: una carga lenta deja la
+    # pantalla quieta y parecería un cambio de interfaz (llamada inútil).
+    learn_after_s: float = 45
     spin_timeout_s: float = 45
     capture_interval_ms: int = 150
     settle_after_spin_ms: int = 1500
@@ -188,6 +191,8 @@ class ScreenGame:
     message_pattern: re.Pattern[str]
     dismiss_labels: tuple[str, ...]
     timings: GameTimings = field(default_factory=GameTimings)
+    # Señal del propio juego de que terminó de cargar (eventos postMessage), si el proveedor la da.
+    loading_finished: Callable[[], bool] | None = None
 
     # --- Captura y lectura ---------------------------------------------------------------
 
@@ -259,13 +264,19 @@ class ScreenGame:
             point = self.model.locate("continue", image)
             if point is not None:
                 self.click(point)
-            elif time.monotonic() - start > self.timings.learn_after_s and still >= 3:  # noqa: PLR2004
+            elif self._may_learn(start) and still >= 3:  # noqa: PLR2004
                 analysis = self.model.learn(image, "no se veía el crédito ni la apuesta")
                 if analysis is not None and analysis.continue_button is not None:
                     self.click(self.model.locate("continue", image) or (0.5, 0.5))
             self.page.wait_for_timeout(1000)
         path = self.evidence.save_image("juego_no_listo", self.capture())
         raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")
+
+    def _may_learn(self, start: float) -> bool:
+        """Solo se paga a la IA cuando el juego ya cargó y aun así no se reconoce la pantalla."""
+        if self.loading_finished is not None:
+            return self.loading_finished()
+        return time.monotonic() - start > self.timings.learn_after_s
 
     def set_minimum_bet(self) -> ScreenObservation:
         """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez.
