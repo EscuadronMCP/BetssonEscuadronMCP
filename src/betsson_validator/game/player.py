@@ -57,6 +57,7 @@ class GameTimings:
     learn_grace_after_loading_s: float = 10
     spin_timeout_s: float = 45
     spin_start_timeout_s: float = 8
+    locate_patience_s: float = 4  # reintentos locales antes de pagar a la IA por un control
     capture_interval_ms: int = 150
     settle_after_spin_ms: int = 1500
     max_bet_presses: int = 25
@@ -285,6 +286,23 @@ class ScreenGame:
         path = self.evidence.save_image("juego_no_listo", self.capture())
         raise GameError(f"El juego no mostró el crédito y la apuesta a tiempo (ver {path.name}).")
 
+    def _locate_patiently(self, control: str) -> tuple[Point, Image]:
+        """Localiza un control dando tiempo a que acaben las animaciones de la interfaz.
+
+        Un panel que se cierra o un destello pueden ocultarlo un instante: eso no es un cambio
+        de interfaz y no justifica pagar a la IA. Solo si sigue sin aparecer se reaprende.
+        """
+        deadline = time.monotonic() + self.timings.locate_patience_s
+        image = self.capture()
+        while True:
+            point = self.model.locate(control, image)
+            if point is not None:
+                return point, image
+            if time.monotonic() > deadline:
+                return self.model.locate_or_learn(control, image), image
+            self.page.wait_for_timeout(500)
+            image = self.capture()
+
     def _may_learn(self, start: float, image: Image) -> bool:
         """Solo se paga a la IA cuando el juego ya cargó y aun así no se reconoce la pantalla.
 
@@ -332,8 +350,7 @@ class ScreenGame:
 
     def spin_and_watch(self) -> SpinObservation:
         """Pulsa girar UNA vez y vigila los rodillos hasta que el giro termina (o no empieza)."""
-        before = self.capture()
-        point = self.model.locate_or_learn("spin", before)
+        point, before = self._locate_patiently("spin")
         evidence: list[str] = []
         previous = self.model.reels(before)
         self.click(point)

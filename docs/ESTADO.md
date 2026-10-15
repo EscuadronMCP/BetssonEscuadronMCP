@@ -30,6 +30,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - **Perfiles aprendidos** (`profiles/`, comando `learn`) con validación por efecto: el OCR lee crédito y apuesta, el crédito coincide con el saldo de Betsson, y "+" sube y "−" baja la apuesta.
 - **Readaptación probada** con capturas reales: botón movido, rediseñado, otra resolución, etiquetas cambiadas y controles ambiguos ("+" frente a "−", "girar" frente a "continuar").
 - **Seguridad:** credenciales difuminadas en el vídeo, traza ligera y limpiada, escáner que retira evidencias con secretos, salvaguardas de dinero (`max_bet` y un único giro).
+- **Rendimiento (15/10):** ambos escenarios en paralelo en ≈ 65–71 s (antes ≈ 3 min), informe < 1 MB (antes ≈ 73 MB), cero llamadas a la IA en ejecuciones normales. **PASS en GitHub Actions** (runner propio) el 15/10.
 - **Informe** HTML/JSON con PASS/FAIL por comprobación, testigos, capturas y enlaces a vídeo, traza, eventos y tráfico; resumen Markdown en GitHub Actions.
 - Documentación: [`betsson-es-flujo.md`](betsson-es-flujo.md) (cómo es la web por dentro) e [`investigacion-equipo.md`](investigacion-equipo.md).
 

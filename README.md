@@ -48,6 +48,8 @@ Un **informe web** con cada comprobación en verde (PASS) o rojo (FAIL), el moti
 | Reparar un juego si el proveedor cambia su pantalla | ≈ 0,002 $, solo cuando ocurre |
 | La tirada de prueba (apuesta mínima 0,20 €) | ≈ 0,01 € de media (el juego devuelve ~94,5 %) |
 | Infraestructura | Gratis: GitHub Actions con un equipo propio en España |
+| **Tiempo por ejecución** | **≈ 70 s** los dos escenarios (en paralelo) |
+| **Peso del informe** | **< 1 MB** (capturas justas; vídeo solo si se pide) |
 
 Comparado con **15–30 minutos de una persona** por juego nuevo, el coste es despreciable. La inteligencia artificial solo se usa para *aprender* un juego la primera vez; después el validador trabaja solo y sin coste.
 
