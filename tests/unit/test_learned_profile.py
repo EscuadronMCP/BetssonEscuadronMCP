@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import pytest
 
-from betsson_validator.game.player import ScreenModel
+from betsson_validator.game.screen_model import ScreenModel
 from betsson_validator.perception.ocr import RapidOcrReader
 from betsson_validator.profiles import GameProfile, load_profile
 

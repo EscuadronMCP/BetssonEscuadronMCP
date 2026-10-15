@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 import pytest
 
-from betsson_validator.game.player import GameError, ScreenModel
+from betsson_validator.game.screen_model import GameError, ScreenModel
 from betsson_validator.perception.learner import Box, ScreenAnalysis
 from betsson_validator.perception.ocr import RapidOcrReader
 from betsson_validator.perception.templates import crop

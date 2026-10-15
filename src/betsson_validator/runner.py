@@ -27,7 +27,8 @@ from betsson_validator.game.events import (
     GameEventRecorder,
     payloads,
 )
-from betsson_validator.game.player import ScreenGame, ScreenModel, ScreenObservation
+from betsson_validator.game.player import ScreenGame, ScreenObservation
+from betsson_validator.game.screen_model import ScreenModel
 from betsson_validator.locks import account_lock
 from betsson_validator.perception.learner import ScreenLearner
 from betsson_validator.perception.ocr import TextReader

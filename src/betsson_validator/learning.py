@@ -16,14 +16,8 @@ from decimal import Decimal
 from betsson_validator.browser import browser_context
 from betsson_validator.casino.betsson import BetssonCasino
 from betsson_validator.evidence import EvidenceRecorder
-from betsson_validator.game.player import (
-    GameError,
-    Image,
-    ScreenGame,
-    ScreenModel,
-    control_template,
-    is_still,
-)
+from betsson_validator.game.player import ScreenGame, is_still
+from betsson_validator.game.screen_model import GameError, Image, ScreenModel, control_template
 from betsson_validator.locks import account_lock
 from betsson_validator.perception.learner import (
     DEFAULT_MODEL,
