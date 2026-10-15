@@ -14,7 +14,8 @@ from betsson_validator.domain.money import Money
 from betsson_validator.domain.parsing import AmountParseError, detect_currency, parse_amount
 from betsson_validator.perception.ocr import TextBox
 
-_AMOUNT = re.compile(r"\d[\d.\s]*,\d{2}")
+# Importe con dos decimales y cualquier separador ("193,74", "193.74", "1.234,56", "1,234.56").
+_AMOUNT = re.compile(r"\d[\d.,\s]*[.,]\d{2}(?!\d)")
 _PARAGRAPH_LINE_GAP = 2.2  # distancia máxima entre líneas de un mismo párrafo, en alturas
 
 

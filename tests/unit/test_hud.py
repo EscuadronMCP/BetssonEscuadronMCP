@@ -72,3 +72,13 @@ def test_duplicated_label_is_resolved_with_the_learned_position() -> None:
     assert hud.bet is not None and hud.bet.money.amount == Decimal("0.40")
     without_anchor = read_hud(boxes, LABELS, "EUR")
     assert without_anchor.bet is not None and without_anchor.bet.money.amount == Decimal("0.60")
+
+
+def test_playngo_hud_format() -> None:
+    # Cajas reales de RapidOCR sobre Viking Runecraft 1000 (Play'n GO, 15/10).
+    boxes = [box("Saldo: €193.74", 38, 490), box("Apuesta: €1.50", 111, 492)]
+    labels = HudLabels(credit="Saldo:", bet="Apuesta:", win="Ganancias:")
+    hud = read_hud(boxes, labels, "EUR")
+    assert hud.credit is not None and hud.credit.money.amount == Decimal("193.74")
+    assert hud.credit.money.currency == "EUR"
+    assert hud.bet is not None and hud.bet.money.amount == Decimal("1.50")

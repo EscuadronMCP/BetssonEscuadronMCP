@@ -49,3 +49,18 @@ def test_text_without_amount_fails(text: str) -> None:
 def test_money_without_currency_fails() -> None:
     with pytest.raises(AmountParseError, match="divisa"):
         parse_money("64,70")
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("€193.74", Decimal("193.74")),  # Play'n GO
+        ("Saldo: €193.74", Decimal("193.74")),
+        ("1,234.56", Decimal("1234.56")),
+        ("1.234,56 €", Decimal("1234.56")),
+        ("€1,500", Decimal("1500")),  # coma de miles, sin decimales
+        ("12.000", Decimal("12000")),  # punto de miles, sin decimales
+    ],
+)
+def test_any_provider_number_format(text: str, expected: Decimal) -> None:
+    assert parse_amount(text) == expected

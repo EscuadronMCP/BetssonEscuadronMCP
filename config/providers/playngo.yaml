@@ -1,0 +1,9 @@
+# Play'n GO en betsson.es: segundo proveedor, para demostrar que el validador no depende de
+# Pragmatic Play. Lo específico de cada juego se aprende (profiles/playngo/<juego>/).
+id: playngo
+filter_label: PlaynGo
+game_slug: viking-runecraft-1000
+game_load_timeout_s: 120
+max_bet: 0.50
+# Sin intérprete de red ni de eventos para este proveedor: el veredicto se apoya en la pantalla,
+# el movimiento y el saldo de Betsson (los testigos no disponibles se indican en el informe).
