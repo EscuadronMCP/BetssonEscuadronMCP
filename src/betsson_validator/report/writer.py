@@ -47,6 +47,7 @@ def render_html(runs: Sequence[ScenarioRun], out_dir: Path) -> str:
 <h1>Informe de validación de juegos</h1>
 <p class="summary">Resultado global: {_badge(overall)} · {len(runs)} escenario(s) ·
 generado {escape(datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"))}</p>
+{_plain_summary(runs)}
 {sections}
 </main>
 </body>
@@ -79,6 +80,24 @@ def render_markdown(runs: Sequence[ScenarioRun]) -> str:
             for c in run.missing_checks()
         )
     return "\n".join(lines) + "\n"
+
+
+def _plain_summary(runs: Sequence[ScenarioRun]) -> str:
+    """Resumen en lenguaje llano para quien no conoce el proyecto."""
+    results = [result for run in runs for result in run.results]
+    passed = sum(result.status is Status.PASS for result in results)
+    expected = sum(len(run.results) + len(run.missing_checks()) for run in runs)
+    games = ", ".join(sorted({run.game for run in runs}))
+    return (
+        '<div class="plain">'
+        f"<p><b>{passed} de {expected} comprobaciones superadas</b> en {escape(games)}. "
+        "Cada comprobación la confirman varios <b>testigos independientes</b>: lo que ve el "
+        "jugador en la pantalla del juego y en la web de Betsson, lo que registra el servidor del "
+        "juego y lo que el juego comunica a la web.</p>"
+        "<p><b>PASS</b> (verde) = la pantalla lo confirma y ningún testigo lo contradice. "
+        "<b>FAIL</b> (rojo) = no se pudo ver en pantalla o algún testigo contradice lo que ve el "
+        "jugador; el motivo aparece en cada fila.</p></div>"
+    )
 
 
 def _render_run(run: ScenarioRun, out_dir: Path) -> str:
@@ -194,6 +213,7 @@ ul { margin:0; padding-left:18px; }
 .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-weight:600; color:#fff; }
 .badge.pass { background:var(--pass); } .badge.fail { background:var(--fail); }
 .error { color:var(--fail); }
+.plain { border:1px solid var(--line); border-radius:8px; padding:4px 14px; margin:12px 0; }
 .evidence img { max-width:220px; margin:4px 4px 0 0; border:1px solid var(--line); }
 @media (max-width:700px) {
   table, thead, tbody, tr, th, td { display:block; } thead { display:none; }

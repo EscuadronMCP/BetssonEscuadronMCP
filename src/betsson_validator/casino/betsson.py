@@ -13,6 +13,7 @@ from betsson_validator.config.market import Credentials, MarketConfig
 from betsson_validator.config.provider import ProviderConfig
 from betsson_validator.domain.money import Money
 from betsson_validator.domain.parsing import parse_money
+from betsson_validator.evidence import JPEG_QUALITY
 
 _COOKIE_ACCEPT = "#onetrust-accept-btn-handler"
 _WAF_COOKIE = "aws-waf-token"
@@ -26,6 +27,7 @@ _HIDE_LOGIN_FIELDS_CSS = (
     "{ filter: blur(8px) !important; -webkit-text-security: disc !important; }"
 )
 _BALANCE_SETTLE_MS = 2000
+_BALANCE_CHANGE_TIMEOUT_S = 20
 _COOKIE_TIMEOUT_MS = 15_000
 _NAVIGATION_TIMEOUT_MS = 60_000
 _FILTER_RESULTS_TIMEOUT_MS = 8000
@@ -139,6 +141,8 @@ class BetssonCasino:
         margin = 40
         self._page.screenshot(
             path=str(path),
+            type="jpeg",
+            quality=JPEG_QUALITY,
             clip={
                 "x": max(box["x"] - margin * 4, 0),
                 "y": max(box["y"] - margin, 0),
@@ -154,24 +158,25 @@ class BetssonCasino:
         locator.wait_for(timeout=30_000)
         return parse_money(locator.inner_text())
 
-    def read_balance_after(self, previous: Money, timeout_s: float = 20) -> Money:
+    def read_balance_after(self, previous: Money, *, expect_change: bool) -> Money:
         """Vuelve al casino y lee el saldo cuando la cabecera deja de cambiar.
 
-        No se espera ningún valor concreto: se espera a que el saldo cambie respecto al anterior
-        (o a que pase el tiempo límite) y a que dos lecturas seguidas coincidan.
+        No se espera ningún valor concreto. Si la pantalla del juego mostró que el crédito
+        cambió, se da a la cabecera hasta `_BALANCE_CHANGE_TIMEOUT_S` para reflejarlo (Betsson
+        lo actualiza con retraso); si no, basta con dos lecturas iguales.
         """
         self._page.goto(
             self._url("/casino"), wait_until="domcontentloaded", timeout=_NAVIGATION_TIMEOUT_MS
         )
-        deadline = time.monotonic() + timeout_s
         current = self.read_balance()
-        while current == previous and time.monotonic() < deadline:
-            self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
-            self._page.reload(wait_until="domcontentloaded")
-            current = self.read_balance()
+        if expect_change:
+            deadline = time.monotonic() + _BALANCE_CHANGE_TIMEOUT_S
+            while current == previous and time.monotonic() < deadline:
+                self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
+                self._page.reload(wait_until="domcontentloaded")
+                current = self.read_balance()
         self._page.wait_for_timeout(_BALANCE_SETTLE_MS)
-        confirmed = self.read_balance()
-        return confirmed
+        return self.read_balance()
 
     def launch_game(self, provider: ProviderConfig, game: str) -> GameHandle:
         """Casino → Filtros → proveedor → Resultados → juego, como lo haría el jugador."""
@@ -199,7 +204,8 @@ class BetssonCasino:
         """
         page = self._page
         page.get_by_role("button", name=self._ui.filters_button).click()
-        chip = page.get_by_text(label, exact=True).first
+        # Botón del panel, no el texto: las fichas de los juegos también muestran el proveedor.
+        chip = page.get_by_role("button", name=label, exact=True).first
         chip.wait_for(timeout=_NAVIGATION_TIMEOUT_MS)
         clear = page.get_by_role("button", name=self._ui.clear_filters_button, exact=True).first
         if clear.is_visible():

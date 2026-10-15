@@ -93,3 +93,10 @@ def test_report_links_full_evidence(tmp_path: Path) -> None:
     html = html_path.read_text(encoding="utf-8")
     assert 'href="completed_spin/video/run.webm"' in html
     assert "Eventos del juego" in html
+
+
+def test_report_starts_with_a_plain_language_summary(tmp_path: Path) -> None:
+    _, html_path = write_report([run_with(all_checks_pass()[:-1])], tmp_path)
+    html = html_path.read_text(encoding="utf-8")
+    assert "4 de 5 comprobaciones superadas" in html
+    assert "testigos independientes" in html

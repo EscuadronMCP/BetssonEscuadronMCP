@@ -56,6 +56,7 @@ class GameTimings:
     learn_after_s: float = 45
     learn_grace_after_loading_s: float = 10
     spin_timeout_s: float = 45
+    spin_start_timeout_s: float = 8
     capture_interval_ms: int = 150
     settle_after_spin_ms: int = 1500
     max_bet_presses: int = 25
@@ -106,15 +107,6 @@ class ScreenModel:
                 win = find_amount(boxes, candidate, self.currency, anchors.get("win"))
                 if win is not None:
                     return replace(hud, win=win), boxes
-        return hud, boxes
-
-    def read_or_learn(self, image: Image) -> tuple[HudReading, list[TextBox]]:
-        """Si las etiquetas del perfil ya no aparecen (texto cambiado), las reaprende."""
-        hud, boxes = self.read(image)
-        if (hud.credit is None or hud.bet is None) and self.learn(
-            image, "no se encontraron las etiquetas de crédito o apuesta"
-        ):
-            hud, boxes = self.read(image)
         return hud, boxes
 
     def locate(self, control: str, image: Image) -> Point | None:
@@ -246,11 +238,18 @@ class ScreenGame:
         return self._observation(name, image, hud, boxes)
 
     def _observation(
-        self, name: str, image: Image, hud: HudReading, boxes: list[TextBox]
+        self,
+        name: str,
+        image: Image,
+        hud: HudReading,
+        boxes: list[TextBox],
+        *,
+        save: bool = True,
     ) -> ScreenObservation:
-        path = self.evidence.save_image(name, image)
+        """Lectura de pantalla; solo se guarda como evidencia si sostiene una comprobación."""
+        path = str(self.evidence.save_image(name, image)) if save else ""
         message = find_message(boxes, self.message_pattern)
-        return ScreenObservation(hud=hud, evidence=str(path), message=message)
+        return ScreenObservation(hud=hud, evidence=path, message=message)
 
     # --- Controles -----------------------------------------------------------------------
 
@@ -272,7 +271,7 @@ class ScreenGame:
             image = self.capture()
             hud, boxes = self.model.read(image)
             if hud.credit is not None and hud.bet is not None:
-                return self._observation("juego_listo", image, hud, boxes)
+                return self._observation("juego_listo", image, hud, boxes, save=False)
             still = still + 1 if previous is not None and _is_still(previous, image) else 0
             previous = image
             point = self.model.locate("continue", image)
@@ -303,16 +302,16 @@ class ScreenGame:
             self._loaded_at = now
         return now - self._loaded_at >= self.timings.learn_grace_after_loading_s
 
-    def set_minimum_bet(self) -> ScreenObservation:
+    def set_minimum_bet(self, ready: ScreenObservation) -> ScreenObservation:
         """Baja la apuesta hasta que deja de bajar, comprobándolo en pantalla cada vez.
 
-        Si el botón de bajar no está disponible (en el mínimo el juego lo desactiva) se deja de
-        pulsar SIN llamar a la IA: no es un cambio de interfaz. El tope `max_bet` del llamador
-        sigue impidiendo girar con una apuesta alta.
+        Parte de la lectura ya validada del juego listo (no se relee: una lectura pasajera
+        fallida no debe costar una llamada a la IA). Si el botón de bajar no está disponible
+        (en el mínimo el juego lo desactiva) se deja de pulsar SIN llamar a la IA. El tope
+        `max_bet` del llamador sigue impidiendo girar con una apuesta alta.
         """
         image = self.capture()
-        hud, _ = self.model.read_or_learn(image)
-        current = hud.bet.money.amount if hud.bet else None
+        current = ready.hud.bet.money.amount if ready.hud.bet else None
         unchanged = 0
         for _ in range(self.timings.max_bet_presses):
             point = self.model.locate("bet_down", image)
@@ -335,13 +334,17 @@ class ScreenGame:
         """Pulsa girar UNA vez y vigila los rodillos hasta que el giro termina (o no empieza)."""
         before = self.capture()
         point = self.model.locate_or_learn("spin", before)
-        evidence = [str(self.evidence.save_image("antes_de_girar", before))]
+        evidence: list[str] = []
         previous = self.model.reels(before)
         self.click(point)
         scores: list[float] = []
         mid_saved = False
-        deadline = time.monotonic() + self.timings.spin_timeout_s
+        clicked = time.monotonic()
+        deadline = clicked + self.timings.spin_timeout_s
         while time.monotonic() < deadline:
+            no_reaction = not detect_spin_lifecycle(scores).started
+            if no_reaction and time.monotonic() - clicked > self.timings.spin_start_timeout_s:
+                break  # un giro real arranca en <1 s: si no, el juego no giró (p. ej. sin saldo)
             image = self.capture()
             current = self.model.reels(image)
             scores.append(motion_score(previous, current))

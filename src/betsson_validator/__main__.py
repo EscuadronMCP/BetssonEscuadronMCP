@@ -7,6 +7,9 @@ uv run python -m betsson_validator learn --game big-bass-splash # incorpora un j
 import argparse
 import os
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,6 +19,7 @@ from betsson_validator.browser import BrowserSettings
 from betsson_validator.config.market import load_market
 from betsson_validator.config.provider import load_provider
 from betsson_validator.domain.checks import Scenario
+from betsson_validator.domain.run import ScenarioRun
 from betsson_validator.domain.verdict import Status
 from betsson_validator.perception.learner import ClaudeScreenLearner, ScreenLearner
 from betsson_validator.perception.ocr import RapidOcrReader
@@ -47,6 +51,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     run = commands.choices["run"]
     run.add_argument("--scenario", choices=[*[s.value for s in Scenario], "all"], default="all")
     run.add_argument("--summary", type=Path, default=None, help="Añade un resumen Markdown aquí.")
+    run.add_argument("--video", action="store_true", help="Grabar vídeo (informe más pesado).")
+    run.add_argument(
+        "--sequential",
+        action="store_true",
+        help="Ejecutar los escenarios uno tras otro (por defecto, en paralelo).",
+    )
     return parser.parse_args(argv)
 
 
@@ -60,7 +70,9 @@ def _context(args: argparse.Namespace, out_dir: Path) -> RunContext:
         provider=provider,
         game=args.game or provider.game_slug,
         settings=BrowserSettings(
-            headless=not args.headed, channel=None if args.channel == "chromium" else args.channel
+            headless=not args.headed,
+            channel=None if args.channel == "chromium" else args.channel,
+            record_video=getattr(args, "video", False),
         ),
         reader=RapidOcrReader(),
         out_dir=out_dir,
@@ -72,20 +84,35 @@ def _run(args: argparse.Namespace, ctx: RunContext) -> int:
     scenarios = list(Scenario) if args.scenario == "all" else [Scenario(args.scenario)]
     if ctx.learner is None:
         print("Sin ANTHROPIC_API_KEY: se usa el perfil aprendido sin posibilidad de reaprender.")
-    runs = []
     for scenario in scenarios:
         print(f"→ {scenario.value} · {ctx.market.id} · {ctx.provider.filter_label} · {ctx.game}")
-        run = run_scenario(scenario, ctx)
-        print(f"  {run.status.value}" + (f" ({run.error})" if run.error else ""), flush=True)
+    started = time.monotonic()
+    runs = _run_all(scenarios, ctx, parallel=not args.sequential)
+    for run in runs:
+        print(
+            f"{run.scenario.value}: {run.status.value}" + (f" ({run.error})" if run.error else "")
+        )
         for note in run.notes:
             print(f"  nota: {note}")
-        runs.append(run)
     json_path, html_path = write_report(runs, ctx.out_dir)
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as summary:
             summary.write(render_markdown(runs))
-    print(f"Informe: {html_path}\nDatos: {json_path}")
+    print(f"Duración: {time.monotonic() - started:.0f} s\nInforme: {html_path}\nDatos: {json_path}")
     return 0 if all(run.status is Status.PASS for run in runs) else 1
+
+
+def _run_all(scenarios: list[Scenario], ctx: RunContext, *, parallel: bool) -> list[ScenarioRun]:
+    """Cada escenario usa su propia cuenta, así que pueden ir a la vez: el tiempo total es el del
+    más lento. Cada hilo tiene su navegador y su lector de OCR (no se comparten entre hilos)."""
+    if not parallel or len(scenarios) == 1:
+        return [run_scenario(scenario, ctx) for scenario in scenarios]
+    with ThreadPoolExecutor(max_workers=len(scenarios)) as pool:
+        futures = [
+            pool.submit(run_scenario, scenario, replace(ctx, reader=RapidOcrReader()))
+            for scenario in scenarios
+        ]
+        return [future.result() for future in futures]
 
 
 def _learn(ctx: RunContext) -> int:

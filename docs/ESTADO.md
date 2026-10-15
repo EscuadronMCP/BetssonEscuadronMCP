@@ -50,6 +50,7 @@ Cada etapa deja una versión entregable. Marca `[x]` al terminar y apunta en "En
 - **El juego recuerda la última apuesta**: en el mínimo, "−" aparece desactivado y no se busca con IA.
 - **Avisos tardíos con la red lenta** (cookies, sesión de juego): las cookies se aceptan cuando aparezcan y la sesión se da por abierta cuando el juego del proveedor ya cargó.
 - **El contador de crédito se anima** tras un premio: la lectura final espera a que el crédito sea estable.
+- **⚠️ Nadie debe usar la cuenta con saldo mientras corren las pruebas.** El 15/10 una ejecución dio FAIL por discrepancia: con una apuesta de 0,20 € sin premio, el saldo bajó 2,30 €; los propios eventos del juego lo muestran (otra sesión gastó 2,10 € a la vez). El validador lo detectó correctamente.
 - **Saldo de la cuenta con saldo**: bajó de 64 € a 0,35 € por un uso ajeno a este programa. Betsson la recargó. Cada ejecución del escenario 1 gasta una tirada de 0,20 €.
 - **Trazas enormes (hasta 900 MB)** con instantáneas: ahora la traza es ligera (solo acciones).
 - **Resuelto: login rechazado (403) por AWS WAF.** Se lanza Chrome sin la marca de automatización, se espera el token y se teclea a ritmo humano.

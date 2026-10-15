@@ -26,6 +26,9 @@ class BrowserSettings:
     width: int = 1440
     height: int = 900
     slow_typing_ms: int = 90
+    # El vídeo es la evidencia más pesada (25-50 MB por escenario); capturas y traza ya cubren
+    # lo que pide el reto. Se activa con --video cuando hace falta (p. ej. para la demo).
+    record_video: bool = False
 
 
 @contextmanager
@@ -43,8 +46,12 @@ def browser_context(settings: BrowserSettings, evidence_dir: Path) -> Iterator[B
             viewport={"width": settings.width, "height": settings.height},
             locale=settings.locale,
             timezone_id=settings.timezone,
-            record_video_dir=str(evidence_dir / "video"),
-            record_video_size={"width": settings.width, "height": settings.height},
+            record_video_dir=str(evidence_dir / "video") if settings.record_video else None,
+            record_video_size=(
+                {"width": settings.width, "height": settings.height}
+                if settings.record_video
+                else None
+            ),
         )
         try:
             yield context

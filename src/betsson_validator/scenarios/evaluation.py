@@ -107,7 +107,13 @@ def spin_completed(evidence: RunEvidence) -> CheckResult:
     else:
         detail = "el juego no reaccionó al botón de girar"
     testimonies = [
-        _t(MOTION, WitnessKind.VISUAL, motion.completed, detail, (evidence.screen_after.evidence,))
+        _t(
+            MOTION,
+            WitnessKind.VISUAL,
+            motion.completed,
+            detail,
+            (*motion.evidence, evidence.screen_after.evidence),
+        )
     ]
     network = evidence.network
     if network is None:

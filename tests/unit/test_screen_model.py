@@ -87,7 +87,11 @@ def test_moved_button_is_found_without_ai(reader: RapidOcrReader) -> None:
 def test_changed_labels_are_relearned(reader: RapidOcrReader) -> None:
     learner = FakeLearner(REAL_ANALYSIS)
     model = ScreenModel(profile(credit_label="SALDO", bet_label="STAKE"), reader, "EUR", learner)
-    hud, _ = model.read_or_learn(load("sweet_bonanza_ready.png"))
+    image = load("sweet_bonanza_ready.png")
+    hud, _ = model.read(image)
+    assert hud.credit is None  # con las etiquetas antiguas no se lee nada
+    model.learn(image, "no se veía el crédito ni la apuesta")
+    hud, _ = model.read(image)
     assert hud.credit is not None and hud.credit.money.amount == Decimal("64.70")
     assert hud.bet is not None and hud.bet.money.amount == Decimal("2.00")
     assert learner.calls == 1
@@ -106,7 +110,8 @@ def test_redesigned_button_is_relearned(reader: RapidOcrReader) -> None:
 
 def test_without_ai_a_changed_screen_fails_honestly(reader: RapidOcrReader) -> None:
     model = ScreenModel(profile(credit_label="SALDO", bet_label="STAKE"), reader, "EUR", None)
-    hud, _ = model.read_or_learn(load("sweet_bonanza_ready.png"))
+    assert model.learn(load("sweet_bonanza_ready.png"), "sin IA") is None
+    hud, _ = model.read(load("sweet_bonanza_ready.png"))
     assert hud.credit is None and hud.bet is None
     with pytest.raises(GameError, match="spin"):
         model.locate_or_learn("spin", load("sweet_bonanza_ready.png"))

@@ -24,6 +24,7 @@ class MotionSummary:
     completed: bool
     samples: int
     peak: float
+    evidence: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

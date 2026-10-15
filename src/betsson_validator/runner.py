@@ -220,7 +220,7 @@ def _play(
     files: EvidenceRecorder,
 ) -> tuple[CheckResult, ...]:
     betsson_before = casino.read_balance()
-    header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.png")
+    header_before = casino.capture_balance(files.directory / "00_saldo_betsson_antes.jpg")
 
     handle = casino.launch_game(ctx.provider, ctx.game)
     game = ScreenGame(
@@ -234,8 +234,7 @@ def _play(
             (lambda: loading_finished(GameEventRecorder.collect(casino.page))) if events else None
         ),
     )
-    game.wait_until_ready()
-    ready = game.set_minimum_bet()
+    ready = game.set_minimum_bet(game.wait_until_ready())
     bet = ready.hud.bet.money if ready.hud.bet else None
     if bet is None or bet.amount > ctx.provider.max_bet:
         raise SafetyStopError(
@@ -261,8 +260,13 @@ def _play(
         calls = network.calls
         summary = _network_summary(calls[:mark], calls[mark:], str(traffic))
 
-    betsson_after = casino.read_balance_after(betsson_before)
-    header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.png")
+    credit_changed = (
+        ready.hud.credit is None
+        or after.hud.credit is None
+        or ready.hud.credit.money != after.hud.credit.money
+    )
+    betsson_after = casino.read_balance_after(betsson_before, expect_change=credit_changed)
+    header_after = casino.capture_balance(files.directory / "99_saldo_betsson_despues.jpg")
 
     evidence = RunEvidence(
         market_currency=ctx.market.currency,
@@ -276,6 +280,7 @@ def _play(
             completed=spin.lifecycle.completed,
             samples=len(spin.scores),
             peak=spin.lifecycle.peak_score,
+            evidence=spin.evidence,
         ),
         network=summary,
         events=events_summary,

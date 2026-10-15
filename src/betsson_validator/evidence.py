@@ -8,6 +8,9 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
+# JPEG al 85 %: ~8 veces más ligero que PNG y el texto del HUD sigue legible en el informe.
+JPEG_QUALITY = 85
+
 
 class EvidenceRecorder:
     def __init__(self, directory: Path) -> None:
@@ -21,8 +24,8 @@ class EvidenceRecorder:
 
     def save_image(self, name: str, image: npt.NDArray[np.uint8]) -> Path:
         self._counter += 1
-        path = self._directory / f"{self._counter:02d}_{name}.png"
-        cv2.imwrite(str(path), image)
+        path = self._directory / f"{self._counter:02d}_{name}.jpg"
+        cv2.imwrite(str(path), image, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
         return path
 
     def save_json(self, name: str, data: Any) -> Path:  # noqa: ANN401 - datos serializables arbitrarios
